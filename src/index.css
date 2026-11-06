@@ -1,0 +1,859 @@
+@import "tailwindcss";
+
+/* Font families (loaded from Google Fonts in index.html). In the Next.js site these came from next/font. */
+:root {
+  --font-dmsans: "DM Sans";
+  --font-display: "Bricolage Grotesque";
+  --font-caveat: "Caveat";
+  --font-urdu: "Noto Nastaliq Urdu";
+  --font-urdu-ui: "Noto Naskh Arabic";
+}
+
+@theme {
+  /* Charcoal, silver and white, taken from the new Higer coaches' livery.
+     The "gold" token names are historical: they now hold the silver accent tones.
+     ink = page background, ivory = main text, coal = light section background. */
+  --color-ink: #ffffff;
+  --color-coal: #f1f3f5;
+  --color-panel: #ffffff;
+  --color-line: #dde1e5;
+  --color-gold: #c5ccd3;
+  --color-gold-light: #4a5259;
+  --color-gold-bright: #dfe4e9;
+  --color-gold-dark: #6b747c;
+  --color-ivory: #15181b;
+  --color-mute: #5b6168;
+  --font-sans: var(--font-dmsans), ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-hand: var(--font-caveat), "Segoe Print", cursive;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+}
+
+html[lang="ur"] body {
+  font-family: var(--font-urdu), "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Segoe UI", Tahoma, sans-serif;
+  line-height: 2.15; /* Nastaliq has tall ascenders and deep descenders and needs room */
+}
+/* Controls and short labels stay in clean Naskh so nothing clips inside buttons, chips and form fields. */
+html[lang="ur"] :is(button, .btn, input, select, textarea, label, summary, th, td, nav, .label, .field, .ltr, time, [role="timer"], sup) {
+  font-family: var(--font-urdu-ui), "Segoe UI", Tahoma, sans-serif;
+  line-height: 1.7;
+}
+html[lang="ur"] :is(.h1, .h2, h1, h2) { line-height: 1.9; }
+html[lang="ur"] :is(.h3, h3) { line-height: 1.8; }
+
+/* ---- Urdu typography -------------------------------------------------- */
+/* Nastaliq reads smaller than Latin at the same size: lift the whole Urdu scale a step, and the
+   two smallest sizes a little more. */
+html[lang="ur"] { font-size: 106.25%; --text-xs: 0.8125rem; --text-sm: 0.9375rem; }
+/* Tailwind's text sizes carry Latin line-heights (1.33 to 1.5); Nastaliq needs about 1.9.
+   --tw-leading is what every text-* utility reads first. Controls stay tighter (Naskh). */
+html[lang="ur"] * { --tw-leading: 1.9; }
+html[lang="ur"] :is(button, .btn, input, select, textarea, label, summary, nav, th, td, .label, .field, .ltr, time),
+html[lang="ur"] :is(button, .btn, label, summary, nav, th, td, .label, .ltr) * { --tw-leading: 1.55; }
+html[lang="ur"] :is(h1, h2, .h1, .h2) { line-height: 1.75 !important; }
+/* Letter-spacing pulls joined Urdu letters apart, so Urdu is never tracked. */
+html[lang="ur"] :not(.ltr) { letter-spacing: normal !important; }
+/* Tight line-heights made for Latin make Nastaliq lines collide; controls (Naskh) need less room. */
+html[lang="ur"] [class*="leading-"] { line-height: 1.85; }
+html[lang="ur"] :is(button, .btn, input, select, label, summary, nav, th, td, .label, .field, .ltr, time)[class*="leading-"],
+html[lang="ur"] :is(button, .btn, label, summary, nav, th, td, .label, .ltr) [class*="leading-"] { line-height: 1.55; }
+/* Fixed pixel sizes under 13px are too small for Nastaliq; give small labels a readable floor. */
+html[lang="ur"] :is([class*="text-[10"], [class*="text-[11"], [class*="text-[12"]):not(.ltr) { font-size: 0.8125rem; }
+/* Latin display and handwriting faces have no Urdu letters: use Nastaliq in their place. */
+html[lang="ur"] :is(.font-display, .font-hand) { font-family: var(--font-urdu), "Noto Nastaliq Urdu", serif; }
+/* Urdu has no italics, and underlines need to clear the deep Nastaliq descenders. */
+html[lang="ur"] :is(em, i, .italic) { font-style: normal; }
+html[lang="ur"] a { text-underline-offset: 0.55em; text-decoration-thickness: 1px; }
+
+/* Digits, phone numbers and prices always read left to right. */
+.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-gold-light);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .container-nk {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+  .btn {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold transition-colors;
+  }
+  .btn-gold {
+    @apply border-2 border-[#1b1e21] bg-[linear-gradient(180deg,#ffffff_0%,#dfe4e9_55%,#c5ccd3_100%)] text-[#15181b] hover:bg-[linear-gradient(180deg,#ffffff_0%,#eef1f4_55%,#d5dbe0_100%)];
+  }
+  .btn-ghost {
+    @apply border border-black/80 text-black hover:bg-black hover:text-white;
+  }
+  .card {
+    @apply rounded-2xl border border-line bg-panel p-5 shadow-sm;
+  }
+  /* The home page's one card style: ink outline on paper with a solid offset shadow (as on the route map). */
+  .ink-card {
+    @apply rounded-2xl border-2 border-[#1b1e21] bg-white shadow-[4px_4px_0_#1b1e21];
+  }
+  html[lang="en"] .h1,
+  html[lang="en"] .h2 {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  .h1 {
+    @apply text-3xl font-bold leading-tight tracking-tight sm:text-5xl;
+  }
+  .h2 {
+    @apply text-2xl font-bold leading-tight sm:text-3xl;
+  }
+  .h3 {
+    @apply text-lg font-semibold;
+  }
+  .lead {
+    @apply text-lg text-mute;
+  }
+  .field {
+    @apply min-h-12 w-full rounded-xl border border-gold/50 bg-white px-3 py-2 text-base text-black placeholder:text-mute/60;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-mute;
+  }
+  .section {
+    @apply py-10 sm:py-20;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion. CSS only (no animation library), all of it switched off for */
+/* people who ask for reduced motion.                                  */
+/* ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: no-preference) {
+  /* Page-load entrances */
+  @keyframes nk-rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes nk-draw {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  .enter { animation: nk-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--d, 0) * 110ms); }
+  .draw { transform-origin: left; animation: nk-draw 0.9s 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  html[dir="rtl"] .draw { transform-origin: right; }
+
+  /* Slow push-in on the hero photo */
+  @keyframes nk-kenburns {
+    from { transform: scale(1); }
+    to { transform: scale(1.07); }
+  }
+  .kenburns { animation: nk-kenburns 22s ease-in-out infinite alternate; }
+
+  /* Scroll reveals: pure CSS scroll-driven animation where supported, otherwise content is simply visible */
+  @supports (animation-timeline: view()) {
+    @keyframes nk-reveal {
+      from { opacity: 0; transform: translateY(32px) scale(0.98); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes nk-reveal-x {
+      from { opacity: 0; transform: translateX(-36px); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes nk-line {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+    .reveal {
+      animation: nk-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry calc(45% + var(--i, 0) * 6%);
+    }
+    .reveal-x {
+      animation: nk-reveal-x linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 50%;
+    }
+    html[dir="rtl"] .reveal-x { animation-name: nk-reveal-x-rtl; }
+    @keyframes nk-reveal-x-rtl {
+      from { opacity: 0; transform: translateX(36px); }
+      to { opacity: 1; transform: none; }
+    }
+    .line-grow {
+      transform-origin: left;
+      animation: nk-line linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 40%;
+    }
+    html[dir="rtl"] .line-grow { transform-origin: right; }
+    /* Gentle parallax on feature photos */
+    @keyframes nk-parallax {
+      from { transform: translateY(-4%) scale(1.08); }
+      to { transform: translateY(4%) scale(1.08); }
+    }
+    .parallax { animation: nk-parallax linear both; animation-timeline: view(); }
+  }
+
+  /* Looping destination strip (mouse devices only; touch devices swipe) */
+  @media (hover: hover) {
+    @keyframes nk-marquee {
+      to { transform: translateX(-50%); }
+    }
+    @keyframes nk-marquee-rtl {
+      to { transform: translateX(50%); }
+    }
+    .strip { overflow: hidden; }
+    .strip-track { width: max-content; animation: nk-marquee 55s linear infinite; }
+    html[dir="rtl"] .strip-track { animation-name: nk-marquee-rtl; }
+    .strip:hover .strip-track, .strip:focus-within .strip-track { animation-play-state: paused; }
+    .strip-copy { display: flex; }
+  }
+
+  /* Ticker band */
+  @keyframes nk-ticker { to { transform: translateX(-50%); } }
+  @keyframes nk-ticker-rtl { to { transform: translateX(50%); } }
+  .ticker-track { width: max-content; animation: nk-ticker 38s linear infinite; }
+  html[dir="rtl"] .ticker-track { animation-name: nk-ticker-rtl; }
+
+  /* The road: bus drives across, lane markings stream past */
+  @keyframes nk-drive {
+    from { transform: translateX(-120%); }
+    to { transform: translateX(calc(100vw + 20%)); }
+  }
+  @keyframes nk-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+  }
+  @keyframes nk-lane {
+    to { background-position-x: -96px; }
+  }
+  .road-bus { animation: nk-drive 16s linear infinite; }
+  .road-bus > img { animation: nk-bounce 0.55s ease-in-out infinite; }
+  .road-lane { animation: nk-lane 0.7s linear infinite; }
+
+  /* Attention pulse on WhatsApp bubble */
+  @keyframes nk-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55); }
+    70% { box-shadow: 0 0 0 18px rgba(37, 211, 102, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+  }
+  .pulse { animation: nk-pulse 2.4s ease-out infinite; }
+
+  /* Shine sweep on the main CTA */
+  @keyframes nk-shine {
+    0%, 60% { transform: translateX(-120%) skewX(-20deg); }
+    100% { transform: translateX(220%) skewX(-20deg); }
+  }
+  .btn-shine { position: relative; overflow: hidden; }
+  .btn-shine::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    animation: nk-shine 3.6s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Card and tile lift */
+  .lift { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+  .lift:hover { transform: translateY(-4px); box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.35); }
+  .ink-card.lift:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #1b1e21; }
+}
+
+/* Without motion, the looped copy of the strip stays hidden and the strip scrolls by hand */
+.strip-copy { display: none; }
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .strip-copy { display: flex; }
+}
+.strip-copy:first-child { display: flex; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Route progress: a gold pulse travels the line from Lahore to the last stop */
+  @keyframes nk-travel {
+    0% { inset-inline-start: 0; opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { inset-inline-start: calc(100% - 14px); opacity: 0; }
+  }
+  .route-dot { animation: nk-travel 7s cubic-bezier(0.45, 0, 0.35, 1) infinite; }
+  /* Film grain-ish flicker on the vignette */
+  @keyframes nk-flare {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.6; }
+  }
+  .flare { animation: nk-flare 6s ease-in-out infinite; }
+}
+
+html[lang="en"] .font-display { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.02em; }
+
+/* Confirmation tick */
+.tick-circle { stroke-dasharray: 166; stroke-dashoffset: 0; }
+.tick-check { stroke-dasharray: 48; stroke-dashoffset: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes nk-stroke { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+  @keyframes nk-pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+  .tick-circle { --len: 166; animation: nk-stroke 0.7s cubic-bezier(0.65, 0, 0.45, 1) both; }
+  .tick-check { --len: 48; animation: nk-stroke 0.4s 0.55s cubic-bezier(0.65, 0, 0.45, 1) both; }
+  .tick-wrap { animation: nk-pop 0.6s 0.1s ease-out both; }
+}
+
+/* Home page route map (components/RouteMap.tsx): a night map in charcoal and silver, routes as glowing lines.
+   Sizes are map units. */
+.rmap .river { fill: none; stroke: rgba(170, 186, 202, 0.32); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.rmap .rivlab { fill: rgba(190, 202, 214, 0.5); font: 500 19px var(--font-hand); }
+.rmap .region { fill: rgba(255, 255, 255, 0.045); font: 700 120px var(--font-hand); text-anchor: middle; }
+.rmap .pen { fill: none; stroke: rgba(233, 236, 239, 0.7); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.rmap .note { fill: #e9ecef; font: 500 18px var(--font-hand); }
+.rmap .note-s { fill: rgba(233, 236, 239, 0.55); font: 500 16px var(--font-hand); }
+.rmap .base { fill: none; stroke: rgba(255, 255, 255, 0.12); stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 3 5; }
+.rmap .fdot { fill: #121417; stroke: rgba(255, 255, 255, 0.28); stroke-width: 1.3; }
+.rmap .veil { fill: #121417; opacity: 0; transition: opacity 0.7s ease; pointer-events: none; }
+.rmap .veil-on { opacity: 0.78; }
+.rmap .mask { fill: none; stroke: #fff; stroke-width: 34; stroke-linecap: round; stroke-linejoin: round; stroke-dashoffset: var(--len); animation: rmap-draw 2s cubic-bezier(0.5, 0.05, 0.35, 1) forwards; }
+.rmap .glow { fill: none; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; opacity: 0.55; }
+.rmap .hl { fill: none; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+.rmap .ink { fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
+.rmap .zf .glow { stroke-width: 16; opacity: 0.7; }
+.rmap .zf .hl { stroke-width: 6.5; }
+.rmap .zf .ink { stroke-width: 1.6; }
+.rmap .dot { transform-box: fill-box; transform-origin: center; animation: rmap-pop 0.5s cubic-bezier(0.2, 1.7, 0.4, 1) backwards; }
+.rmap .dot-major { fill: #121417; stroke: #f5f6f7; stroke-width: 2.6; filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.55)); }
+.rmap .dot-minor { fill: #e9ecef; stroke: #121417; stroke-width: 1.6; filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5)); }
+.rmap .zf .dot-major { stroke-width: 3.2; }
+.rmap .ring { fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.2; stroke-dasharray: 3 3; transform-box: fill-box; transform-origin: center; animation: rmap-ring 2.6s ease-out infinite; }
+.rmap .bus { opacity: 0; animation: rmap-fade 0.4s ease forwards; pointer-events: none; }
+.rmap .tag { cursor: pointer; transition: opacity 0.3s; }
+.rmap .tag text { transition: fill 0.15s; }
+.rmap .tag text { fill: #f1f3f5; font: 600 19px var(--font-hand); paint-order: stroke; stroke: #121417; stroke-width: 6px; stroke-linejoin: round; }
+.rmap .tag:hover text, .rmap .tag-on text { fill: #ffffff; }
+.rmap .tag-major text { font-weight: 700; font-size: 23px; }
+.rmap .tag .lead { fill: none; stroke: rgba(255, 255, 255, 0.5); stroke-width: 1.2; stroke-linecap: round; }
+.rmap .tag-mb { display: none; }
+.rmap .tag-off { opacity: 0.2; }
+.rmap-ur .tag text, .rmap-ur .region, .rmap-ur .rivlab, .rmap-ur .note { font-family: var(--font-urdu-ui), sans-serif; }
+.rmap-ur .tag text { font-size: 15px; }
+.rmap-ur .tag-major text { font-size: 18px; }
+.rmap-ur .region { font-size: 90px; }
+.rmap-pop { animation: rmap-in 0.22s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.rmap-town-hint { animation: rmap-hint 2.4s ease-out infinite; }
+@keyframes rmap-hint { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.22); } 70%, 100% { box-shadow: 0 0 0 9px rgba(255, 255, 255, 0); } }
+@keyframes rmap-draw { to { stroke-dashoffset: 0; } }
+/* Until the map scrolls into view the drawing waits at its first frame: lines undrawn, towns and buses hidden. */
+@media (prefers-reduced-motion: no-preference) { .rmap-wait .mask, .rmap-wait .dot, .rmap-wait .ring, .rmap-wait .bus { animation-play-state: paused; } }
+@keyframes rmap-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rmap-pop { from { transform: scale(0); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes rmap-ring { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2.6); opacity: 0; } }
+@keyframes rmap-in { from { transform: translateY(6px) scale(0.96); opacity: 0; } }
+.rmap .hit { fill: none; stroke: transparent; stroke-width: 24px; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* Phones: the map is small, so the lettering is bigger in map units. Smaller stops show only on their picked route,
+   and towns off the picked route drop out entirely. */
+@media (max-width: 639px) {
+  .rmap .sm-hide { display: none; }
+  .rmap-town-hint { animation: none; }
+  .rmap .tag text { font-size: 26px; stroke-width: 8px; }
+  .rmap .tag-major text { font-size: 29px; }
+  .rmap-ur .tag text { font-size: 22px; }
+  .rmap-ur .tag-major text { font-size: 25px; }
+  .rmap:not(.rmap-sel) .tag:not(.tag-major) { display: none; }
+  .rmap .tag-mb { display: inline; }
+  .rmap .tag-dk { display: none !important; }
+  .rmap .tag-off { display: none; }
+  .rmap .hl { stroke-width: 6px; }
+  .rmap .glow { stroke-width: 16px; }
+  .rmap .dot-major { stroke-width: 3.2px; }
+  .rmap .hit { stroke-width: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rmap .mask, .rmap .dot, .rmap .bus, .rmap-pop { animation-duration: 0s !important; animation-delay: 0s !important; }
+  .rmap .ring, .rmap-town-hint { animation: none; }
+  .rmap .zf, .rmap ~ div { transition: none !important; }
+}
+
+/* Our journey (components/HomeSections.tsx): sketched in ink on dotted paper, like the route map.
+   Strokes keep their width however tall the section is (vector-effect), so the road looks the same on every screen. */
+.jpaper { background-color: #eef0f2; background-image: radial-gradient(rgba(29, 26, 21, 0.13) 1.1px, transparent 1.3px); background-size: 22px 22px; }
+.jroad path { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.jroad .kerb { stroke: #1b1e21; stroke-width: 33px; }
+.jroad .asphalt { stroke: #e3e6e9; stroke-width: 28px; }
+.jroad .centre { stroke: #1b1e21; stroke-width: 2px; stroke-dasharray: 10 11; opacity: 0.75; }
+@media (min-width: 768px) {
+  .jroad .kerb { stroke-width: 53px; }
+  .jroad .asphalt { stroke-width: 47px; }
+  .jroad .centre { stroke-width: 2.5px; stroke-dasharray: 14 13; }
+}
+/* Photos as pencil prints: grey, a little warm, a little harder contrast */
+.jsketch { filter: grayscale(1) sepia(0.28) contrast(1.12) brightness(1.04); }
+/* Today's photo is in colour (it fills in as it arrives when animated; see below) */
+.jtrack:not([data-anim]) .jcolour, .jtrack li[data-in] .jcolour { filter: none; }
+.jroad-guide { opacity: 0.16; }
+.jtrack .jstone { transform: rotate(var(--tilt)); }
+.jtrack .jphoto { transform: rotate(var(--tilt)); transition: transform 0.5s cubic-bezier(0.2, 1.2, 0.4, 1), box-shadow 0.3s ease; }
+.jtrack .jphoto:hover { transform: rotate(0deg) scale(1.03); box-shadow: 9px 9px 0 #1b1e21; }
+.jtrack .jtape { transform: translateX(-50%) rotate(-5deg); }
+.jtrack .jbus { will-change: transform; filter: drop-shadow(2px 3px 0 rgba(29, 26, 21, 0.35)); }
+.jtrack .jend { opacity: 1; }
+
+/* Our journey, animated (JourneyTrack sets data-anim, --p and data-in). Off for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  /* The inked road draws itself down to where the coach is */
+  .jtrack[data-anim] .jroad-main { clip-path: inset(0 -80px calc((1 - var(--p, 0)) * 100%) -80px); }
+  /* Milestone stone: springs up out of the ground */
+  .jtrack[data-anim] li[data-step] .jstone { transition: transform 0.75s cubic-bezier(0.2, 1.7, 0.4, 1), opacity 0.3s ease; }
+  .jtrack[data-anim] li[data-step]:not([data-in]) .jstone { transform: rotate(-40deg) scale(0.2); opacity: 0; }
+  /* Year: rises in, then the pen underlines it */
+  .jtrack[data-anim] .jyear { transition: transform 0.7s cubic-bezier(0.2, 1, 0.3, 1) 0.15s, opacity 0.6s ease 0.15s; }
+  .jtrack[data-anim] li:not([data-in]) .jyear { transform: translateY(18px); opacity: 0; }
+  .jtrack[data-anim] .jscrib path { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 0.8s ease 0.55s; }
+  .jtrack[data-anim] li:not([data-in]) .jscrib path { stroke-dashoffset: 1; }
+  .jtrack[data-anim] .jtext { transition: transform 0.7s ease 0.3s, opacity 0.7s ease 0.3s; }
+  .jtrack[data-anim] li:not([data-in]) .jtext { transform: translateY(12px); opacity: 0; }
+  /* Photo: tossed onto the page, settles at its tilt, then the tape goes on */
+  .jtrack[data-anim] li[data-step] .jphoto { transition: transform 0.95s cubic-bezier(0.2, 1.3, 0.35, 1) 0.2s, opacity 0.5s ease 0.2s, box-shadow 0.3s ease; }
+  .jtrack[data-anim] li:not([data-in]) .jphoto { transform: translateY(70px) rotate(calc(var(--tilt) * -5)) scale(0.9); opacity: 0; }
+  .jtrack[data-anim] .jtape { transition: transform 0.35s ease 1s; }
+  .jtrack[data-anim] li:not([data-in]) .jtape { transform: translateX(-50%) rotate(-5deg) scaleX(0); }
+  /* Today: the print fills with colour once it lands */
+  .jtrack[data-anim] .jcolour { transition: filter 1.6s ease 1.1s; }
+  /* The last words appear when the coach reaches the end of the road */
+  .jtrack[data-anim] .jend { opacity: 0; transition: opacity 0.6s ease; }
+  .jtrack[data-anim][data-done] .jend { opacity: 1; }
+}
+
+/* Departure board rows flip in one after another, like a station board updating (components/DepartureBoard.tsx). */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes nk-flip { from { transform: perspective(600px) rotateX(-80deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  .board-row { transform-origin: top; animation: nk-flip 0.55s cubic-bezier(0.2, 1.2, 0.4, 1) both; animation-delay: calc(var(--i, 0) * 90ms); }
+}
+
+/* Passengers come first: notes pinned at a slight tilt; they straighten up when you point at them (components/HomeSections.tsx). */
+.note { transform: rotate(var(--tilt, 0deg)); transition: transform 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.note:hover { transform: rotate(0deg) translateY(-3px); }
+
+/* Split-flap departure board (components/DepartureBoard.tsx). --fw is one flap plus its gap, worked out at the
+   board's own letter size so the column headings line up with the flaps under them. */
+@property --fw { syntax: "<length>"; inherits: true; initial-value: 0px; }
+.flapboard { font-size: 12.5px; --fw: calc(0.74em + 2px); }
+@media (min-width: 640px) { .flapboard { font-size: 16px; } }
+@media (min-width: 1024px) { .flapboard { font-size: 19px; } }
+.flap-row { display: inline-flex; gap: 2px; }
+.flap {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 0.74em; height: 1.32em; border-radius: 3px; perspective: 160px;
+  font: 700 1em/1 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; color: inherit;
+  background: #1c1f23; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+.flap-word { width: auto; min-width: 2.6em; padding: 0 0.5em; font: 600 1.25em/1 var(--font-urdu-ui), sans-serif; height: 1.75em; }
+.flap-h {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 3px; backface-visibility: hidden; white-space: pre;
+}
+.flap-t { clip-path: inset(0 0 50% 0); background: linear-gradient(#25292e, #1f2226); }
+.flap-b { clip-path: inset(50% 0 0 0); background: linear-gradient(#1a1d20, #16181b); }
+/* The hinge across the middle of every flap */
+.flap::after { content: ""; position: absolute; inset-inline: 0; top: 50%; height: 1px; background: rgba(0, 0, 0, 0.85); z-index: 3; }
+.flap-fold { z-index: 2; transform-origin: 50% 50%; animation: flap-fold 62ms ease-in forwards; }
+.flap-drop { z-index: 2; transform-origin: 50% 50%; transform: rotateX(90deg); animation: flap-drop 62ms ease-out 62ms forwards; }
+.flap-word .flap-fold, .flap-word .flap-drop { animation-duration: 140ms; }
+.flap-word .flap-drop { animation-delay: 140ms; }
+@keyframes flap-fold { to { transform: rotateX(-90deg); } }
+@keyframes flap-drop { to { transform: rotateX(0deg); } }
+.flapboard-row:hover .flap { background: #22262b; }
+@media (prefers-reduced-motion: reduce) { .flap-fold, .flap-drop { animation: none; display: none; } }
+
+
+/* Parcels section (components/BookingSections.tsx). --p (0 to 1, set by ScrollProgress as the section scrolls up)
+   moves the parcel from the first stop to the last; data-stage lights the stops it has reached. The stops' centres
+   sit at 1/6, 3/6 and 5/6 of the track, so the run is the middle two thirds. Logical insets, so Urdu runs right to left. */
+.parcel-track { --dot: 44px; }
+@media (min-width: 640px) { .parcel-track { --dot: 52px; } }
+.parcel-line, .parcel-fill { inset-inline-start: 16.67%; top: calc(3rem + var(--dot) / 2 - 1.5px); }
+@media (min-width: 640px) { .parcel-line, .parcel-fill { top: calc(3.5rem + var(--dot) / 2 - 1.5px); } }
+.parcel-line { inset-inline-end: 16.67%; }
+.parcel-fill { width: calc(66.67% * var(--p, 1)); }
+.parcel-mover { inset-inline-start: calc(16.67% + 66.67% * var(--p, 1)); translate: -50% 0; z-index: 20; }
+html[dir="rtl"] .parcel-mover { translate: 50% 0; }
+.parcel-bob { animation: parcel-bob 1.4s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes parcel-bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-4px) rotate(2deg); } }
+.parcel-shadow { animation: parcel-shadow 1.4s ease-in-out infinite; }
+@keyframes parcel-shadow { 0%, 100% { opacity: 1; scale: 1 1; } 50% { opacity: 0.6; scale: 0.8 1; } }
+/* Before the parcel arrives a stop is quiet; when it arrives it turns charcoal with a silver icon and pops */
+.parcel-track.sp-on .pstop .ptitle { opacity: 0.4; }
+.parcel-track.sp-on .pstop .pdot { background: #ffffff; }
+.parcel-track[data-stage="1"] .pstop:nth-of-type(-n+1) :is(.ptitle),
+.parcel-track[data-stage="2"] .pstop:nth-of-type(-n+2) :is(.ptitle),
+.parcel-track[data-stage="3"] .pstop .ptitle { opacity: 1; }
+.parcel-track[data-stage="1"] .pstop:nth-of-type(-n+1) .pdot,
+.parcel-track[data-stage="2"] .pstop:nth-of-type(-n+2) .pdot,
+.parcel-track[data-stage="3"] .pstop .pdot { background: #1b1e21; color: #dfe4e9; transform: scale(1.08); }
+
+/* Family tiles (BookingSections.tsx): each tile has its own share of the scroll run (--t, 0 to 1, staggered by --i)
+   and comes in from its side (--dir), tilting and growing into place while its icon spins in. */
+.ftile { --rtl: 1; }
+html[dir="rtl"] .ftile { --rtl: -1; }
+.sp-on .ftile {
+  --t: clamp(0, (var(--p) - var(--i) * 0.13) / 0.55, 1);
+  opacity: var(--t);
+  transform: translate(calc((1 - var(--t)) * var(--dir) * var(--rtl) * 70px), calc((1 - var(--t)) * 36px))
+    rotate(calc((1 - var(--t)) * var(--dir) * var(--rtl) * 7deg)) scale(calc(0.88 + var(--t) * 0.12));
+}
+.sp-on .ftile .ficon { transform: scale(calc(0.35 + var(--t) * 0.65)) rotate(calc((1 - var(--t)) * -120deg)); }
+@media (prefers-reduced-motion: reduce) { .parcel-bob, .parcel-shadow { animation: none; } }
+
+/* Printing a confirmed ticket: only the booking itself, no site chrome. */
+@media print {
+  header, footer, nav, .no-print, [data-cta], .pulse, aside { display: none !important; }
+  body { background: #fff; }
+  .card { box-shadow: none; break-inside: avoid; }
+}
+
+/* =================================================================== */
+/* Pakka design layer: copied verbatim from the approved Pakka build      */
+/* (index.html). Sits on top of the base styles above, as on the live site. */
+/* =================================================================== */
+/* Pakka: Paper on a cool wash; one ink (#15181b); 2px outlines; one 4px offset shadow; 16px cards, 12px controls.
+   Dark only for "screens": the departure board, the route map, the closing band.
+   Urdu (Nastaliq) echoes English headings. The live site's components sit inside these frames. */
+:root {
+  --font-dmsans: "DM Sans";
+  --font-display: "Bricolage Grotesque";
+  --font-caveat: "Caveat";
+  --font-urdu: "Noto Nastaliq Urdu";
+  --font-urdu-ui: "Noto Naskh Arabic";
+  --pk-ink: #15181b;
+  --pk-ink2: #3a3f45;
+  --pk-mute: #545b62;
+  --pk-paper: #ffffff;
+  --pk-wash: #f2f3f5;
+  --pk-silver: #c5ccd3;
+  --pk-soft: #e6e9ec;
+  --pk-shadow: 4px 4px 0 #15181b;
+  color-scheme: light;
+}
+html, body { background: var(--pk-paper); color: var(--pk-ink); }
+#nk-root { overflow-x: clip; }
+img, video, svg { max-width: 100%; }
+/* Small phones: tighter rhythm, nothing wider than the screen */
+@media (max-width: 480px) {
+  .pk-bar-ur { display: none; }
+  .pk-section { padding-top: 44px; }
+  .pk-hero-in { padding-block: 24px 36px; gap: 28px; }
+  .pk-head-action { width: 100%; }
+  .pk-head-action .pk-btn { width: 100%; }
+  .pk-closing-actions { width: 100%; }
+  .pk-closing-actions .pk-btn { flex: 1; }
+  .pk-slip-grid { grid-template-columns: 1fr 1fr; }
+  .pk-menu-actions { grid-template-columns: 1fr; }
+}
+/* Tablets: the hero photo sits under the text at a comfortable size */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .pk-hero-media { max-width: 680px; }
+}
+:focus-visible { outline: 3px solid #4a7fc1; outline-offset: 2px; }
+.pk-main { background: var(--pk-wash); }
+
+/* --- Bar and header --- */
+.pk-bar { background: var(--pk-ink); color: #e6e9ec; font-size: 14px; }
+.pk-bar-in { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2px 18px; padding-block: 6px; }
+.pk-bar b { color: #fff; }
+.pk-bar-ur { font-size: 14px; line-height: 1.9; opacity: .85; }
+.pk-header { position: sticky; top: 0; z-index: 40; background: var(--pk-paper); border-bottom: 2px solid var(--pk-ink); }
+.pk-header-in { display: flex; align-items: center; gap: 12px 18px; padding-block: 10px; min-height: 64px; }
+.pk-logo { flex: none; }
+.pk-logo img { height: 42px; width: auto; display: block; }
+.pk-nav { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; }
+.pk-nav > a, .pk-dd-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 11px; border-radius: 10px; font-weight: 600; font-size: 15px; text-decoration: none; color: var(--pk-ink); background: none; border: 0; cursor: pointer; white-space: nowrap; font-family: inherit; }
+.pk-nav > a:hover, .pk-dd-btn:hover, .pk-dd-btn[aria-expanded="true"] { background: var(--pk-soft); }
+.pk-nav > a[aria-current="page"], .pk-dd-btn.is-on { background: var(--pk-ink); color: #fff; }
+.pk-dd-btn svg { transition: transform .2s; }
+.pk-dd-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.pk-dd { position: relative; }
+.pk-dd-panel { position: absolute; top: calc(100% + 8px); inset-inline-start: 0; z-index: 50; width: 300px; padding: 8px; background: #fff; border: 2px solid var(--pk-ink); border-radius: 16px; box-shadow: var(--pk-shadow); display: flex; flex-direction: column; gap: 2px; animation: pk-drop .16s ease-out; }
+@keyframes pk-drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.pk-dd-panel a { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; text-decoration: none; color: var(--pk-ink); }
+.pk-dd-panel a:hover { background: var(--pk-wash); }
+.pk-dd-panel a[aria-current="page"] { background: var(--pk-ink); color: #fff; }
+.pk-dd-panel a span { font-size: 13px; color: var(--pk-mute); }
+.pk-dd-panel a[aria-current="page"] span { color: #c9cfd5; }
+.pk-header-actions { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; flex: none; }
+.pk-lang[lang="ur"] { font-family: var(--font-urdu), serif; line-height: 1.6; }
+.pk-header-actions .pk-burger { display: none; width: 44px; padding: 0; }
+/* Below laptop width the row becomes a menu button */
+@media (max-width: 1099px) {
+  .pk-nav { display: none; }
+  .pk-header-actions .pk-burger { display: inline-flex; }
+}
+@media (max-width: 420px) {
+  .pk-header-actions .pk-book { display: none; } /* the sticky bottom bar already offers Book a seat on phones */
+  .pk-logo img { height: 36px; }
+}
+.pk-menu { border-top: 2px solid var(--pk-ink); background: #fff; max-height: calc(100dvh - 64px); overflow-y: auto; animation: pk-drop .18s ease-out; }
+.pk-menu-in { display: flex; flex-direction: column; gap: 2px; padding-block: 12px 20px; }
+.pk-menu-in > a { padding: 12px 12px; border-radius: 12px; font-weight: 700; font-size: 17px; text-decoration: none; color: var(--pk-ink); }
+.pk-menu-in > a[aria-current="page"] { background: var(--pk-ink); color: #fff; }
+.pk-menu-in > a:hover:not([aria-current="page"]) { background: var(--pk-wash); }
+.pk-menu-k { margin: 12px 12px 4px; font-size: 11px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--pk-mute); }
+html[lang="ur"] .pk-menu-k { letter-spacing: 0; font-size: 13px; }
+.pk-menu-sub { display: flex; flex-direction: column; gap: 2px; }
+.pk-menu-sub span { font-size: 13px; font-weight: 500; color: var(--pk-mute); }
+.pk-menu-sub[aria-current="page"] span { color: #c9cfd5; }
+.pk-menu-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+@media (max-width: 1023px) { .pk-menu-in { padding-bottom: 104px; } } /* clear the sticky Book / WhatsApp / Call bar */
+
+/* --- Buttons --- */
+.pk-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border-radius: 12px; border: 2px solid var(--pk-ink); background: var(--pk-paper); color: var(--pk-ink); font-weight: 700; text-decoration: none; transition: transform .12s, box-shadow .12s; white-space: nowrap; }
+.pk-btn:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--pk-ink); }
+.pk-btn-s { min-height: 42px; padding: 0 14px; font-size: 14px; }
+.pk-btn-ink { background: var(--pk-ink); color: #fff; }
+.pk-btn-white { background: #fff; color: var(--pk-ink); border-color: #fff; }
+.pk-btn-outline { background: transparent; color: #fff; border-color: #fff; }
+.pk-btn-white:hover, .pk-btn-outline:hover { box-shadow: 3px 3px 0 #000; }
+
+/* --- Type --- */
+.pk-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--pk-mute); }
+html[lang="ur"] .pk-eyebrow { letter-spacing: 0; font-size: 14px; }
+.pk-n { display: inline-flex; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--pk-ink); color: #fff; align-items: center; justify-content: center; font-size: 11px; letter-spacing: 0; }
+.pk-lead { font-size: 18px; line-height: 1.55; color: var(--pk-ink2); max-width: 600px; }
+.pk-small { font-size: 14px; color: var(--pk-mute); }
+.pk-small a { color: var(--pk-ink); }
+.pk-ur { font-family: var(--font-urdu), serif; letter-spacing: 0; text-transform: none; unicode-bidi: plaintext; }
+.pk-echo { display: block; font-family: var(--font-urdu), serif; font-weight: 500; font-size: max(15px, .44em); line-height: 2; letter-spacing: 0; text-transform: none; opacity: .62; margin-top: .1em; unicode-bidi: plaintext; text-align: left; }
+.text-center .pk-echo { text-align: center; }
+html[lang="ur"] .pk-echo { display: none; }
+
+/* --- Section rhythm and heads --- */
+.pk-section { padding-block: clamp(48px, 7vw, 76px) 0; }
+.pk-main > :last-child { padding-bottom: 72px; }
+.pk-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 22px; }
+.pk-head-main { display: flex; flex-direction: column; gap: 8px; max-width: 720px; min-width: 0; }
+.pk-head h2 { font: 800 clamp(28px, 3.6vw, 44px)/1.05 var(--font-display), sans-serif; letter-spacing: -.02em; text-wrap: balance; color: var(--pk-ink); }
+html[lang="ur"] .pk-head h2 { font: 700 clamp(24px, 3vw, 34px)/1.9 var(--font-urdu), serif; letter-spacing: 0; }
+.pk-head-dark h2 { color: #fff; }
+.pk-head-dark .pk-eyebrow, .pk-head-dark .pk-lead { color: rgba(255,255,255,.7); }
+
+/* --- Cards and frames --- */
+.pk-card, .card, .ink-card { background: var(--pk-paper); border: 2px solid var(--pk-ink) !important; border-radius: 16px !important; box-shadow: var(--pk-shadow) !important; }
+.pk-frame { border: 2px solid var(--pk-ink); border-radius: 16px; overflow: hidden; box-shadow: var(--pk-shadow); position: relative; background: #000; }
+.pk-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pk-screen { background: #0e1013; border: 2px solid var(--pk-ink); border-radius: 16px; box-shadow: 4px 4px 0 var(--pk-silver); overflow: hidden; }
+.pk-screen > section { border: 0 !important; background: transparent !important; }
+.pk-screen > section > .container-nk { max-width: none; padding-inline: clamp(14px, 2.5vw, 26px); }
+.pk-screen-pad { padding: clamp(12px, 2vw, 22px); }
+
+/* --- Hero --- */
+.pk-hero { background: var(--pk-paper); border-bottom: 2px solid var(--pk-ink); }
+.pk-hero-in { display: grid; grid-template-columns: minmax(0, 1fr); gap: 36px; align-items: center; padding-block: 40px 48px; }
+@media (min-width: 1024px) { .pk-hero-in { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 48px; } }
+.pk-hero-text { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pk-hero-ur { font: 700 clamp(30px, 3.8vw, 50px)/1.9 var(--font-urdu), serif; unicode-bidi: plaintext; text-align: left; margin-bottom: -14px; }
+.pk-hero h1 { font: 800 clamp(44px, 6vw, 80px)/.98 var(--font-display), sans-serif; letter-spacing: -.025em; color: var(--pk-ink); }
+html[lang="ur"] .pk-hero h1 { font: 700 clamp(36px, 5vw, 60px)/1.9 var(--font-urdu), serif; letter-spacing: 0; }
+.pk-underline { position: relative; display: inline-block; }
+.pk-underline svg { position: absolute; inset-inline-start: 0; bottom: -.12em; width: 100%; height: .18em; color: var(--pk-ink); }
+html[lang="ur"] .pk-underline svg { bottom: .05em; }
+.pk-search { min-width: 0; }
+.pk-search-bar { display: none; }
+@media (min-width: 1024px) {
+  /* Desktop hero: headline beside the coach, the booking bar full width beneath, all on one screen */
+  .pk-search-card { display: none; }
+  .pk-search-bar { display: block; grid-column: 1 / -1; margin-top: 4px; }
+  .pk-hero-in { padding-block: 28px 32px; row-gap: 22px; align-items: center; }
+  .pk-hero h1 { font-size: clamp(48px, 5vw, 72px); }
+  .pk-hero-ur { font-size: clamp(30px, 3vw, 42px); }
+  .pk-hero-media { padding-bottom: 54px; }
+  .pk-video { aspect-ratio: 16 / 10; }
+}
+.pk-hero-media { position: relative; padding-bottom: 70px; min-width: 0; }
+.pk-video { aspect-ratio: 16 / 11; max-width: 100%; }
+.pk-video > img { position: absolute; inset: 0; object-position: 62% 50%; }
+.pk-stub { position: absolute; inset-inline-start: -14px; bottom: 0; width: min(380px, 92%); display: grid; grid-template-columns: 1fr 2px 104px; transform: rotate(-2deg); }
+@media (max-width: 520px) { .pk-stub { inset-inline-start: 0; transform: none; } }
+.pk-stub-main { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.pk-stub-side { padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; }
+.pk-perf { border-inline-start: 2px dashed var(--pk-silver); }
+.pk-k { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--pk-mute); }
+html[lang="ur"] .pk-k { letter-spacing: 0; font-size: 12px; }
+.pk-tno { font: 700 20px ui-monospace, Consolas, monospace; }
+.pk-stub-route { font-size: 14px; color: var(--pk-ink2); }
+.pk-badge, .pk-num { display: inline-flex; width: 34px; height: 34px; border-radius: 999px; border: 2px solid var(--pk-ink); align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: var(--pk-ink); flex: none; }
+
+/* --- Promises --- */
+.pk-band-wash { background: var(--pk-wash); padding-block: 40px 0; }
+.pk-promises { display: grid; grid-template-columns: 1fr; background: #fff; border: 2px solid var(--pk-ink); border-radius: 16px; box-shadow: var(--pk-shadow); overflow: hidden; }
+@media (min-width: 560px) { .pk-promises { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .pk-promises { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.pk-promises > div { padding: 22px; border-inline-end: 2px solid var(--pk-ink); border-bottom: 2px solid var(--pk-ink); margin: 0 -2px -2px 0; display: flex; flex-direction: column; gap: 4px; }
+html[dir="rtl"] .pk-promises > div { margin: 0 0 -2px -2px; }
+.pk-promises h3 { margin-top: 8px; font: 700 20px/1.15 var(--font-display), sans-serif; letter-spacing: -.01em; }
+html[lang="ur"] .pk-promises h3 { font: 700 19px/1.9 var(--font-urdu), serif; }
+.pk-promises .pk-ur { font-size: 15px; line-height: 1.9; color: var(--pk-mute); text-align: left; }
+.pk-body { font-size: 15px; line-height: 1.5; color: var(--pk-ink2); }
+
+/* --- Live animated sections keep their own art; Pakka sets their surface --- */
+.pk-live > section { background: var(--pk-wash) !important; color: var(--pk-ink); }
+
+/* --- Shared bits for the Pakka sections --- */
+.pk-two { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (min-width: 900px) { .pk-two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.pk-pad { padding: clamp(20px, 3vw, 30px); }
+.pk-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.pk-ur-s { font-size: 15px; line-height: 1.9; color: var(--pk-mute); text-align: left; }
+.pk-step-k { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--pk-mute); }
+html[lang="ur"] .pk-step-k { letter-spacing: 0; font-size: 13px; }
+.pk-i16 { width: 16px; height: 16px; } .pk-i18 { width: 18px; height: 18px; } .pk-i20 { width: 20px; height: 20px; }
+.pk-tag { position: absolute; inset-inline-start: 12px; bottom: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.92); border: 2px solid var(--pk-ink); font-size: 12px; font-weight: 700; color: var(--pk-ink); }
+
+/* Parcels: the route the parcel takes */
+.pk-ptrack { position: relative; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 26px; }
+.pk-ptrack::before, .pk-ptrack::after { content: ""; position: absolute; inset-inline-start: 17px; top: 18px; bottom: 18px; width: 4px; border-radius: 4px; }
+.pk-ptrack::before { background: var(--pk-soft); }
+.pk-ptrack::after { background: var(--pk-ink); transform-origin: top; transform: scaleY(1); }
+.pk-ptrack.sp-on::after { transform: scaleY(var(--p, 0)); }
+.pk-ptrack li { position: relative; z-index: 1; display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 16px; align-items: start; }
+.pk-ptrack h3 { font: 700 20px/1.2 var(--font-display), sans-serif; letter-spacing: -.01em; margin-top: 2px; }
+html[lang="ur"] .pk-ptrack h3 { font: 700 19px/1.9 var(--font-urdu), serif; }
+.pk-pdot { width: 38px; height: 38px; border-radius: 999px; border: 2px solid var(--pk-ink); background: #fff; color: var(--pk-ink); display: inline-flex; align-items: center; justify-content: center; transition: background .3s, color .3s, transform .3s; }
+.pk-ptrack:not(.sp-on) .pk-pdot,
+.pk-ptrack[data-stage="1"] li:nth-of-type(-n+1) .pk-pdot,
+.pk-ptrack[data-stage="2"] li:nth-of-type(-n+2) .pk-pdot,
+.pk-ptrack[data-stage="3"] li .pk-pdot { background: var(--pk-ink); color: #fff; }
+.pk-ptrack.sp-on li { transition: opacity .4s; opacity: .45; }
+.pk-ptrack[data-stage="1"] li:nth-of-type(-n+1), .pk-ptrack[data-stage="2"] li:nth-of-type(-n+2), .pk-ptrack[data-stage="3"] li { opacity: 1; }
+.pk-pbox { position: absolute; z-index: 2; inset-inline-start: 5px; top: 0; width: 28px; height: 28px; border-radius: 6px; border: 2px solid var(--pk-ink); background: #e2c28c; color: var(--pk-ink); display: none; align-items: center; justify-content: center; box-shadow: 2px 2px 0 var(--pk-ink); }
+.pk-ptrack.sp-on .pk-pbox { display: inline-flex; top: calc(var(--p, 0) * (100% - 36px) + 4px); transform: rotate(calc(var(--p, 0) * 8deg - 4deg)); }
+
+/* Parcels: the consignment slip */
+.pk-slip { overflow: hidden; }
+.pk-slip-top, .pk-slip-bottom { padding: clamp(20px, 3vw, 28px); display: flex; flex-direction: column; gap: 10px; }
+.pk-slip-perf { height: 0; border-top: 2px dashed var(--pk-silver); position: relative; }
+.pk-slip-perf::before, .pk-slip-perf::after { content: ""; position: absolute; top: -12px; width: 22px; height: 22px; border-radius: 999px; background: var(--pk-wash); border: 2px solid var(--pk-ink); }
+.pk-slip-perf::before { left: -13px; } .pk-slip-perf::after { right: -13px; }
+.pk-slip .pk-tno { font-size: clamp(24px, 3vw, 30px); }
+.pk-slip-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin: 4px 0 0; }
+.pk-slip-grid dt { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--pk-mute); }
+html[lang="ur"] .pk-slip-grid dt { letter-spacing: 0; font-size: 12px; }
+.pk-slip-grid dd { margin: 2px 0 0; font-weight: 700; font-size: 17px; }
+.pk-chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.pk-chips li { padding: 5px 12px; border-radius: 999px; border: 2px solid var(--pk-ink); font-size: 13px; font-weight: 700; background: #fff; }
+
+/* Family */
+.pk-family { align-items: center; }
+.pk-family-photo { aspect-ratio: 4 / 5; max-height: 620px; }
+@media (max-width: 899px) { .pk-family-photo { aspect-ratio: 16 / 10; } }
+.pk-family-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pk-family-text .pk-head { margin-bottom: 16px; }
+.pk-ftiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+@media (max-width: 420px) { .pk-ftiles { grid-template-columns: 1fr; } }
+.pk-ftile { background: #fff; border: 2px solid var(--pk-ink); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; transition: transform .45s cubic-bezier(.2,1.2,.4,1), opacity .35s, box-shadow .3s; }
+.pk-ftile h3 { font: 700 17px/1.2 var(--font-display), sans-serif; margin-top: 8px; }
+html[lang="ur"] .pk-ftile h3 { font: 700 17px/1.9 var(--font-urdu), serif; }
+.pk-ftile .pk-body { font-size: 14px; }
+.pk-ficon { width: 38px; height: 38px; border-radius: 10px; background: var(--pk-ink); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+.pk-ftiles.sp-on .pk-ftile { opacity: .25; transform: translateY(14px); }
+.pk-ftiles[data-stage="1"] .pk-ftile:nth-child(-n+1), .pk-ftiles[data-stage="2"] .pk-ftile:nth-child(-n+2),
+.pk-ftiles[data-stage="3"] .pk-ftile:nth-child(-n+3), .pk-ftiles[data-stage="4"] .pk-ftile { opacity: 1; transform: none; box-shadow: var(--pk-shadow); }
+.pk-ftiles:not(.sp-on) .pk-ftile { box-shadow: var(--pk-shadow); }
+
+/* Journey: one road, three stops */
+.pk-jtrack { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; padding-top: 4px; }
+.pk-jtrack::before, .pk-jtrack::after { content: ""; position: absolute; left: 0; right: 0; top: 24px; height: 4px; border-radius: 4px; }
+.pk-jtrack::before { background: var(--pk-soft); }
+.pk-jtrack::after { background: var(--pk-ink); transform-origin: left; transform: scaleX(1); }
+html[dir="rtl"] .pk-jtrack::after { transform-origin: right; }
+.pk-jtrack.sp-on::after { transform: scaleX(var(--p, 0)); }
+.pk-jstop { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 18px; min-width: 0; }
+.pk-jyear { display: inline-flex; align-items: center; height: 52px; padding: 0 20px; border-radius: 999px; border: 2px solid var(--pk-ink); background: #fff; font: 800 24px var(--font-display), sans-serif; transition: background .3s, color .3s; }
+.pk-jtrack:not(.sp-on) .pk-jyear,
+.pk-jtrack[data-stage="1"] .pk-jstop:nth-child(-n+1) .pk-jyear, .pk-jtrack[data-stage="2"] .pk-jstop:nth-child(-n+2) .pk-jyear, .pk-jtrack[data-stage="3"] .pk-jyear { background: var(--pk-ink); color: #fff; }
+.pk-pola { margin: 0; width: 100%; padding: 10px 10px 14px; background: #fff; border: 2px solid var(--pk-ink); box-shadow: var(--pk-shadow); transform: rotate(var(--tilt)); transition: transform .8s cubic-bezier(.2,1.3,.35,1), opacity .5s; display: flex; flex-direction: column; gap: 10px; }
+.pk-pola img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border: 2px solid var(--pk-ink); max-width: 100%; }
+.pk-pola img.pk-old { filter: grayscale(1) contrast(1.05); }
+.pk-jtrack.sp-on .pk-pola { opacity: 0; transform: translateY(40px) rotate(calc(var(--tilt) * -3)); }
+.pk-jtrack[data-stage="1"] .pk-jstop:nth-child(-n+1) .pk-pola, .pk-jtrack[data-stage="2"] .pk-jstop:nth-child(-n+2) .pk-pola, .pk-jtrack[data-stage="3"] .pk-pola { opacity: 1; transform: rotate(var(--tilt)); }
+@media (max-width: 760px) {
+  .pk-jtrack { grid-template-columns: 1fr; gap: 26px; padding-inline-start: 0; }
+  .pk-jtrack::before, .pk-jtrack::after { top: 0; bottom: 0; left: 24px; right: auto; width: 4px; height: auto; }
+  html[dir="rtl"] .pk-jtrack::before, html[dir="rtl"] .pk-jtrack::after { left: auto; right: 24px; }
+  .pk-jtrack::after { transform-origin: top; transform: scaleY(1); }
+  .pk-jtrack.sp-on::after { transform: scaleY(var(--p, 0)); }
+}
+
+/* --- FAQ and closing --- */
+.pk-faq { display: flex; flex-direction: column; gap: 12px; }
+.pk-faq details { padding: 16px 20px; }
+.pk-faq summary { font-weight: 700; font-size: 17px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+.pk-faq summary::-webkit-details-marker { display: none; }
+.pk-faq summary::after { content: "+"; font-family: ui-monospace, monospace; }
+.pk-faq details[open] summary::after { content: "−"; }
+.pk-faq p { margin-top: 10px; color: var(--pk-ink2); }
+.pk-closing { background: var(--pk-ink); color: #fff; border: 2px solid var(--pk-ink); border-radius: 16px; box-shadow: 4px 4px 0 var(--pk-silver); padding: clamp(28px, 4vw, 44px); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
+.pk-closing h2 { font: 800 clamp(28px, 3.4vw, 40px)/1.05 var(--font-display), sans-serif; letter-spacing: -.02em; }
+html[lang="ur"] .pk-closing h2 { font: 700 30px/1.9 var(--font-urdu), serif; }
+.pk-closing-ur { font-size: 24px; font-weight: 700; line-height: 1.9; }
+.pk-closing-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pk-closing-tel { font-weight: 700; color: #fff; }
+
+/* --- Inner page hero --- */
+.pk-pagehero { background: var(--pk-paper); border-bottom: 2px solid var(--pk-ink); }
+.pk-pagehero-in { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: center; padding-block: 32px 40px; }
+@media (min-width: 900px) { .pk-pagehero-in.has-img { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+.pk-pagehero-text { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pk-crumbs { font-size: 14px; color: var(--pk-mute); }
+.pk-crumbs a { color: var(--pk-ink2); text-underline-offset: 3px; }
+.pk-pagehero h1 { font: 800 clamp(36px, 5vw, 60px)/1.02 var(--font-display), sans-serif; letter-spacing: -.02em; color: var(--pk-ink); text-wrap: balance; }
+html[lang="ur"] .pk-pagehero h1 { font: 700 clamp(30px, 4vw, 46px)/1.9 var(--font-urdu), serif; letter-spacing: 0; }
+.pk-facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 0; }
+.pk-facts > div { display: flex; align-items: baseline; gap: 8px; padding: 6px 14px; border: 2px solid var(--pk-ink); border-radius: 999px; background: #fff; }
+.pk-facts dd { margin: 0; font: 800 18px var(--font-display), sans-serif; }
+.pk-facts dt { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--pk-mute); }
+html[lang="ur"] .pk-facts dt { letter-spacing: 0; font-size: 13px; }
+.pk-pagehero-img { aspect-ratio: 16 / 10; }
+
+/* --- First-visit language dialog: centred, over a blurred page --- */
+.pk-langwrap { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(21, 24, 27, .38); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.pk-langpop { position: relative; width: min(380px, 100%); padding: 28px 26px 22px; background: #fff; border: 2px solid var(--pk-ink); border-radius: 16px; box-shadow: 6px 6px 0 var(--pk-ink); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; animation: pk-pop .4s cubic-bezier(.2, 1.25, .4, 1); }
+@keyframes pk-pop { from { transform: translateY(18px) scale(.96); } to { transform: none; } }
+.pk-langpop-logo { height: 46px; width: auto; margin-bottom: 12px; }
+.pk-langpop-t { font: 800 24px/1.15 var(--font-display), sans-serif; letter-spacing: -.02em; }
+.pk-langpop-ur { font: 600 20px/2 var(--font-urdu), serif; color: var(--pk-ink2); }
+.pk-langpop-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 14px; }
+.pk-langpop-btns .pk-btn { min-height: 54px; font-size: 17px; }
+.pk-langpop-urbtn { font-family: var(--font-urdu), serif !important; font-size: 19px !important; line-height: 1.6; }
+.pk-langpop-note { margin-top: 12px; font-size: 13px; color: var(--pk-mute); }
+.pk-langpop-x { position: absolute; top: 12px; inset-inline-end: 12px; width: 34px; height: 34px; border-radius: 999px; border: 0; background: var(--pk-wash); color: var(--pk-ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.pk-langpop-x:hover { background: var(--pk-soft); }
+
+/* --- Footer --- */
+.pk-footer { background: var(--pk-paper); border-top: 2px solid var(--pk-ink); }
+.pk-footer-in { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 22px; padding-block: 34px 90px; font-size: 14px; color: var(--pk-ink2); }
+.pk-footer-in b { display: block; margin-bottom: 6px; color: var(--pk-ink); }
+.pk-footer-in p { margin-top: 4px; }
+.pk-footer-links { display: flex; flex-direction: column; gap: 4px; }
+.pk-footer a { color: var(--pk-ink2); }
+
+/* --- Pages that build their own header (booking, parcels, charter, route pages) take Pakka's title type --- */
+.pk-main .h1 { font: 800 clamp(36px, 5vw, 60px)/1.02 var(--font-display), sans-serif !important; letter-spacing: -.02em; color: var(--pk-ink); text-wrap: balance; }
+html[lang="ur"] .pk-main .h1 { font: 700 clamp(30px, 4vw, 46px)/1.9 var(--font-urdu), serif !important; letter-spacing: 0; }
+
+/* --- The live site's own controls, in Pakka's language --- */
+.btn { border-radius: 12px !important; font-weight: 700; }
+.btn-gold { background: var(--pk-ink) !important; color: #fff !important; border: 2px solid var(--pk-ink) !important; }
+.btn-gold:hover { background: #2a2f34 !important; }
+.btn-ghost { border: 2px solid var(--pk-ink) !important; }
+.field { border: 2px solid var(--pk-ink) !important; border-radius: 12px !important; }
+[class*="shadow-[6px_6px_0_#1b1e21]"], [class*="shadow-[5px_5px_0_#1b1e21]"], [class*="shadow-[3px_3px_0_#1b1e21]"], [class*="shadow-[2px_2px_0_#1b1e21]"] { box-shadow: var(--pk-shadow) !important; }
+[class*="border-[#1b1e21]"] { border-color: var(--pk-ink) !important; }
+.pk-main .rounded-3xl, .pk-main .rounded-2xl { border-radius: 16px !important; }
+.pk-main .rounded-xl, .pk-main .rounded-lg { border-radius: 12px !important; }
+.bg-black .btn-gold, [class*="bg-[#0e1013]"] .btn-gold, [class*="bg-[#0b0d10]"] .btn-gold, [class*="bg-[#121417]"] .btn-gold { background: #fff !important; color: var(--pk-ink) !important; border-color: #fff !important; }
+:where(.bg-black, [class*="bg-[#0e1013]"], [class*="bg-[#0b0d10]"], [class*="bg-[#121417]"]) :is([class*="bg-white"], .card, .ink-card, .pk-card) .btn-gold { background: var(--pk-ink) !important; color: #fff !important; border-color: var(--pk-ink) !important; }

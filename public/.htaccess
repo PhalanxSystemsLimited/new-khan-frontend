@@ -1,0 +1,7 @@
+# Every page of the site lives in index.html. Serve it for any address that isn't a real file,
+# so /en/terminals, /ur/fleet and the rest open directly and survive a refresh.
+Options -MultiViews
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
