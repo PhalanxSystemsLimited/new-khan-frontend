@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePageMeta } from "../components/parts";
 import { AuthDialog } from "../booking/AuthDialog";
+import { PasswordChecklist, PasswordInput, passwordOk } from "../components/PasswordField";
 import { apiRequest } from "../booking/live/liveApi";
 import { href } from "../lib/links";
 import { useLang } from "../lib/useLang";
@@ -24,8 +25,7 @@ const T = {
   resetBody: { en: "Enter the new password for your New Khan account.", ur: "اپنے نیو خان اکاؤنٹ کا نیا پاس ورڈ لکھیں۔" },
   newPassword: { en: "New password", ur: "نیا پاس ورڈ" },
   repeat: { en: "Type it again", ur: "دوبارہ لکھیں" },
-  pwHint: { en: "At least 8 characters, with upper-case, lower-case and a number.", ur: "کم از کم 8 حروف، بڑے اور چھوٹے حروف اور ایک ہندسہ۔" },
-  pwWeak: { en: "Use at least 8 characters with upper-case, lower-case and a number.", ur: "کم از کم 8 حروف استعمال کریں جن میں بڑے اور چھوٹے حروف اور ایک ہندسہ ہو۔" },
+  pwWeak: { en: "Your password does not meet all the rules yet. Each rule turns green when it is met.", ur: "آپ کا پاس ورڈ ابھی تمام شرائط پوری نہیں کرتا۔ ہر شرط پوری ہونے پر سبز ہو جاتی ہے۔" },
   pwMismatch: { en: "The two passwords are not the same.", ur: "دونوں پاس ورڈ ایک جیسے نہیں ہیں۔" },
   save: { en: "Save new password", ur: "نیا پاس ورڈ محفوظ کریں" },
   saving: { en: "Saving…", ur: "محفوظ کیا جا رہا ہے…" },
@@ -51,7 +51,6 @@ function readLink() {
   return { error: get("error_code") || get("error"), type: get("type"), accessToken: hash.get("access_token") };
 }
 
-const strong = (p) => p.length >= 8 && /[a-z]/.test(p) && /[A-Z]/.test(p) && /\d/.test(p);
 
 export default function AuthCallback() {
   const lang = useLang();
@@ -70,7 +69,7 @@ export default function AuthCallback() {
 
   async function savePassword(e) {
     e.preventDefault();
-    if (!strong(pw.a)) return setPw({ ...pw, err: t("pwWeak") });
+    if (!passwordOk(pw.a)) return setPw({ ...pw, err: t("pwWeak") });
     if (pw.a !== pw.b) return setPw({ ...pw, err: t("pwMismatch") });
     setPw({ ...pw, busy: true, err: "" });
     try {
@@ -105,12 +104,12 @@ export default function AuthCallback() {
             <div className="mt-5 space-y-3">
               <div>
                 <label htmlFor="ac-pw" className="label">{t("newPassword")}</label>
-                <input id="ac-pw" type="password" className="field" autoComplete="new-password" value={pw.a} onChange={(e) => setPw({ ...pw, a: e.target.value })} required />
-                <p className="mt-1 text-xs text-mute">{t("pwHint")}</p>
+                <PasswordInput id="ac-pw" lang={lang} value={pw.a} onChange={(e) => setPw({ ...pw, a: e.target.value })} required />
               </div>
               <div>
                 <label htmlFor="ac-pw2" className="label">{t("repeat")}</label>
-                <input id="ac-pw2" type="password" className="field" autoComplete="new-password" value={pw.b} onChange={(e) => setPw({ ...pw, b: e.target.value })} required />
+                <PasswordInput id="ac-pw2" lang={lang} value={pw.b} onChange={(e) => setPw({ ...pw, b: e.target.value })} required />
+                <PasswordChecklist value={pw.a} repeat={pw.b} lang={lang} />
               </div>
             </div>
             {pw.err && <p role="alert" className="mt-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900">{pw.err}</p>}

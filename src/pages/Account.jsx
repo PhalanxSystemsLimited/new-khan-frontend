@@ -12,6 +12,7 @@ import { toast } from "../components/Toast";
 import { AuthDialog } from "../booking/AuthDialog";
 import { IS_LIVE } from "../booking/api";
 import { signOut, useSession } from "../booking/auth";
+import { PasswordChecklist, PasswordInput, passwordOk } from "../components/PasswordField";
 import { apiRequest } from "../booking/live/liveApi";
 import { isStaffRole, refreshMe } from "../booking/useRole";
 import { href } from "../lib/links";
@@ -53,8 +54,7 @@ const T = {
   pwTitle: { en: "Change password", ur: "پاس ورڈ تبدیل کریں" },
   pwNew: { en: "New password", ur: "نیا پاس ورڈ" },
   pwRepeat: { en: "Type it again", ur: "دوبارہ لکھیں" },
-  pwHint: { en: "At least 8 characters, with upper-case, lower-case and a number.", ur: "کم از کم 8 حروف، بڑے اور چھوٹے حروف اور ایک ہندسہ۔" },
-  pwWeak: { en: "Use at least 8 characters with upper-case, lower-case and a number.", ur: "کم از کم 8 حروف استعمال کریں جن میں بڑے اور چھوٹے حروف اور ایک ہندسہ ہو۔" },
+  pwWeak: { en: "Your password does not meet all the rules yet. Each rule turns green when it is met.", ur: "آپ کا پاس ورڈ ابھی تمام شرائط پوری نہیں کرتا۔ ہر شرط پوری ہونے پر سبز ہو جاتی ہے۔" },
   pwMismatch: { en: "The two passwords are not the same.", ur: "دونوں پاس ورڈ ایک جیسے نہیں ہیں۔" },
   pwSave: { en: "Change password", ur: "پاس ورڈ تبدیل کریں" },
   pwDone: { en: "Your password is changed. Other devices have been signed out.", ur: "آپ کا پاس ورڈ تبدیل ہو گیا۔ دوسرے آلات سے سائن آؤٹ کر دیا گیا ہے۔" },
@@ -73,7 +73,6 @@ const ROLES = {
   super_admin: ["Super admin", "سپر ایڈمن"],
 };
 
-const strong = (p) => p.length >= 8 && /[a-z]/.test(p) && /[A-Z]/.test(p) && /\d/.test(p);
 const PHONE_RE = /^(?:\+92|0092|92|0)?3\d{9}$/;
 const CNIC_RE = /^\d{5}-?\d{7}-?\d$/;
 
@@ -150,7 +149,7 @@ export default function Account() {
 
   async function changePassword(e) {
     e.preventDefault();
-    if (!strong(pw.a)) return setPw({ ...pw, err: t("pwWeak"), ok: "" });
+    if (!passwordOk(pw.a)) return setPw({ ...pw, err: t("pwWeak"), ok: "" });
     if (pw.a !== pw.b) return setPw({ ...pw, err: t("pwMismatch"), ok: "" });
     setPw({ ...pw, busy: true, err: "", ok: "" });
     try {
@@ -278,14 +277,14 @@ export default function Account() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="acc-pw" className="label">{t("pwNew")}</label>
-            <input id="acc-pw" type="password" className="field" autoComplete="new-password" value={pw.a} onChange={(e) => setPw({ ...pw, a: e.target.value, ok: "" })} />
+            <PasswordInput id="acc-pw" lang={lang} value={pw.a} onChange={(e) => setPw({ ...pw, a: e.target.value, ok: "" })} />
           </div>
           <div>
             <label htmlFor="acc-pw2" className="label">{t("pwRepeat")}</label>
-            <input id="acc-pw2" type="password" className="field" autoComplete="new-password" value={pw.b} onChange={(e) => setPw({ ...pw, b: e.target.value, ok: "" })} />
+            <PasswordInput id="acc-pw2" lang={lang} value={pw.b} onChange={(e) => setPw({ ...pw, b: e.target.value, ok: "" })} />
           </div>
         </div>
-        <p className="mt-1 text-xs text-mute">{t("pwHint")}</p>
+        {(pw.a || pw.b) && <PasswordChecklist value={pw.a} repeat={pw.b} lang={lang} />}
         {errBox(pw.err)}
         {pw.ok && <p role="status" className="mt-3 rounded-xl border border-green-300 bg-green-50 p-3 text-sm text-green-900">{pw.ok}</p>}
         <button type="submit" className="btn btn-gold mt-5" disabled={pw.busy}>{pw.busy ? t("saving") : t("pwSave")}</button>

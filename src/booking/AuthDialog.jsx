@@ -1,5 +1,6 @@
 import { toast } from "../components/Toast";
 import { useEffect, useRef, useState } from "react";
+import { PasswordChecklist, PasswordInput, passwordOk } from "../components/PasswordField";
 import { apiForgotPassword, apiLogin, apiResendConfirmation, apiOtpSend, apiOtpVerify, apiSignup } from "./live/liveApi";
 
 const T = {
@@ -11,7 +12,7 @@ const T = {
   name: { en: "Full name", ur: "پورا نام" },
   email: { en: "Email", ur: "ای میل" },
   password: { en: "Password", ur: "پاس ورڈ" },
-  pwHint: { en: "At least 8 characters, with upper-case, lower-case and a number.", ur: "کم از کم 8 حروف، بڑے اور چھوٹے حروف اور ایک ہندسہ۔" },
+  pwWeak: { en: "Your password does not meet all the rules yet. Each rule turns green when it is met.", ur: "آپ کا پاس ورڈ ابھی تمام شرائط پوری نہیں کرتا۔ ہر شرط پوری ہونے پر سبز ہو جاتی ہے۔" },
   phone: { en: "Mobile number", ur: "موبائل نمبر" },
   phoneErr: { en: "Enter your mobile number, like 0300 1234567.", ur: "اپنا موبائل نمبر لکھیں، جیسے 0300 1234567۔" },
   cnic: { en: "CNIC (optional)", ur: "شناختی کارڈ نمبر (اختیاری)" },
@@ -104,6 +105,7 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
       if (!/^(?:\+92|0092|92|0)?3\d{9}$/.test(f.phone.replace(/[\s-]/g, ""))) return setMsg({ kind: "error", text: t("phoneErr") });
       // Optional: checked only when something is typed.
       if (f.cnic && !/^\d{5}-\d{7}-\d$/.test(f.cnic)) return setMsg({ kind: "error", text: t("cnicErr") });
+      if (!passwordOk(f.password)) return setMsg({ kind: "error", text: t("pwWeak") });
       return run(async () => {
         const r = await apiSignup(f.name.trim(), f.email.trim(), f.password, f.phone.trim(), f.cnic || undefined);
         if (r.needsConfirmation) {
@@ -158,8 +160,8 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
               ) : (
                 <div>
                   <label htmlFor="au-pw" className="label">{t("password")}</label>
-                  <input id="au-pw" type="password" className="field" autoComplete={mode === "signup" ? "new-password" : "current-password"} value={f.password} onChange={set("password")} required />
-                  {mode === "signup" && <p className="mt-1 text-xs text-mute">{t("pwHint")}</p>}
+                  <PasswordInput id="au-pw" lang={lang} autoComplete={mode === "signup" ? "new-password" : "current-password"} value={f.password} onChange={set("password")} required />
+                  {mode === "signup" && <PasswordChecklist value={f.password} lang={lang} />}
                   {mode === "signin" && (
                     <button type="button" className="mt-2 text-sm font-semibold underline" onClick={() => { setMode("forgot"); setMsg({ kind: "", text: "" }); }}>
                       {t("forgot")}
