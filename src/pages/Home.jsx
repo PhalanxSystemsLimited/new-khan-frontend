@@ -55,7 +55,7 @@ export default function Home() {
 
           <div className="pk-hero-media">
             <div className="pk-frame pk-video">
-              <img src="/images/hero-coach.webp" alt="" fetchPriority="high" />
+              <img src="/images/hero-coach.webp" alt="" fetchpriority="high" />
               <AutoVideo src="/images/hero-coach.mp4" className="absolute inset-0 h-full w-full object-cover object-[62%_50%]" />
             </div>
             {/* A ticket stub laid over the photo: the promise in one object */}
