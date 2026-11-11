@@ -30,4 +30,5 @@ export function useRole() {
   return useMe()?.role ?? null;
 }
 
-export const isStaffRole = (role) => ["agent", "admin", "super_admin"].includes(role);
+/** Everyone who works for New Khan and has the admin panel (counter staff, driver, conductor, manager, admins). */
+export const isStaffRole = (role) => ["agent", "driver", "conductor", "manager", "admin", "super_admin"].includes(role);

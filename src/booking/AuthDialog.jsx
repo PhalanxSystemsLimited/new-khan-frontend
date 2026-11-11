@@ -1,6 +1,6 @@
 import { toast } from "../components/Toast";
 import { useEffect, useRef, useState } from "react";
-import { apiLogin, apiOtpSend, apiOtpVerify, apiSignup } from "./live/liveApi";
+import { apiForgotPassword, apiLogin, apiResendConfirmation, apiOtpSend, apiOtpVerify, apiSignup } from "./live/liveApi";
 
 const T = {
   title: { en: "Sign in to New Khan", ur: "نیو خان میں سائن ان کریں" },
@@ -21,6 +21,24 @@ const T = {
   },
   cnicErr: { en: "Enter your 13-digit CNIC, like 35202-1234567-1.", ur: "اپنا 13 ہندسوں کا شناختی کارڈ نمبر لکھیں، جیسے 35202-1234567-1۔" },
   sendCode: { en: "Send code", ur: "کوڈ بھیجیں" },
+  forgot: { en: "Forgot password?", ur: "پاس ورڈ بھول گئے؟" },
+  forgotIntro: {
+    en: "Enter your account's email. We will send you a link to choose a new password.",
+    ur: "اپنے اکاؤنٹ کی ای میل لکھیں۔ ہم آپ کو نیا پاس ورڈ منتخب کرنے کا لنک بھیجیں گے۔",
+  },
+  sendReset: { en: "Send reset link", ur: "ری سیٹ لنک بھیجیں" },
+  resetSent: {
+    en: "If an account exists for this email, a reset link is on its way. Check your inbox and spam folder.",
+    ur: "اگر اس ای میل کا اکاؤنٹ موجود ہے تو ری سیٹ لنک بھیج دیا گیا ہے۔ اپنا اِن باکس اور اسپام فولڈر دیکھیں۔",
+  },
+  verifyNow: { en: "Verify now", ur: "ابھی تصدیق کریں" },
+  noVerifyMail: { en: "Didn't get the verification email?", ur: "تصدیقی ای میل نہیں ملی؟" },
+  emailFirst: { en: "Type your email above first.", ur: "پہلے اوپر اپنی ای میل لکھیں۔" },
+  verifySent: {
+    en: "A new verification link has been sent. Open it from your inbox (check spam too), then sign in.",
+    ur: "تصدیق کا نیا لنک بھیج دیا گیا ہے۔ اپنے اِن باکس (اور اسپام) سے کھولیں، پھر سائن ان کریں۔",
+  },
+  backToSignin: { en: "Back to sign in", ur: "سائن ان پر واپس جائیں" },
   code: { en: "6-digit code", ur: "6 ہندسوں کا کوڈ" },
   verify: { en: "Verify and sign in", ur: "تصدیق کریں اور سائن ان کریں" },
   working: { en: "Please wait…", ur: "براہِ کرم انتظار کریں…" },
@@ -59,9 +77,17 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
     try {
       await fn();
     } catch (e) {
-      setMsg({ kind: "error", text: e.message });
+      // Account exists but its email is not verified: offer to send the link again.
+      const verify = e.code === "EMAIL_NOT_CONFIRMED" || e.code === "ACCOUNT_EXISTS";
+      if (e.code === "ACCOUNT_EXISTS") setMode("signin");
+      setMsg({ kind: "error", text: e.message, verify });
     }
     setBusy(false);
+  }
+
+  function resendVerification() {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) return setMsg({ kind: "error", text: t("emailFirst") });
+    return run(async () => { await apiResendConfirmation(f.email.trim()); setMsg({ kind: "ok", text: t("verifySent") }); });
   }
 
   const done = () => {
@@ -73,6 +99,7 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
   function submit(e) {
     e.preventDefault();
     if (mode === "signin") return run(async () => { await apiLogin(f.email.trim(), f.password); done(); });
+    if (mode === "forgot") return run(async () => { await apiForgotPassword(f.email.trim()); setMsg({ kind: "ok", text: t("resetSent") }); });
     if (mode === "signup") {
       if (!/^(?:\+92|0092|92|0)?3\d{9}$/.test(f.phone.replace(/[\s-]/g, ""))) return setMsg({ kind: "error", text: t("phoneErr") });
       // Optional: checked only when something is typed.
@@ -126,11 +153,20 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
                 <label htmlFor="au-email" className="label">{t("email")}</label>
                 <input id="au-email" type="email" className="field ltr" autoComplete="email" value={f.email} onChange={set("email")} required />
               </div>
-              <div>
-                <label htmlFor="au-pw" className="label">{t("password")}</label>
-                <input id="au-pw" type="password" className="field" autoComplete={mode === "signup" ? "new-password" : "current-password"} value={f.password} onChange={set("password")} required />
-                {mode === "signup" && <p className="mt-1 text-xs text-mute">{t("pwHint")}</p>}
-              </div>
+              {mode === "forgot" ? (
+                <p className="text-sm text-mute">{t("forgotIntro")}</p>
+              ) : (
+                <div>
+                  <label htmlFor="au-pw" className="label">{t("password")}</label>
+                  <input id="au-pw" type="password" className="field" autoComplete={mode === "signup" ? "new-password" : "current-password"} value={f.password} onChange={set("password")} required />
+                  {mode === "signup" && <p className="mt-1 text-xs text-mute">{t("pwHint")}</p>}
+                  {mode === "signin" && (
+                    <button type="button" className="mt-2 text-sm font-semibold underline" onClick={() => { setMode("forgot"); setMsg({ kind: "", text: "" }); }}>
+                      {t("forgot")}
+                    </button>
+                  )}
+                </div>
+              )}
             </>
           )}
           {(mode === "otp" || mode === "signup") && (
@@ -168,10 +204,28 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
             {msg.text}
           </p>
         )}
+        {msg.verify && (
+          <button type="button" disabled={busy} className="btn btn-ghost mt-3 w-full disabled:opacity-50" onClick={resendVerification}>
+            {t("verifyNow")}
+          </button>
+        )}
 
         <button type="submit" disabled={busy} className="btn btn-gold mt-5 w-full disabled:opacity-50">
-          {busy ? t("working") : mode === "otp" ? t(codeSent ? "verify" : "sendCode") : t(mode)}
+          {busy ? t("working") : mode === "otp" ? t(codeSent ? "verify" : "sendCode") : mode === "forgot" ? t("sendReset") : t(mode)}
         </button>
+        {mode === "signin" && !msg.verify && (
+          <p className="mt-3 text-center text-sm">
+            {t("noVerifyMail")}{" "}
+            <button type="button" disabled={busy} className="font-semibold underline" onClick={resendVerification}>
+              {t("verifyNow")}
+            </button>
+          </p>
+        )}
+        {mode === "forgot" && (
+          <button type="button" className="mt-3 w-full text-sm font-semibold underline" onClick={() => { setMode("signin"); setMsg({ kind: "", text: "" }); }}>
+            {t("backToSignin")}
+          </button>
+        )}
       </form>
     </dialog>
   );

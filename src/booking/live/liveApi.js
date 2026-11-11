@@ -53,6 +53,8 @@ function toApiError(status, body) {
   const e = body?.error ?? {};
   const detail = e.details?.[0]?.message;
   const message = detail ? `${e.message}: ${detail}` : e.message || "Something went wrong. Please try again.";
+  // Sign-in / sign-up outcomes the sign-in form reacts to (shows "Verify now").
+  if (["EMAIL_NOT_CONFIRMED", "ACCOUNT_EXISTS"].includes(e.code)) return new ApiError(e.code, message);
   if (status === 401) return new ApiError("AUTH_REQUIRED", message);
   if (status === 404) return new ApiError("NOT_FOUND", message);
   if (status === 409 && e.code === "DUPLICATE") return new ApiError("SEAT_TAKEN", message);
@@ -100,6 +102,10 @@ export async function apiSignup(fullName, email, password, phone, cnic) {
   return { needsConfirmation: !data.accessToken, message: data.message };
 }
 export const apiOtpSend = (phone) => request("/auth/otp/send", { method: "POST", body: { phone } });
+/** Emails a password-reset link (the link opens /auth/callback, where the new password is chosen). */
+/** Sends the account-verification email again. */
+export const apiResendConfirmation = (email) => request("/auth/resend-confirmation", { method: "POST", body: { email } });
+export const apiForgotPassword = (email) => request("/auth/password/forgot", { method: "POST", body: { email } });
 export const apiOtpVerify = async (phone, token) => setSession(await request("/auth/otp/verify", { method: "POST", body: { phone, token } }));
 export const apiLogout = (accessToken) =>
   fetch(`${BASE}/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } });

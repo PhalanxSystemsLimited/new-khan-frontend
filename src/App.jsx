@@ -22,6 +22,7 @@ import Policies, { Privacy, Terms } from "./pages/Policies";
 import { BusToPage, RoutePage } from "./pages/RoutePages";
 import Terminals from "./pages/Terminals";
 import AuthCallback from "./pages/AuthCallback";
+import Account from "./pages/Account";
 
 /** Admin panel: a separate bundle, downloaded only when /admin is opened. */
 const AdminApp = lazy(() => import("./admin/AdminApp"));
@@ -118,6 +119,7 @@ export default function App() {
           <Route path="routes/:slug" element={<RoutePage />} />
           <Route path="terminals" element={<Terminals />} />
           <Route path="auth/callback" element={<AuthCallback />} />
+          <Route path="account" element={<Account />} />
           <Route path="policies" element={<Policies />} />
           <Route path="privacy" element={<Privacy />} />
           <Route path="terms" element={<Terms />} />

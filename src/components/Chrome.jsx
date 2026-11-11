@@ -65,6 +65,11 @@ function AccountButton({ lang }) {
   if (!IS_LIVE) return null;
   return (
     <>
+      {session && (
+        <Link to={href(lang, "/account")} className="pk-btn pk-btn-s">
+          {xt(lang, "My account", "میرا اکاؤنٹ")}
+        </Link>
+      )}
       {session && isStaffRole(role) && (
         <Link to="/admin" className="pk-btn pk-btn-s">
           {xt(lang, "Admin", "ایڈمن")}
