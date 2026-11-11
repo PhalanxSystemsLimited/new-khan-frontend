@@ -349,13 +349,13 @@ export function SeatsClient({ lang }) {
         </div>
       </section>
 
-      <aside className="fixed inset-x-0 bottom-[76px] z-30 border-t-2 border-gold bg-white/97 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur lg:bottom-0">
-        <div className="container-nk flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-mute sm:max-w-sm">{bt(IS_LIVE ? "reserveNoteLive" : "reserveNote", lang)}</p>
-          <div className="flex items-center gap-4">
-            <p className="ltr text-xl font-bold text-black">{bt("total", lang)} {pkr(total)}<sup>{star}</sup></p>
+      <aside className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-gold bg-white/97 px-3 pt-2 pb-[max(10px,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur">
+        <div className="container-nk">
+          <p className="truncate text-xs text-mute sm:whitespace-normal">{bt(IS_LIVE ? "reserveNoteLive" : "reserveNote", lang)}</p>
+          <div className="mt-1.5 flex items-center justify-between gap-3">
+            <p className="ltr whitespace-nowrap text-lg font-bold text-black sm:text-xl">{bt("total", lang)} {pkr(total)}<sup>{star}</sup></p>
             {/* Always clickable: validation happens on click and moves focus to the message */}
-            <button type="button" onClick={reserve} aria-busy={busy} className="btn btn-gold btn-shine">{busy ? bt("reserving", lang) : bt("reserve", lang)}</button>
+            <button type="button" onClick={reserve} aria-busy={busy} className="btn btn-gold btn-shine shrink-0 whitespace-nowrap">{busy ? bt("reserving", lang) : bt("reserve", lang)}</button>
           </div>
         </div>
       </aside>

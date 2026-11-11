@@ -63,7 +63,12 @@ export function SeatMap({ seats, chosen, max, onCycle, notice, lang, legLabel })
 
   return (
     <div>
-      <p id={`${legLabel}-hint`} className="text-sm text-mute">{bt("seatHint", lang)}</p>
+      {/* Short rule up front so the seat map stays on screen; the full explanation is one tap away. */}
+      <p id={`${legLabel}-hint`} className="text-sm text-mute">{bt("seatHintShort", lang)}</p>
+      <details className="mt-1 text-sm text-mute">
+        <summary className="cursor-pointer font-semibold text-black underline underline-offset-4">{bt("seatHintMore", lang)}</summary>
+        <p className="mt-1">{bt("seatHint", lang)}</p>
+      </details>
       <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm" aria-label={bt("legend", lang)}>
         {legend.map(([c, k]) => (
           <li key={k} className="flex items-center gap-2">

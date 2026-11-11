@@ -84,6 +84,11 @@ export const bk = {
   bookedFemale: { en: "Booked: female", ur: "بُک شدہ: خاتون" },
   bookedMale: { en: "Booked: male", ur: "بُک شدہ: مرد" },
   front: { en: "Front of bus", ur: "بس کا اگلا حصہ" },
+  seatHintShort: {
+    en: "Tap a seat: once = female (pink), twice = male (blue), three times = free it.",
+    ur: "سیٹ پر ٹیپ کریں: ایک بار = خاتون (گلابی)، دو بار = مرد (نیلی)، تین بار = خالی۔",
+  },
+  seatHintMore: { en: "How seats work", ur: "سیٹیں کیسے منتخب کریں" },
   seatHint: {
     en: "Tap a free seat once for a female passenger (pink), again for a male passenger (blue), and a third time to free it. A male and a female passenger from different bookings cannot sit side by side. With a keyboard, use the arrow keys and Space or Enter.",
     ur: "خاتون مسافر کے لیے خالی سیٹ پر ایک بار ٹیپ کریں (گلابی)، مرد مسافر کے لیے دوبارہ (نیلی)، اور سیٹ چھوڑنے کے لیے تیسری بار۔ الگ الگ بکنگ کے مرد اور خاتون مسافر ساتھ والی سیٹوں پر نہیں بیٹھ سکتے۔ کی بورڈ پر ایرو کیز اور اسپیس یا انٹر استعمال کریں۔",

@@ -567,6 +567,15 @@ img, video, svg { max-width: 100%; }
 .pk-bar-in { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2px 18px; padding-block: 6px; }
 .pk-bar b { color: #fff; }
 .pk-bar-ur { font-size: 14px; line-height: 1.9; opacity: .85; }
+.pk-bar-short { display: none; }
+@media (max-width: 640px) {
+  /* one short line on phones */
+  .pk-bar { font-size: 13px; }
+  .pk-bar-in { justify-content: center; padding-block: 7px; }
+  .pk-bar-in > :not(:first-child) { display: none; }
+  .pk-bar-long { display: none; }
+  .pk-bar-short { display: inline; }
+}
 .pk-header { position: sticky; top: 0; z-index: 40; background: var(--pk-paper); border-bottom: 2px solid var(--pk-ink); }
 .pk-header-in { display: flex; align-items: center; gap: 12px 18px; padding-block: 10px; min-height: 64px; }
 .pk-logo { flex: none; }
@@ -588,6 +597,20 @@ img, video, svg { max-width: 100%; }
 .pk-header-actions { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; flex: none; }
 .pk-lang[lang="ur"] { font-family: var(--font-urdu), serif; line-height: 1.6; }
 .pk-header-actions .pk-burger { display: none; width: 44px; padding: 0; }
+/* Account menu: one button in the header, the rest in a panel under it */
+.pk-acct-btn { gap: 6px; }
+.pk-acct-name { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-acct-chev { transition: transform .2s; }
+.pk-acct-btn[aria-expanded="true"] .pk-acct-chev { transform: rotate(180deg); }
+.pk-acct-panel { inset-inline-start: auto; inset-inline-end: 0; width: 250px; }
+.pk-acct-who { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px 10px; margin-bottom: 4px; border-bottom: 1px solid var(--pk-soft); min-width: 0; }
+.pk-acct-who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-acct-who span { font-size: 13px; color: var(--pk-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-acct-out { text-align: start; padding: 10px 12px; border-radius: 10px; border: 0; background: none; font: inherit; font-weight: 700; color: #b42318; cursor: pointer; }
+.pk-acct-out:hover { background: #fdecea; }
+@media (max-width: 520px) {
+  .pk-acct-name, .pk-acct-chev { display: none; } /* just the person icon on small phones */
+}
 /* Below laptop width the row becomes a menu button */
 @media (max-width: 1099px) {
   .pk-nav { display: none; }

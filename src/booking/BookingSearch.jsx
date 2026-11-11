@@ -77,8 +77,8 @@ export function BookingSearch({ lang, initial = {}, compact = false, variant = "
       </div>
 
       <div className={bar ? "flex flex-col gap-3 lg:flex-row lg:items-end" : ""}>
-        <div className={`grid max-sm:grid-cols-[minmax(0,1fr)_44px] gap-x-2 gap-y-2.5 sm:gap-3 ${bar ? "lg:contents" : compact ? "" : "lg:grid-cols-[1fr_auto_1fr]"} sm:grid-cols-[1fr_auto_1fr]`}>
-          <div className={`max-sm:col-start-1 max-sm:row-start-1 ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
+        <div className={`grid max-sm:grid-cols-1 gap-x-2 gap-y-2.5 sm:gap-3 ${bar ? "lg:contents" : compact ? "" : "lg:grid-cols-[1fr_auto_1fr]"} sm:grid-cols-[1fr_auto_1fr]`}>
+          <div className={`max-sm:row-start-1 ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
             <label htmlFor={`${idp}-from`} className="label">{bt("from", lang)}</label>
             <CityPicker id={`${idp}-from`} ref={refs.from} label={bt("from", lang)} value={from} onChange={setFrom} options={options} lang={lang} placeholder={bt("chooseCity", lang)} disabledId={to} error={!!errors.from} describedBy={errors.from ? `${idp}-from-err` : undefined} />
             {err("from")}
@@ -87,11 +87,11 @@ export function BookingSearch({ lang, initial = {}, compact = false, variant = "
             type="button"
             onClick={() => { setFrom(to); setTo(from); }}
             aria-label={bt("swap", lang)}
-            className={`btn btn-ghost max-sm:col-start-2 max-sm:row-span-2 max-sm:row-start-1 max-sm:mt-6 max-sm:self-center max-sm:!min-h-11 max-sm:!w-11 max-sm:!rounded-full max-sm:!p-0 !min-h-12 !px-4 sm:mt-6 ${bar ? "lg:!mt-0 lg:shrink-0" : ""}`}
+            className={`btn btn-ghost max-sm:relative max-sm:z-10 max-sm:row-start-2 max-sm:-mb-8 max-sm:h-8 max-sm:justify-self-end max-sm:!min-h-0 max-sm:!rounded-full max-sm:!border max-sm:!px-3 max-sm:!py-0 max-sm:text-xs sm:!min-h-12 sm:!px-4 sm:mt-6 ${bar ? "lg:!mt-0 lg:shrink-0" : ""}`}
           >
-            <span className="sm:hidden">⇅</span><span className="hidden sm:inline">⇄</span>
+            <span className="sm:hidden">⇅ {lang === "ur" ? "اُلٹ دیں" : "Swap"}</span><span className="hidden sm:inline">⇄</span>
           </button>
-          <div className={`max-sm:col-start-1 max-sm:row-start-2 ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
+          <div className={`max-sm:row-start-3 ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
             <label htmlFor={`${idp}-to`} className="label">{bt("to", lang)}</label>
             <CityPicker id={`${idp}-to`} ref={refs.to} label={bt("to", lang)} value={to} onChange={setTo} options={options} lang={lang} placeholder={bt("chooseCity", lang)} disabledId={from} error={!!errors.to} describedBy={errors.to ? `${idp}-to-err` : undefined} />
             {err("to")}

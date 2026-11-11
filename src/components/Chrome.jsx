@@ -8,7 +8,7 @@ import { WhatsappIcon, xt } from "./parts";
 import { IS_LIVE } from "../booking/api";
 import { signOut, useSession } from "../booking/auth";
 import { AuthDialog } from "../booking/AuthDialog";
-import { isStaffRole, useRole } from "../booking/useRole";
+import { isStaffRole, useMe } from "../booking/useRole";
 
 /* Navigation, as in the Pakka build: [path, English, Urdu]. */
 const MAIN = [
@@ -42,7 +42,8 @@ export function TopBar({ lang }) {
     <div className="pk-bar">
       <div className="container-nk pk-bar-in">
         <span>
-          {xt(lang, "Someone answers: helpline and WhatsApp", "ہیلپ لائن اور واٹس ایپ پر ہم جواب دیتے ہیں")}{" "}
+          <span className="pk-bar-long">{xt(lang, "Someone answers: helpline and WhatsApp", "ہیلپ لائن اور واٹس ایپ پر ہم جواب دیتے ہیں")}</span>
+          <span className="pk-bar-short">{xt(lang, "Helpline & WhatsApp", "ہیلپ لائن اور واٹس ایپ")}</span>{" "}
           <a href={telLink} className="ltr">
             <b>{company.helpline}</b>
           </a>
@@ -59,31 +60,81 @@ export function TopBar({ lang }) {
 
 /** Live mode only: sign in / sign out (booking on the real backend needs an account). */
 function AccountButton({ lang }) {
+  // Signed out: one "Sign in" button. Signed in: one button with the first name that opens a small menu
+  // (My account, My bookings, Admin panel for staff, Sign out), so the header row never overflows.
   const session = useSession();
-  const role = useRole();
+  const me = useMe();
+  const role = me?.role ?? null;
   const [open, setOpen] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const ref = useRef(null);
+  const { pathname } = useLocation();
+
+  useEffect(() => setMenu(false), [pathname]);
+  useEffect(() => {
+    if (!menu) return undefined;
+    const key = (e) => e.key === "Escape" && setMenu(false);
+    const click = (e) => ref.current && !ref.current.contains(e.target) && setMenu(false);
+    document.addEventListener("keydown", key);
+    document.addEventListener("click", click);
+    return () => {
+      document.removeEventListener("keydown", key);
+      document.removeEventListener("click", click);
+    };
+  }, [menu]);
+
   if (!IS_LIVE) return null;
+  if (!session) {
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)} className="pk-btn pk-btn-s">
+          {xt(lang, "Sign in", "سائن ان")}
+        </button>
+        <AuthDialog lang={lang} open={open} onClose={() => setOpen(false)} />
+      </>
+    );
+  }
+
+  const first = (me?.fullName || "").trim().split(/\s+/)[0] || xt(lang, "Account", "اکاؤنٹ");
+  const out = () => {
+    setMenu(false);
+    signOut().then(() => toast(xt(lang, "Signed out", "سائن آؤٹ ہو گیا"), { kind: "info", duration: 3000 }));
+  };
   return (
-    <>
-      {session && (
-        <Link to={href(lang, "/account")} className="pk-btn pk-btn-s">
-          {xt(lang, "My account", "میرا اکاؤنٹ")}
-        </Link>
-      )}
-      {session && isStaffRole(role) && (
-        <Link to="/admin" className="pk-btn pk-btn-s">
-          {xt(lang, "Admin", "ایڈمن")}
-        </Link>
-      )}
-      <button
-        type="button"
-        onClick={session ? () => signOut().then(() => toast(xt(lang, "Signed out", "سائن آؤٹ ہو گیا"), { kind: "info", duration: 3000 })) : () => setOpen(true)}
-        className="pk-btn pk-btn-s"
-      >
-        {session ? xt(lang, "Sign out", "سائن آؤٹ") : xt(lang, "Sign in", "سائن ان")}
+    <div className="pk-dd pk-acct" ref={ref}>
+      <button type="button" className="pk-btn pk-btn-s pk-acct-btn" aria-expanded={menu} aria-haspopup="true" onClick={() => setMenu((v) => !v)}>
+        <svg aria-hidden viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
+        </svg>
+        <span className="pk-acct-name">{first}</span>
+        <svg aria-hidden className="pk-acct-chev" viewBox="0 0 12 12" width="12" height="12">
+          <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
-      <AuthDialog lang={lang} open={open} onClose={() => setOpen(false)} />
-    </>
+      {menu && (
+        <div className="pk-dd-panel pk-acct-panel" role="menu">
+          <div className="pk-acct-who">
+            <b>{me?.fullName || xt(lang, "Signed in", "سائن ان")}</b>
+            {me?.email && <span>{me.email}</span>}
+          </div>
+          <Link to={href(lang, "/account")} role="menuitem">
+            <b>{xt(lang, "My account", "میرا اکاؤنٹ")}</b>
+          </Link>
+          <Link to={href(lang, "/book/my-bookings")} role="menuitem">
+            <b>{xt(lang, "My bookings", "میری بکنگز")}</b>
+          </Link>
+          {isStaffRole(role) && (
+            <Link to="/admin" role="menuitem">
+              <b>{xt(lang, "Admin panel", "ایڈمن پینل")}</b>
+            </Link>
+          )}
+          <button type="button" role="menuitem" className="pk-acct-out" onClick={out}>
+            {xt(lang, "Sign out", "سائن آؤٹ")}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -299,6 +350,10 @@ export function LangDialog({ lang }) {
 
 /** Always-visible thumb-reach bar on phones (unchanged from the live site). */
 export function StickyBar({ lang }) {
+  // Not on the booking screens: the search form is the page itself, and the bus list and seat map have their
+  // own bottom bar (total + Continue). One bar at a time on phones.
+  const { pathname } = useLocation();
+  if (/\/book(\/(results|seats))?\/?$/.test(pathname)) return null;
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-gold bg-white/95 p-3 backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-xl gap-3">

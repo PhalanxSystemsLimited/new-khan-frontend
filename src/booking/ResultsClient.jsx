@@ -79,54 +79,61 @@ function ItineraryCard({ it, lang, selected, onSelect }) {
   const kind = kinds.size === 1 && tone[first.busType] ? first.busType : "mixed";
   const c = tone[kind];
   const typeName = (id) => busTypes.find((b) => b.id === id)?.name[lang] ?? id;
+  const seatsText = it.seatsLeft === 0 ? bt("booked", lang) : low ? bt("lowSeats", lang, { n: it.seatsLeft }) : bt("seatsLeft", lang, { n: it.seatsLeft });
   return (
-    <li className={`rounded-2xl p-4 ${c.card} ${selected ? c.ring : ""}`}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            {kind !== "mixed" && <span className={`rounded-full px-3 py-0.5 text-xs font-extrabold uppercase tracking-widest ${c.badge}`}>{typeName(kind)}</span>}
-            {multi && <span className="rounded-full bg-gold/30 px-3 py-0.5 text-xs font-bold uppercase tracking-widest text-gold-light">{bt("connection", lang)}</span>}
+    <li className={`rounded-2xl p-4 sm:p-5 ${c.card} ${selected ? c.ring : ""}`}>
+      {/* top: bus type + price */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {kind !== "mixed" && <span className={`rounded-full px-3 py-0.5 text-xs font-extrabold uppercase tracking-widest ${c.badge}`}>{typeName(kind)}</span>}
+          {multi && <span className="rounded-full bg-gold/30 px-3 py-0.5 text-xs font-bold uppercase tracking-widest text-gold-light">{bt("connection", lang)}</span>}
+        </div>
+        <div className="shrink-0 text-end">
+          <p className={`ltr text-2xl font-bold leading-none sm:text-3xl ${c.price}`}>{pkr(it.fare)}<sup>{star}</sup></p>
+          <p className={`mt-1 text-xs ${c.mute}`}>{bt("perSeat", lang)}</p>
+        </div>
+      </div>
+
+      {/* times */}
+      <div className="mt-2">
+        {it.legs.map((t, i) => (
+          <div key={t.id}>
+            {i > 0 && (
+              <p className="my-2 flex items-center gap-2 text-sm font-semibold text-gold-light">
+                <span aria-hidden className={`h-px flex-1 ${c.line}`} />⏱ {bt("layoverIn", lang, { time: hm(it.layoverMin[i - 1], lang), city: t.fromName[lang] })}
+                <span aria-hidden className={`h-px flex-1 ${c.line}`} />
+              </p>
+            )}
+            <p className={`ltr whitespace-nowrap text-[22px] font-bold leading-tight sm:text-2xl ${c.text}`}>
+              {fmtTime(t.departAt, lang)} <span className={`text-lg ${c.mute}`}>{arrow(lang)}</span> {fmtTime(t.arriveAt, lang)}
+            </p>
+            {t.onRoute && (
+              <p className="my-1 inline-block rounded-full bg-gold/30 px-3 py-0.5 text-xs font-bold text-gold-light">
+                {bt("onRoute", lang, { city: t.onRoute.city[lang], time: fmtTime(t.onRoute.at, lang) })}
+              </p>
+            )}
+            <p className={`text-sm ${c.mute}`}>
+              {(multi || IS_LIVE) && `${t.fromName[lang]} ${arrow(lang)} ${t.toName[lang]} · `}
+              {dur(t.departAt, t.arriveAt, lang)}
+              {kind === "mixed" && ` · ${typeName(t.busType)}`}
+            </p>
           </div>
-          {it.legs.map((t, i) => (
-            <div key={t.id}>
-              {i > 0 && (
-                <p className="my-2 flex items-center gap-2 text-sm font-semibold text-gold-light">
-                  <span aria-hidden className={`h-px flex-1 ${c.line}`} />⏱ {bt("layoverIn", lang, { time: hm(it.layoverMin[i - 1], lang), city: t.fromName[lang] })}
-                  <span aria-hidden className={`h-px flex-1 ${c.line}`} />
-                </p>
-              )}
-              <p className={`ltr text-2xl font-bold ${c.text}`}>
-                {fmtTime(t.departAt, lang)} <span className={c.mute}>{arrow(lang)}</span> {fmtTime(t.arriveAt, lang)}
-              </p>
-              {t.onRoute && (
-                <p className="mb-1 inline-block rounded-full bg-gold/30 px-3 py-0.5 text-xs font-bold text-gold-light">
-                  {bt("onRoute", lang, { city: t.onRoute.city[lang], time: fmtTime(t.onRoute.at, lang) })}
-                </p>
-              )}
-              <p className={`text-sm ${c.mute}`}>
-                {(multi || IS_LIVE) && `${t.fromName[lang]} ${arrow(lang)} ${t.toName[lang]} · `}
-                {dur(t.departAt, t.arriveAt, lang)}
-                {kind === "mixed" && ` · ${typeName(t.busType)}`}
-              </p>
-            </div>
-          ))}
-          {kind !== "mixed" && (
-            <ul className={`mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm ${c.mute}`}>
-              {busTypes.find((b) => b.id === kind).features.slice(0, 4).map((f, i) => (<li key={i}>✓ {f[lang]}</li>))}
-            </ul>
-          )}
-          <p className={`mt-3 text-sm font-semibold ${low ? "text-red-500" : kind === "ac" ? "text-green-400" : "text-green-800"}`}>
-            {it.seatsLeft === 0 ? bt("booked", lang) : low ? bt("lowSeats", lang, { n: it.seatsLeft }) : bt("seatsLeft", lang, { n: it.seatsLeft })}
-          </p>
-          {multi && <p className={`text-sm ${c.mute}`}>{bt("totalJourney", lang, { time: dur(first.departAt, last.arriveAt, lang) })}</p>}
-        </div>
-        <div className="text-end">
-          <p className={`ltr text-3xl font-bold ${c.price}`}>{pkr(it.fare)}<sup>{star}</sup></p>
-          <p className={`text-xs ${c.mute}`}>{bt("perSeat", lang)}</p>
-          <button type="button" onClick={onSelect} disabled={it.seatsLeft === 0} aria-pressed={selected} className={`btn mt-3 !min-h-12 ${selected ? c.btnOn : c.btn} disabled:opacity-40`}>
-            {selected ? `✓ ${bt("selected", lang)}` : bt("select", lang)}
-          </button>
-        </div>
+        ))}
+        {multi && <p className={`text-sm ${c.mute}`}>{bt("totalJourney", lang, { time: dur(first.departAt, last.arriveAt, lang) })}</p>}
+      </div>
+
+      {kind !== "mixed" && (
+        <p className={`mt-2 text-xs sm:text-sm ${c.mute}`}>
+          {busTypes.find((b) => b.id === kind).features.slice(0, 4).map((f) => f[lang]).join(" · ")}
+        </p>
+      )}
+
+      {/* bottom: seats left + select */}
+      <div className={`mt-3 flex items-center justify-between gap-3 border-t pt-3 ${kind === "ac" ? "border-white/15" : "border-black/10"}`}>
+        <p className={`text-sm font-semibold ${low ? "text-red-500" : kind === "ac" ? "text-green-400" : "text-green-800"}`}>{seatsText}</p>
+        <button type="button" onClick={onSelect} disabled={it.seatsLeft === 0} aria-pressed={selected} className={`btn !min-h-11 shrink-0 px-6 ${selected ? c.btnOn : c.btn} disabled:opacity-40`}>
+          {selected ? `✓ ${bt("selected", lang)}` : bt("select", lang)}
+        </button>
       </div>
     </li>
   );
@@ -145,18 +152,21 @@ function Section({ title, from, to, date, lang, selectedId, onSelect, cities, ma
   );
   const connecting = !hasDirectBus(from, to);
   return (
-    <section aria-labelledby={`h-${title}`} className="mt-8">
-      <h2 id={`h-${title}`} className="h2">{title}</h2>
+    <section aria-labelledby={`h-${from}-${to}`} className="mt-8">
+      {/* One-way: the route is the heading (the page title already says "Choose your bus"). */}
+      <h2 id={`h-${from}-${to}`} className="h2">{title ?? `${nameIn(cities, from, lang)} ${arrow(lang)} ${nameIn(cities, to, lang)}`}</h2>
       <p className="mt-1 text-mute">
-        {nameIn(cities, from, lang)} {arrow(lang)} {nameIn(cities, to, lang)} · {fmtDate(`${date}T12:00:00+05:00`, lang)}
+        {title && `${nameIn(cities, from, lang)} ${arrow(lang)} ${nameIn(cities, to, lang)} · `}
+        {fmtDate(`${date}T12:00:00+05:00`, lang)}
       </p>
       {connecting && <p className="mt-4 rounded-xl border border-gold/60 bg-gold/10 p-3 text-sm text-black">{bt("viaNote", lang, { a: nameIn(cities, from, lang), b: nameIn(cities, to, lang) })}</p>}
       <div className="mt-4 space-y-3">
-        <fieldset>
+        <fieldset className="min-w-0">
           <legend className="label">{bt("timeOfDay", lang)}</legend>
-          <div className="flex flex-wrap gap-2">
+          {/* one swipeable row on phones */}
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {["any", "morning", "afternoon", "evening", "night"].map((x) => (
-              <button key={x} type="button" aria-pressed={slot === x} onClick={() => setSlot(x)} className={chip(slot === x)}>{bt(x, lang)}</button>
+              <button key={x} type="button" aria-pressed={slot === x} onClick={() => setSlot(x)} className={`${chip(slot === x)} shrink-0`}>{bt(x, lang)}</button>
             ))}
           </div>
           {matchSlot && (
@@ -233,7 +243,7 @@ export function ResultsClient({ lang }) {
         </div>
       )}
 
-      <Section title={bt("chooseOut", lang)} from={from} to={to} date={date} lang={lang} selectedId={out?.id ?? null} onSelect={(t) => { setOut(t); setBack(null); }} cities={cities} />
+      <Section title={isReturn ? bt("chooseOut", lang) : null} from={from} to={to} date={date} lang={lang} selectedId={out?.id ?? null} onSelect={(t) => { setOut(t); setBack(null); }} cities={cities} />
 
       {isReturn &&
         (out ? (
@@ -254,19 +264,19 @@ export function ResultsClient({ lang }) {
         ))}
 
       {/* Sticky trip summary */}
-      <aside aria-label={bt("tripSummary", lang)} className="fixed inset-x-0 bottom-[76px] z-30 border-t-2 border-gold bg-white/97 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur lg:bottom-0">
-        <div className="container-nk flex flex-wrap items-center justify-between gap-3">
+      <aside aria-label={bt("tripSummary", lang)} className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-gold bg-white/97 px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur">
+        <div className="container-nk flex items-center justify-between gap-3">
           <div className="min-w-0 text-sm">
-            <p className="font-semibold text-black">{bt("tripSummary", lang)} · {pax} {bt("passengers", lang).toLowerCase()}</p>
-            <p className="text-mute">
+            <p className="truncate text-mute">
+              {pax} {lang === "ur" ? "مسافر" : pax === 1 ? "passenger" : "passengers"} ·{" "}
               {out ? `${bt("outbound", lang)} ${fmtTime(out.legs[0].departAt, lang)}${out.legs.length > 1 ? ` (${bt("viaLahore", lang)})` : ""}` : bt("pickOutFirst", lang)}
               {isReturn && back ? ` · ${bt("returnLeg", lang)} ${fmtTime(back.legs[0].departAt, lang)}${back.legs.length > 1 ? ` (${bt("viaLahore", lang)})` : ""}` : isReturn && out ? ` · ${bt("pickReturnNext", lang)}` : ""}
             </p>
+            <p className="ltr text-lg font-bold text-black sm:text-xl">
+              {bt("total", lang)} {pkr(total)}<sup>{star}</sup>
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <p className="ltr text-xl font-bold text-black">{bt("total", lang)} {pkr(total)}<sup>{star}</sup></p>
-            <button type="button" onClick={go} disabled={!ready} className="btn btn-gold disabled:opacity-40">{bt("continue", lang)}</button>
-          </div>
+          <button type="button" onClick={go} disabled={!ready} className="btn btn-gold shrink-0 disabled:opacity-40">{bt("continue", lang)}</button>
         </div>
       </aside>
     </div>
