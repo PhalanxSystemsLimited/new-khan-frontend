@@ -144,7 +144,8 @@ const parseKey = (id) => {
 
 export async function searchTrips({ fromId, toId, date }) {
   const q = new URLSearchParams({ fromCityId: fromId, toCityId: toId, date, passengers: "1" });
-  const { data } = await request(`/trips/search?${q}`);
+  // Signed-in counter staff see the counter rule (open until the terminal's voucher); customers the online cut-off.
+  const { data } = await request(`/trips/search?${q}`, { auth: Boolean(getSession()) });
   const trips = data.map((r) => ({
     id: tripKey(r.tripId, r.boardingStopId, r.droppingStopId),
     fromId,
@@ -157,6 +158,8 @@ export async function searchTrips({ fromId, toId, date }) {
     busType: "ac",
     fare: r.fare,
     seatsLeft: r.seatsAvailable,
+    // The bus has already left an earlier terminal: where and when (from that terminal's voucher).
+    onRoute: r.lastLeft ? { city: L(r.lastLeft), at: r.lastLeftAt } : null,
   }));
   cachePut(trips);
   return trips;

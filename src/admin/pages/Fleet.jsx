@@ -1,4 +1,5 @@
 /** Fleet and places: buses, drivers, seat layouts (read-only), cities and terminals used by booking. */
+import { Link } from "react-router-dom";
 import { adminApi } from "../api";
 import { act, Badge, Btn, ErrorNote, fmtD, Page, Section, StatusBadge, Table, useForm, useLoad } from "../ui";
 import { BUS_CLASSES } from "./Network";
@@ -22,6 +23,10 @@ export function Buses() {
     { name: "model", label: "Model", type: "text" },
     { name: "manufactureYear", label: "Year", type: "number", min: 1980, max: 2100 },
     { name: "amenities", label: "Amenities", type: "multi", options: AMENITIES },
+    // Shown once the database has the column (db/migrations/2026-11-07-round-trip-reports.sql).
+    ...(buses.data?.some((b) => "hasHostess" in b)
+      ? [{ name: "hasHostess", label: "Hostess", type: "checkbox", checkLabel: "Carries a hostess (adds the Daily hostess off-route expense)" }]
+      : []),
     { name: "isActive", label: "Active", type: "checkbox", checkLabel: "In service" },
   ];
   // Only send the layout when it changed: the server refuses any layout change on a bus with booked future trips.
@@ -46,7 +51,7 @@ export function Buses() {
           { key: "layoutName", label: "Layout", render: (r) => `${r.layoutName} · ${r.totalSeats} seats` },
           { key: "busClass", label: "Class" },
           { key: "m", label: "Make / model", render: (r) => [r.make, r.model, r.manufactureYear].filter(Boolean).join(" ") || "–" },
-          { key: "amenities", label: "Amenities", render: (r) => (r.amenities ?? []).join(", ") || "–" },
+          { key: "amenities", label: "Amenities", render: (r) => [...(r.amenities ?? []), ...(r.hasHostess ? ["hostess"] : [])].join(", ") || "–" },
           { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
           {
             key: "a",
@@ -91,7 +96,11 @@ export function Drivers() {
   ];
   const save = (id) => (b) => act(() => (id ? adminApi.updateDriver(id, b) : adminApi.createDriver(b)), "Driver saved").then((ok) => (ok && list.reload(), ok));
   return (
-    <Page title="Drivers" actions={<Btn kind="primary" onClick={() => openForm({ title: "Add a driver", fields, initial: { isActive: true }, onSubmit: save() })}>+ Add driver</Btn>}>
+    <Page
+      title="Drivers"
+      intro="Drivers are registered under Employees (designation Driver); their licence details come from there. Drivers listed here can be assigned to trips."
+      actions={<Link to="/admin/employees" className="btn btn-gold !min-h-10 !px-4 !py-1 text-sm">Register in Employees</Link>}
+    >
       <ErrorNote err={list.err} onRetry={list.reload} />
       <Table
         loading={list.loading}
@@ -103,7 +112,125 @@ export function Drivers() {
           { key: "licenseNo", label: "Licence" },
           { key: "licenseExpiry", label: "Expires", render: (r) => <>{fmtD(r.licenseExpiry)} {r.licenseExpired && <Badge tone="red">expired</Badge>}</> },
           { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
-          { key: "a", label: "", render: (r) => <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, cnic: r.cnic ?? "" }, onSubmit: save(r.id) })}>Edit</Btn> },
+          {
+            key: "a",
+            label: "",
+            render: (r) =>
+              r.employeeId ? (
+                <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to="/admin/employees">Edit in Employees</Link>
+              ) : (
+                <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, cnic: r.cnic ?? "" }, onSubmit: save(r.id) })}>Edit</Btn>
+              ),
+          },
+        ]}
+      />
+      {form}
+    </Page>
+  );
+}
+
+/* ------------------------------------------------------------------ conductors */
+
+export function Conductors() {
+  const list = useLoad(() => adminApi.conductors(), []);
+  // Login accounts that have the Conductor role (given under Users & staff).
+  const logins = useLoad(() => adminApi.users({ role: "conductor", limit: 100 }), []);
+  const [openForm, form] = useForm();
+  const loginOpts = (logins.data?.data ?? []).map((u) => ({ value: u.id, label: `${u.fullName || "–"} · ${u.email ?? u.phone ?? ""}` }));
+  const fields = [
+    { name: "fullName", label: "Full name", type: "text", required: true },
+    { name: "phone", label: "Phone", type: "text", required: true, placeholder: "03001234567" },
+    { name: "cnic", label: "CNIC", type: "text", placeholder: "35202-1234567-1" },
+    {
+      name: "userId", label: "Login account", type: "select", nullable: true, options: loginOpts,
+      hint: "So the conductor can sign in and use the conductor screen: they sign up on the website, an admin gives the account the Conductor role (Users & staff), then you pick it here.",
+    },
+    { name: "isActive", label: "Active", type: "checkbox", checkLabel: "Can be assigned to trips" },
+  ];
+  const save = (id) => (b) => act(() => (id ? adminApi.updateConductor(id, b) : adminApi.createConductor(b)), "Conductor saved").then((ok) => (ok && list.reload(), ok));
+  return (
+    <Page
+      title="Conductors"
+      intro="Every bus needs a conductor before it can leave. Conductors are registered under Employees (designation Conductor / Fare Collector); link their login there too."
+      actions={<Link to="/admin/employees" className="btn btn-gold !min-h-10 !px-4 !py-1 text-sm">Register in Employees</Link>}
+    >
+      <ErrorNote err={list.err || logins.err} onRetry={list.reload} />
+      <Table
+        loading={list.loading}
+        rows={list.data}
+        empty="No conductors yet."
+        cols={[
+          { key: "fullName", label: "Name", render: (r) => <b>{r.fullName}</b> },
+          { key: "phone", label: "Phone" },
+          { key: "cnic", label: "CNIC", render: (r) => r.cnic ?? "–" },
+          { key: "login", label: "Login", render: (r) => (r.userId ? r.loginEmail ?? r.loginName ?? "linked" : <Badge tone="amber">no login</Badge>) },
+          { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
+          {
+            key: "a",
+            label: "",
+            render: (r) =>
+              r.employeeId ? (
+                <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to="/admin/employees">Edit in Employees</Link>
+              ) : (
+                <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, cnic: r.cnic ?? "", userId: r.userId ?? "" }, onSubmit: save(r.id) })}>Edit</Btn>
+              ),
+          },
+        ]}
+      />
+      {form}
+    </Page>
+  );
+}
+
+/* ------------------------------------------------------------------ staff directory */
+
+const JOBS = [
+  { value: "cleaner", label: "Cleaner" },
+  { value: "loader", label: "Loader" },
+  { value: "helper", label: "Helper" },
+  { value: "guard", label: "Guard" },
+  { value: "other", label: "Other" },
+];
+
+export function StaffDirectory() {
+  const list = useLoad(() => adminApi.staffDirectory(), []);
+  const locs = useLoad(() => adminApi.locations(), []);
+  const [openForm, form] = useForm();
+  const terminalOpts = (locs.data?.terminals ?? []).map((t) => ({ value: t.id, label: `${t.cityName} · ${t.name}` }));
+  const fields = [
+    { name: "fullName", label: "Full name", type: "text", required: true },
+    { name: "job", label: "Job", type: "select", required: true, options: JOBS },
+    { name: "terminalId", label: "Terminal", type: "select", numeric: true, nullable: true, options: terminalOpts },
+    { name: "phone", label: "Phone", type: "text", placeholder: "03001234567" },
+    { name: "cnic", label: "CNIC", type: "text", placeholder: "35202-1234567-1" },
+    { name: "notes", label: "Notes", type: "text" },
+    { name: "isActive", label: "Active", type: "checkbox", checkLabel: "Still working" },
+  ];
+  const save = (id) => (b) => act(() => (id ? adminApi.updateStaffMember(id, b) : adminApi.createStaffMember(b)), "Saved").then((ok) => (ok && list.reload(), ok));
+  return (
+    <Page
+      title="Staff directory"
+      intro="People who work at terminals or on buses but do not sign in (cleaners, loaders, helpers…). Staff who sign in are managed under Users & staff."
+      actions={<Btn kind="primary" onClick={() => openForm({ title: "Add a person", fields, initial: { job: "cleaner", isActive: true }, onSubmit: save() })}>+ Add person</Btn>}
+    >
+      <ErrorNote err={list.err || locs.err} onRetry={list.reload} />
+      <Table
+        loading={list.loading}
+        rows={list.data}
+        empty="Nobody listed yet."
+        cols={[
+          { key: "fullName", label: "Name", render: (r) => <b>{r.fullName}</b> },
+          { key: "job", label: "Job", render: (r) => JOBS.find((j) => j.value === r.job)?.label ?? r.job },
+          { key: "terminalName", label: "Terminal", render: (r) => r.terminalName ?? "–" },
+          { key: "phone", label: "Phone", render: (r) => r.phone ?? "–" },
+          { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
+          {
+            key: "a",
+            label: "",
+            render: (r) => (
+              <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, phone: r.phone ?? "", cnic: r.cnic ?? "", notes: r.notes ?? "", terminalId: r.terminalId ?? "" }, onSubmit: save(r.id) })}>Edit</Btn>
+            ),
+          },
         ]}
       />
       {form}
@@ -131,6 +258,10 @@ export function Locations() {
     { name: "latitude", label: "Latitude", type: "number", min: -90, max: 90 },
     { name: "longitude", label: "Longitude", type: "number", min: -180, max: 180 },
     { name: "isActive", label: "Active", type: "checkbox", checkLabel: "In use" },
+    // Shown once the database has the column (db/migrations/2026-11-12-origin-terminals-auto-reports.sql).
+    ...((locs.data?.terminals ?? []).some((t) => "isOrigin" in t)
+      ? [{ name: "isOrigin", label: "Origin terminal", type: "checkbox", checkLabel: "Round trips start and end here (Lahore, Multan): a bus arriving here closes its round trip report" }]
+      : []),
   ];
   const saveCity = (id) => (b) => act(() => (id ? adminApi.updateCity(id, b) : adminApi.createCity(b)), "City saved").then((ok) => (ok && locs.reload(), ok));
   const saveTerm = (id) => (b) => act(() => (id ? adminApi.updateTerminal(id, b) : adminApi.createTerminal(b)), "Terminal saved").then((ok) => (ok && locs.reload(), ok));

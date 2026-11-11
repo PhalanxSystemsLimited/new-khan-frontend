@@ -6,10 +6,16 @@ import { Pager } from "./Operations";
 
 const ROLES = [
   { value: "customer", label: "Customer" },
-  { value: "agent", label: "Agent (counter / boarding staff)" },
+  { value: "agent", label: "Counter staff (sells tickets, makes vouchers at their terminal)" },
+  { value: "driver", label: "Driver (sees their own trips)" },
+  { value: "conductor", label: "Conductor (conductor screen for their own trips)" },
+  { value: "manager", label: "Manager (operations, crew, replacement vouchers, reports)" },
   { value: "admin", label: "Admin" },
   { value: "super_admin", label: "Super admin" },
 ];
+/** Roles an admin (not super admin) may give: the rest are for super admins only. */
+const ADMIN_GIVES = ["customer", "agent", "driver", "conductor"];
+const ROLE_SHORT = { customer: "customer", agent: "counter staff", driver: "driver", conductor: "conductor", manager: "manager", admin: "admin", super_admin: "super admin" };
 
 /* ------------------------------------------------------------------ users */
 
@@ -20,16 +26,21 @@ export function Users({ me }) {
   const [openForm, form] = useForm();
   const [ask, confirmNode] = useConfirm();
   const superAdmin = me.role === "super_admin";
+  const locations = useLoad(() => adminApi.locations(), []);
+  const terminalOpts = (locations.data?.terminals ?? []).filter((t) => t.isActive).map((t) => ({ value: t.id, label: `${t.cityName} · ${t.name}` }));
 
   const role = (u) =>
     openForm({
       title: `Role · ${u.fullName || u.email || u.phone}`,
       note: superAdmin
-        ? "Agents can run trips, boarding and bookings. Admins can change everything except other admins. Super admins can manage admins."
-        : "Only a super admin can make someone an admin or change an admin's role.",
-      fields: [{ name: "role", label: "Role", type: "select", required: true, options: superAdmin ? ROLES : ROLES.slice(0, 2) }],
-      initial: { role: u.role },
-      onSubmit: (b) => act(() => adminApi.setRole(u.id, b.role), "Role changed").then((ok) => (ok && list.reload(), ok)),
+        ? "Counter staff must have a terminal: they sell tickets and make vouchers there only. Managers may also have one. A conductor still needs to be linked on the Conductors page. Only super admins give manager and admin roles."
+        : "Counter staff must have a terminal. Only a super admin can give or change manager and admin roles.",
+      fields: [
+        { name: "role", label: "Role", type: "select", required: true, options: superAdmin ? ROLES : ROLES.filter((r) => ADMIN_GIVES.includes(r.value)) },
+        { name: "terminalId", label: "Terminal (counter staff and managers)", type: "select", numeric: true, nullable: true, options: terminalOpts, hint: "Required for counter staff. Ignored for other roles." },
+      ],
+      initial: { role: u.role, terminalId: u.terminalId ?? "" },
+      onSubmit: (b) => act(() => adminApi.setRole(u.id, { role: b.role, terminalId: b.terminalId ?? null }), "Role changed").then((ok) => (ok && list.reload(), ok)),
     });
 
   async function toggle(u) {
@@ -64,7 +75,7 @@ export function Users({ me }) {
           { key: "fullName", label: "Name", render: (r) => <b>{r.fullName || "–"}</b> },
           { key: "email", label: "Email" },
           { key: "phone", label: "Phone" },
-          { key: "role", label: "Role", render: (r) => <Badge tone={r.role === "customer" ? "grey" : "blue"}>{r.role.replace("_", " ")}</Badge> },
+          { key: "role", label: "Role", render: (r) => <><Badge tone={r.role === "customer" ? "grey" : "blue"}>{ROLE_SHORT[r.role] ?? r.role}</Badge>{r.terminalName ? <div className="mt-1 text-xs text-mute">{r.terminalName}</div> : null}</> },
           { key: "lastLoginAt", label: "Last sign-in", render: (r) => fmtDT(r.lastLoginAt) },
           { key: "createdAt", label: "Joined", render: (r) => fmtD(r.createdAt) },
           { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
@@ -76,7 +87,7 @@ export function Users({ me }) {
                 <span className="text-xs text-mute">You</span>
               ) : (
                 <div className="flex gap-1">
-                  <Btn small onClick={() => role(r)}>Role</Btn>
+                  {(superAdmin || ADMIN_GIVES.includes(r.role)) && <Btn small onClick={() => role(r)}>Role</Btn>}
                   <Btn small kind={r.isActive ? "danger" : "ok"} onClick={() => toggle(r)}>{r.isActive ? "Block" : "Unblock"}</Btn>
                 </div>
               ),
@@ -179,7 +190,7 @@ export function Reports() {
 
 /* ------------------------------------------------------------------ activity log */
 
-const ENTITIES = ["", "booking", "payment", "refund", "trip", "fare", "route", "promo_code", "cancellation_policy", "user", "schedule", "site_content"];
+const ENTITIES = ["", "booking", "payment", "refund", "trip", "fare", "route", "promo_code", "cancellation_policy", "user", "schedule", "site_content", "trip_voucher", "employee", "employee_list", "conductor", "staff_member", "terminal_deduction", "round_trip", "terminal_voucher", "offroute_category", "offroute_default", "onroute_category", "online_platform"];
 
 export function Activity() {
   const [entityType, setEntityType] = useState("");

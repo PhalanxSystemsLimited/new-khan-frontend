@@ -1,6 +1,8 @@
 /**
- * Admin panel at /admin (English only). Staff (agent) see daily operations; admins and super admins see
- * everything. The backend checks the role on every request too, so hiding a menu item is only a convenience.
+ * Admin panel at /admin (English only). What each role sees:
+ *   counter staff (agent): daily operations at their terminal · conductor: the conductor screen only ·
+ *   manager: operations, crew, replacement vouchers, reports · admin / super admin: everything.
+ * The backend checks the role on every request too, so hiding a menu item is only a convenience.
  */
 import { useEffect, useState } from "react";
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
@@ -12,42 +14,83 @@ import { adminApi } from "./api";
 import { Btn } from "./ui";
 import { Bookings, Dashboard, Refunds, Trips } from "./pages/Operations";
 import { Fares, RoutesPage, Schedules } from "./pages/Network";
-import { Buses, Drivers, Locations } from "./pages/Fleet";
+import { Buses, Conductors, Drivers, Locations } from "./pages/Fleet";
 import { Promos, RefundRules } from "./pages/Commercial";
 import { Activity, Reports, Users } from "./pages/People";
 import { Content } from "./pages/Content";
+import { OffrouteSettings, ReportLists, RoundTripEditor, RoundTrips, TerminalDeductions, VoucherSlip, Vouchers } from "./pages/RoundTrips";
+import { TripVoucherDetail, TripVouchers, TripVoucherSlip } from "./pages/TripVouchers";
+import { ConductorScreen } from "./pages/Conductor";
+import { EmployeeLists, EmployeePrint, Employees } from "./pages/Employees";
+import { DayPlan } from "./pages/DayPlan";
+import { Board, CounterScreen, MyTrips, TicketPrint } from "./pages/Home";
 
-const STAFF = ["agent", "admin", "super_admin"];
-const ADMIN = ["admin", "super_admin"];
+/** Everyone who works for New Khan and may open the panel. */
+export const EMPLOYEE = ["agent", "driver", "conductor", "manager", "admin", "super_admin"];
+export const MANAGER = ["manager", "admin", "super_admin"];
+export const ADMIN = ["admin", "super_admin"];
+export const ROLE_NAME = { customer: "customer", agent: "counter staff", driver: "driver", conductor: "conductor", manager: "manager", admin: "admin", super_admin: "super admin" };
 
-/** Menu: [path, label, admin only?, element]. */
+/**
+ * Who may open a menu item:
+ *   "mytrips" drivers and conductors · "conductor" the conductor screen: conductors and staff (not drivers) ·
+ *   "staff" counter staff and up · "manager" managers and up · "admin" admins and super admins.
+ * Drivers see only My trips; conductors only the conductor screen and My trips.
+ */
+const allowed = (level, role) => {
+  if (level === "mytrips") return role === "driver" || role === "conductor";
+  if (role === "driver") return false;
+  if (level === "conductor") return true;
+  if (role === "conductor") return false;
+  if (level === "staff") return true;
+  if (level === "manager") return MANAGER.includes(role);
+  return ADMIN.includes(role);
+};
+
+/** Menu: [path, label, who may open it, element]. */
 const MENU = [
   ["Operations", [
-    ["", "Dashboard", true, Dashboard],
-    ["trips", "Trips & boarding", false, Trips],
-    ["bookings", "Bookings", false, Bookings],
-    ["refunds", "Refunds", true, Refunds],
+    ["board", "Operations board", "manager", Board],
+    ["counter", "Counter", "staff", CounterScreen],
+    ["my-trips", "My trips", "mytrips", MyTrips],
+    ["", "Dashboard", "admin", Dashboard],
+    ["trips", "Trips & boarding", "staff", Trips],
+    ["bookings", "Bookings", "staff", Bookings],
+    ["trip-vouchers", "Vouchers", "staff", TripVouchers],
+    ["day-plan", "Day plan", "manager", DayPlan],
+    ["conductor", "Conductor", "conductor", ConductorScreen],
+    ["refunds", "Refunds", "manager", Refunds],
+  ]],
+  ["Round trip reports", [
+    ["round-trips", "Round trip reports", "admin", RoundTrips],
+    ["vouchers", "Report vouchers", "admin", Vouchers],
+    ["offroute", "Off-route expenses", "admin", OffrouteSettings],
+    ["terminal-deductions", "Terminal deductions", "admin", TerminalDeductions],
+    ["report-lists", "On-route & platforms", "admin", ReportLists],
   ]],
   ["Network", [
-    ["routes", "Routes & stops", true, RoutesPage],
-    ["fares", "Fares", true, Fares],
-    ["schedules", "Schedules & trips", true, Schedules],
+    ["routes", "Routes & stops", "admin", RoutesPage],
+    ["fares", "Fares", "admin", Fares],
+    ["schedules", "Schedules & trips", "admin", Schedules],
   ]],
-  ["Fleet & places", [
-    ["buses", "Buses", true, Buses],
-    ["drivers", "Drivers", true, Drivers],
-    ["locations", "Cities & terminals", true, Locations],
+  ["Fleet & people", [
+    ["employees", "Employees", "admin", Employees],
+    ["employee-lists", "Employee lists", "admin", EmployeeLists],
+    ["buses", "Buses", "admin", Buses],
+    ["drivers", "Drivers", "admin", Drivers],
+    ["conductors", "Conductors", "admin", Conductors],
+    ["locations", "Cities & terminals", "admin", Locations],
   ]],
   ["Sales rules", [
-    ["promos", "Promo codes", true, Promos],
-    ["refund-rules", "Refund rules", true, RefundRules],
+    ["promos", "Promo codes", "admin", Promos],
+    ["refund-rules", "Refund rules", "admin", RefundRules],
   ]],
   ["People & reports", [
-    ["users", "Users & staff", true, Users],
-    ["reports", "Reports", true, Reports],
-    ["activity", "Activity log", true, Activity],
+    ["users", "Users & staff", "admin", Users],
+    ["reports", "Reports", "manager", Reports],
+    ["activity", "Activity log", "admin", Activity],
   ]],
-  ["Website", [["content", "Website content", true, Content]]],
+  ["Website", [["content", "Website content", "admin", Content]]],
 ];
 
 function Gate({ children }) {
@@ -82,9 +125,9 @@ function Gate({ children }) {
   if (!IS_LIVE)
     return box("Admin panel is off in demo mode", "Build the website with VITE_API_MODE=live to use the admin panel.", <Link to="/en" className="btn btn-gold">Back to website</Link>);
   if (!session)
-    return box("New Khan admin", "Sign in with a staff or admin account.", <Btn kind="primary" onClick={() => setAuthOpen(true)}>Sign in</Btn>);
+    return box("New Khan admin", "Sign in with a staff, conductor or admin account.", <Btn kind="primary" onClick={() => setAuthOpen(true)}>Sign in</Btn>);
   if (me === undefined) return box("Checking your account…", "One moment.", null);
-  if (!me || !STAFF.includes(me.role))
+  if (!me || !EMPLOYEE.includes(me.role))
     return box(
       "No access",
       me ? `${me.email ?? me.phone ?? "This account"} is a customer account. Ask a super admin to give it a staff role.` : "Your account could not be checked. Sign in again.",
@@ -98,12 +141,14 @@ function Gate({ children }) {
 
 function Shell({ me }) {
   const isAdmin = ADMIN.includes(me.role);
+  const isManager = MANAGER.includes(me.role);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   useEffect(() => setOpen(false), [pathname]);
 
-  const groups = MENU.map(([g, items]) => [g, items.filter((i) => isAdmin || !i[2])]).filter(([, items]) => items.length);
-  const home = isAdmin ? "" : "trips";
+  const groups = MENU.map(([g, items]) => [g, items.filter((i) => allowed(i[2], me.role))]).filter(([, items]) => items.length);
+  // Each role opens on its own screen.
+  const home = { agent: "counter", driver: "my-trips", conductor: "conductor", manager: "board" }[me.role] ?? "";
 
   const nav = (
     <nav aria-label="Admin" className="grid gap-4">
@@ -140,7 +185,8 @@ function Shell({ me }) {
           </div>
           <div className="flex items-center gap-2 text-sm">
             <span className="hidden text-neutral-700 sm:inline">
-              {me.fullName || me.email} · <b>{me.role.replace("_", " ")}</b>
+              {me.fullName || me.email} · <b>{ROLE_NAME[me.role] ?? me.role}</b>
+              {me.terminalName ? ` · ${me.terminalName}` : ""}
             </span>
             <Link to="/en" className="btn btn-ghost !min-h-9 !px-3 !py-1 text-sm">Website</Link>
             <Btn small onClick={() => signOut()}>Sign out</Btn>
@@ -154,8 +200,10 @@ function Shell({ me }) {
         <main className="min-w-0 flex-1 p-4 sm:p-6">
           <Routes>
             {groups.flatMap(([, items]) => items).map(([p, , , El]) => (
-              <Route key={p} path={p || "/"} element={<El me={me} isAdmin={isAdmin} />} />
+              <Route key={p} path={p || "/"} element={<El me={me} isAdmin={isAdmin} isManager={isManager} />} />
             ))}
+            {isAdmin && <Route path="round-trips/:id" element={<RoundTripEditor />} />}
+            {me.role !== "conductor" && <Route path="trip-vouchers/:id" element={<TripVoucherDetail me={me} isManager={isManager} />} />}
             <Route path="*" element={<Navigate to={`/admin${home ? `/${home}` : ""}`} replace />} />
           </Routes>
         </main>
@@ -166,5 +214,18 @@ function Shell({ me }) {
 }
 
 export default function AdminApp() {
-  return <Gate>{(me) => <Shell me={me} />}</Gate>;
+  return (
+    <Gate>
+      {(me) => (
+        <Routes>
+          {/* Printable slips: full page, no admin menu. */}
+          <Route path="slip/:id" element={ADMIN.includes(me.role) ? <VoucherSlip /> : <Navigate to="/admin" replace />} />
+          <Route path="voucher-slip/:id" element={me.role !== "conductor" ? <TripVoucherSlip /> : <Navigate to="/admin" replace />} />
+          <Route path="employee-print/:id" element={ADMIN.includes(me.role) ? <EmployeePrint /> : <Navigate to="/admin" replace />} />
+          <Route path="ticket/:id" element={!["driver", "conductor"].includes(me.role) ? <TicketPrint /> : <Navigate to="/admin" replace />} />
+          <Route path="*" element={<Shell me={me} />} />
+        </Routes>
+      )}
+    </Gate>
+  );
 }

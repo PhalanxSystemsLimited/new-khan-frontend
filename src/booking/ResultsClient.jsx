@@ -98,6 +98,11 @@ function ItineraryCard({ it, lang, selected, onSelect }) {
               <p className={`ltr text-2xl font-bold ${c.text}`}>
                 {fmtTime(t.departAt, lang)} <span className={c.mute}>{arrow(lang)}</span> {fmtTime(t.arriveAt, lang)}
               </p>
+              {t.onRoute && (
+                <p className="mb-1 inline-block rounded-full bg-gold/30 px-3 py-0.5 text-xs font-bold text-gold-light">
+                  {bt("onRoute", lang, { city: t.onRoute.city[lang], time: fmtTime(t.onRoute.at, lang) })}
+                </p>
+              )}
               <p className={`text-sm ${c.mute}`}>
                 {(multi || IS_LIVE) && `${t.fromName[lang]} ${arrow(lang)} ${t.toName[lang]} · `}
                 {dur(t.departAt, t.arriveAt, lang)}

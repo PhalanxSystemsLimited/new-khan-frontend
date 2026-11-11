@@ -266,7 +266,7 @@ export function FormModal({ title, fields, initial = {}, submitLabel = "Save", o
           let input;
           if (f.type === "textarea") input = <textarea {...common} rows={f.rows ?? 3} className={inputCls} value={v[f.name]} onChange={(e) => set(f.name, e.target.value)} />;
           else if (f.type === "select")
-            input = <Select {...common} value={v[f.name]} onChange={(e) => set(f.name, e.target.value)} options={[...(f.required ? [] : [{ value: "", label: "—" }]), ...f.options]} />;
+            input = <Select {...common} value={v[f.name]} onChange={(e) => set(f.name, e.target.value)} options={[{ value: "", label: f.required ? "— choose —" : "—" }, ...f.options]} />;
           else if (f.type === "checkbox")
             input = (
               <label className="flex items-center gap-2 text-sm font-semibold">

@@ -64,7 +64,16 @@ export function Dashboard() {
             { key: "routeName", label: "Route" },
             { key: "registrationNo", label: "Bus" },
             { key: "seatsTaken", label: "Seats taken" },
-            { key: "status", label: "Status", render: (r) => <StatusBadge s={r.status} /> },
+            {
+            key: "status",
+            label: "Status",
+            render: (r) => (
+              <>
+                <StatusBadge s={r.status} />
+                {r.lastLeft && <div className="mt-1 text-xs text-mute">On route: left {r.lastLeft} {fmtT(r.lastLeftAt)}</div>}
+              </>
+            ),
+          },
           ]}
         />
       </Section>
@@ -130,15 +139,41 @@ function ManifestModal({ trip, onClose }) {
   );
 }
 
-export function Trips({ isAdmin }) {
+export function Trips({ me, isAdmin, isManager }) {
   const [date, setDate] = useState(pkDate());
   const [status, setStatus] = useState("");
   const trips = useLoad(() => adminApi.trips(date, status || undefined), [date, status]);
   const [manifest, setManifest] = useState(null);
   const [openForm, form] = useForm();
-  const opts = useLoad(() => (isAdmin ? Promise.all([adminApi.buses(), adminApi.drivers(), adminApi.routes()]) : Promise.resolve([[], [], []])), [isAdmin]);
-  const [buses, drivers, routes] = opts.data ?? [[], [], []];
+  const opts = useLoad(
+    () =>
+      isManager
+        ? Promise.all([
+            adminApi.buses(), adminApi.drivers(), isAdmin ? adminApi.routes() : Promise.resolve([]), adminApi.conductors(), adminApi.staffAccounts(),
+            adminApi.crew("hostess").catch(() => []),
+          ])
+        : Promise.resolve([[], [], [], [], [], []]),
+    [isManager, isAdmin],
+  );
+  const [buses, drivers, routes, conductors, staffAccounts, hostesses] = opts.data ?? [[], [], [], [], [], []];
+  /** Hostesses registered under Employees (the trip keeps the name, so an older typed name stays selectable). */
+  const hostessOpts = (current) => [
+    ...hostesses.map((h) => ({ value: h.fullName, label: `${h.fullName} (${h.employeeCode})` })),
+    ...(current && !hostesses.some((h) => h.fullName === current) ? [{ value: current, label: current }] : []),
+  ];
+  const conductorOpts = conductors.filter((c) => c.isActive).map((c) => ({ value: c.id, label: c.fullName }));
+  const standInOpts = staffAccounts.map((u) => ({ value: u.id, label: `${u.fullName || u.email} (${u.role === "agent" ? "counter staff" : u.role.replace("_", " ")})` }));
+  const done = (t) => ["departed", "arrived"].includes(t.status);
 
+  const applyStatus = async (t, b) => {
+    let res;
+    const ok = await act(async () => { res = await adminApi.tripStatus(t.id, b); }, b.status === "arrived" ? "Bus arrived" : "Trip updated");
+    if (ok && res?.autoReport?.roundTripId) {
+      act(async () => {}, `Round trip report ${res.autoReport.roundTripId} created`, `${res.autoReport.tripIds.length} trip(s), filled in from the vouchers. An admin adds diesel and the other expenses, then finalizes it.`);
+    }
+    if (ok) trips.reload();
+    return ok;
+  };
   const changeStatus = (t) =>
     openForm({
       title: `Change status · ${t.routeName}, ${fmtT(t.departureAt)}`,
@@ -150,22 +185,35 @@ export function Trips({ isAdmin }) {
       ],
       initial: { status: NEXT[t.status][0] },
       submitLabel: "Update status",
-      onSubmit: (b) => act(() => adminApi.tripStatus(t.id, b), "Trip updated").then((ok) => (ok && trips.reload(), ok)),
+      onSubmit: (b) => applyStatus(t, b),
     });
 
+  const standInField = {
+    name: "standInConductorId", label: "Stand-in conductor (staff)", type: "select", nullable: true, options: standInOpts,
+    hint: "Only when the conductor could not go and a staff member went instead. Can be filled in after the trip.",
+  };
   const assign = (t) =>
-    openForm({
-      title: `Bus and crew · ${t.routeName}, ${fmtT(t.departureAt)}`,
-      note: "A replacement bus must have the same seat layout.",
-      fields: [
-        { name: "busId", label: "Bus", type: "select", numeric: true, required: true, options: buses.filter((b) => b.isActive).map((b) => ({ value: b.id, label: `${b.registrationNo}${b.fleetNo ? ` (${b.fleetNo})` : ""} · ${b.layoutName}` })) },
-        { name: "driverId", label: "Driver", type: "select", numeric: true, nullable: true, options: drivers.filter((d) => d.isActive && !d.licenseExpired).map((d) => ({ value: d.id, label: d.fullName })) },
-        { name: "coDriverId", label: "Co-driver", type: "select", numeric: true, nullable: true, options: drivers.filter((d) => d.isActive && !d.licenseExpired).map((d) => ({ value: d.id, label: d.fullName })) },
-        { name: "hostessName", label: "Hostess name", type: "text", nullable: true },
-      ],
-      initial: { busId: t.busId, driverId: t.driverId ?? "", coDriverId: t.coDriverId ?? "", hostessName: t.hostessName ?? "" },
-      onSubmit: (b) => act(() => adminApi.tripAssign(t.id, b), "Crew saved").then((ok) => (ok && trips.reload(), ok)),
-    });
+    done(t)
+      ? openForm({
+          title: `Stand-in conductor · ${t.routeName}, ${fmtT(t.departureAt)}`,
+          note: "The trip has left, so only the staff member who went as conductor can still be recorded.",
+          fields: [standInField],
+          initial: { standInConductorId: t.standInConductorId ?? "" },
+          onSubmit: (b) => act(() => adminApi.tripAssign(t.id, b), "Saved").then((ok) => (ok && trips.reload(), ok)),
+        })
+      : openForm({
+          title: `Bus and crew · ${t.routeName}, ${fmtT(t.departureAt)}`,
+          note: "A replacement bus must have the same seat layout. The bus cannot leave without a conductor.",
+          fields: [
+            { name: "busId", label: "Bus", type: "select", numeric: true, required: true, options: buses.filter((b) => b.isActive).map((b) => ({ value: b.id, label: `${b.registrationNo}${b.fleetNo ? ` (${b.fleetNo})` : ""} · ${b.layoutName}` })) },
+            { name: "driverId", label: "Driver", type: "select", numeric: true, nullable: true, options: drivers.filter((d) => d.isActive && !d.licenseExpired).map((d) => ({ value: d.id, label: d.fullName })) },
+            { name: "conductorId", label: "Conductor", type: "select", numeric: true, nullable: true, options: conductorOpts, hint: conductorOpts.length ? undefined : "No conductors yet: add them under Fleet & people → Conductors." },
+            standInField,
+            { name: "hostessName", label: "Hostess", type: "select", nullable: true, options: hostessOpts(t.hostessName), hint: hostesses.length ? undefined : "No hostesses registered yet: add them under Employees (designation Hostess)." },
+          ],
+          initial: { busId: t.busId, driverId: t.driverId ?? "", conductorId: t.conductorId ?? "", standInConductorId: t.standInConductorId ?? "", hostessName: t.hostessName ?? "" },
+          onSubmit: (b) => act(() => adminApi.tripAssign(t.id, b), "Crew saved").then((ok) => (ok && trips.reload(), ok)),
+        });
 
   const addTrip = () =>
     openForm({
@@ -176,9 +224,8 @@ export function Trips({ isAdmin }) {
         { name: "busId", label: "Bus", type: "select", numeric: true, required: true, options: buses.filter((b) => b.isActive).map((b) => ({ value: b.id, label: `${b.registrationNo} · ${b.layoutName}` })) },
         { name: "driverId", label: "Driver", type: "select", numeric: true, options: drivers.filter((d) => d.isActive && !d.licenseExpired).map((d) => ({ value: d.id, label: d.fullName })) },
         { name: "departureAt", label: "Departs from first stop", type: "datetime", required: true },
-        { name: "bookingCloseMinutes", label: "Online booking closes (minutes before)", type: "number", min: 0, max: 720 },
       ],
-      initial: { bookingCloseMinutes: 30 },
+      initial: {},
       submitLabel: "Create trip",
       onSubmit: (b) => act(() => adminApi.createTrip(b), "Trip created").then((ok) => (ok && trips.reload(), ok)),
     });
@@ -210,17 +257,47 @@ export function Trips({ isAdmin }) {
         cols={[
           { key: "d", label: "Departs", render: (r) => <><b>{fmtT(r.departureAt)}</b>{r.delayMinutes ? <><br /><Badge tone="amber">+{r.delayMinutes} min</Badge></> : null}</> },
           { key: "routeName", label: "Route" },
-          { key: "b", label: "Bus / driver", render: (r) => <>{r.registrationNo}<br /><span className="text-xs text-mute">{r.driverName ?? "No driver"}</span></> },
+          {
+            key: "b",
+            label: "Bus / crew",
+            render: (r) => (
+              <>
+                {r.registrationNo}
+                <br />
+                <span className="text-xs text-mute">Driver: {r.driverName ?? "–"}</span>
+                <br />
+                {r.conductorName || r.standInConductorName ? (
+                  <span className="text-xs text-mute">Conductor: {r.conductorName ?? "–"}{r.standInConductorName ? ` · stand-in ${r.standInConductorName}` : ""}</span>
+                ) : (
+                  <Badge tone="amber">no conductor</Badge>
+                )}
+              </>
+            ),
+          },
           { key: "seatsTaken", label: "Seats taken" },
-          { key: "status", label: "Status", render: (r) => <StatusBadge s={r.status} /> },
+          {
+            key: "status",
+            label: "Status",
+            render: (r) => (
+              <>
+                <StatusBadge s={r.status} />
+                {r.lastLeft && <div className="mt-1 text-xs text-mute">On route: left {r.lastLeft} {fmtT(r.lastLeftAt)}</div>}
+              </>
+            ),
+          },
           {
             key: "a",
             label: "",
             render: (r) => (
               <div className="flex flex-wrap gap-1">
                 <Btn small onClick={() => setManifest(r)}>Passengers</Btn>
-                {NEXT[r.status].length > 0 && <Btn small onClick={() => changeStatus(r)}>Status…</Btn>}
-                {isAdmin && !["departed", "arrived", "cancelled"].includes(r.status) && <Btn small onClick={() => assign(r)}>Bus & crew</Btn>}
+                <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to={`/admin/trip-vouchers/${r.id}`}>Vouchers{r.vouchersGenerated ? ` (${r.vouchersGenerated})` : ""}</Link>
+                {isManager && NEXT[r.status].length > 0 && <Btn small onClick={() => changeStatus(r)}>Status…</Btn>}
+                {!isManager && r.status === "departed" && me?.terminalId && me.terminalId === r.destinationTerminalId && (
+                  <Btn small kind="ok" onClick={() => applyStatus(r, { status: "arrived" })}>Arrived</Btn>
+                )}
+                {r.roundTripId && isAdmin && <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to={`/admin/round-trips/${r.roundTripId}`}>Report {r.roundTripId}</Link>}
+                {isManager && r.status !== "cancelled" && <Btn small onClick={() => assign(r)}>{done(r) ? "Stand-in" : "Bus & crew"}</Btn>}
               </div>
             ),
           },

@@ -31,6 +31,7 @@ export const bk = {
   select: { en: "Select", ur: "منتخب کریں" },
   selected: { en: "Selected", ur: "منتخب" },
   seatsLeft: { en: "{n} seats left", ur: "{n} سیٹیں باقی" },
+  onRoute: { en: "On route: left {city} at {time}", ur: "راستے میں: {city} سے {time} پر روانہ" },
   lowSeats: { en: "Only {n} left", ur: "صرف {n} باقی" },
   duration: { en: "{h}", ur: "{h}" },
   perSeat: { en: "per seat", ur: "فی سیٹ" },

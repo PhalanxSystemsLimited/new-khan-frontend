@@ -1,0 +1,192 @@
+/*
+ * Round Trip Report sheet: the layout reference (round-trip-report-template.html), scoped under .rtr so it
+ * cannot affect the rest of the site. Used by the QR page (/r/:token) and for print / Save as PDF.
+ */
+.rtr {
+  --ink: #18212b;
+  --ink-soft: #55606d;
+  --rule: #c4cad2;
+  --rule-strong: #18212b;
+  --band: #eef1f4;
+  --paper: #ffffff;
+  --desk: #dfe3e8;
+  --deposit: #1d4d3c;
+  --deposit-ink: #ffffff;
+  --flag: #8a5a00;
+  --flag-bg: #fff4d6;
+  --sans: "Source Sans 3", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  color-scheme: light;
+  min-height: 100vh;
+  margin: 0;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 8.2pt;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+@media screen and (prefers-color-scheme: dark) {
+  .rtr:not([data-theme="light"]) {
+    --ink: #e6eaef; --ink-soft: #9aa5b1; --rule: #3a4450; --rule-strong: #c9d1da;
+    --band: #232b34; --paper: #171d24; --desk: #0e1217;
+    --deposit: #2f7a5f; --flag: #f0c266; --flag-bg: #3a2f14;
+    color-scheme: dark;
+  }
+}
+.rtr[data-theme="dark"] {
+  --ink: #e6eaef; --ink-soft: #9aa5b1; --rule: #3a4450; --rule-strong: #c9d1da;
+  --band: #232b34; --paper: #171d24; --desk: #0e1217;
+  --deposit: #2f7a5f; --flag: #f0c266; --flag-bg: #3a2f14;
+  color-scheme: dark;
+}
+.rtr *, .rtr *::before, .rtr *::after { box-sizing: border-box; }
+.rtr h1, .rtr h2, .rtr p, .rtr dl, .rtr dd { margin: 0; }
+
+/* ---------- Sheet ---------- */
+.rtr .sheet {
+  position: relative; width: 210mm; min-height: 297mm; margin: 12px auto;
+  padding: 8mm 10mm 7mm; background: var(--paper);
+  box-shadow: 0 1px 3px rgba(0,0,0,.18);
+  display: flex; flex-direction: column; gap: 3.2mm;
+}
+.rtr .sheet.is-draft::after {
+  content: "DRAFT"; position: absolute; inset: 0; display: grid; place-items: center;
+  font: 700 110pt/1 var(--sans); color: var(--ink); opacity: .05; transform: rotate(-28deg);
+  pointer-events: none;
+}
+@media screen and (max-width: 820px) {
+  .rtr .sheet { width: auto; min-height: 0; margin: 0; padding: 14px; box-shadow: none; }
+  .rtr .scroll { overflow-x: auto; }
+  .rtr .scroll > table { min-width: 640px; }
+}
+
+.rtr .num { text-align: right; white-space: nowrap; }
+.rtr .muted { color: var(--ink-soft); }
+.rtr h2 { font: 600 9.4pt/1.2 var(--sans); margin: 0 0 1.4mm; }
+
+/* ---------- Masthead ---------- */
+.rtr .masthead { display: grid; grid-template-columns: 1fr auto; gap: 6mm; align-items: start;
+  border-bottom: 1.6pt solid var(--rule-strong); padding-bottom: 3mm; }
+.rtr .brand { display: flex; gap: 3.5mm; align-items: center; }
+.rtr .logo { width: 15mm; height: 15mm; border-radius: 50%; background: var(--ink); color: var(--paper);
+  display: grid; place-items: center; text-align: center; font: 700 5.6pt/1.05 var(--sans); flex-shrink: 0; }
+.rtr .company { font: 600 15pt/1.05 var(--serif); margin: 0; }
+.rtr .doc-title { margin: .8mm 0 0; font-size: 10pt; color: var(--ink-soft); }
+.rtr .doc-title strong { color: var(--ink); font-weight: 700; }
+.rtr .stamp { display: flex; gap: 3mm; align-items: center; }
+.rtr .stamp-text { text-align: right; }
+.rtr .report-id { font: 700 17pt/1 var(--sans); letter-spacing: .01em; }
+.rtr .status { display: inline-block; margin-top: 1.2mm; padding: .3mm 2mm; border: 1pt solid var(--ink);
+  border-radius: 2mm; font-weight: 600; font-size: 7.8pt; }
+.rtr .qr { width: 21mm; height: 21mm; border: 1pt solid var(--ink); padding: 1mm; background: #fff; }
+.rtr .qr svg { width: 100%; height: 100%; display: block; }
+.rtr .qr-caption { font-size: 6.6pt; color: var(--ink-soft); text-align: center; margin-top: .6mm; }
+
+/* ---------- Trip facts ---------- */
+.rtr .facts { display: grid; grid-template-columns: repeat(6, 1fr); border: .8pt solid var(--rule-strong); }
+.rtr .facts > div { padding: 1mm 2mm; border-right: .5pt solid var(--rule); }
+.rtr .facts > div:nth-child(6n) { border-right: 0; }
+.rtr .facts > div:nth-child(n+7) { border-top: .5pt solid var(--rule); }
+.rtr .facts dt { font-size: 7pt; color: var(--ink-soft); }
+.rtr .facts dd { margin: .2mm 0 0; font-weight: 600; font-size: 9.6pt; }
+@media screen and (max-width: 820px) {
+  .rtr .facts { grid-template-columns: repeat(3, 1fr); }
+  .rtr .facts > div:nth-child(6n) { border-right: .5pt solid var(--rule); }
+  .rtr .facts > div:nth-child(3n) { border-right: 0; }
+  .rtr .facts > div:nth-child(n+4) { border-top: .5pt solid var(--rule); }
+}
+
+/* ---------- Tables ---------- */
+.rtr table { width: 100%; border-collapse: collapse; }
+.rtr th, .rtr td { padding: .7mm 1.6mm; vertical-align: top; }
+.rtr .sales thead th { background: var(--band); font-weight: 600; font-size: 7.4pt; text-align: left;
+  border-bottom: .8pt solid var(--rule-strong); }
+.rtr .sales thead tr:first-child th { border-bottom: .5pt solid var(--rule); }
+.rtr .sales thead th.group { text-align: center; }
+.rtr .sales thead th.num { text-align: right; }
+.rtr .sales { border-top: .8pt solid var(--rule-strong); border-bottom: .8pt solid var(--rule-strong); }
+.rtr .sales td { border-bottom: .4pt solid var(--rule); }
+.rtr .sales .leg td { background: var(--band); font-weight: 700; font-size: 8pt; padding-top: 1.2mm;
+  border-bottom: .5pt solid var(--rule-strong); }
+.rtr .sales .leg .leg-meta { font-weight: 400; color: var(--ink-soft); margin-left: 2mm; }
+.rtr .sales .split { border-left: .5pt solid var(--rule); }
+.rtr .sales tfoot td { font-weight: 700; border-top: 1pt solid var(--rule-strong); border-bottom: 0; }
+.rtr .sales tr.is-scanned td { background: var(--flag-bg); }
+.rtr .sales tr.is-scanned td:first-child { box-shadow: inset 2pt 0 0 var(--flag); }
+.rtr .voucher { font-size: 7.6pt; }
+
+/* ---------- Expense columns ---------- */
+.rtr .ledgers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5mm; }
+@media screen and (max-width: 820px) { .rtr .ledgers { grid-template-columns: 1fr; } }
+.rtr .ledger table td { border-bottom: .4pt solid var(--rule); padding: .45mm 0; }
+.rtr .ledger table td.num { padding-left: 2mm; }
+.rtr .ledger .sub td { font-weight: 700; border-bottom: 1pt solid var(--rule-strong); border-top: .6pt solid var(--rule-strong); }
+.rtr .ledger .grand td { font-weight: 700; font-size: 9.4pt; border-bottom: 0; padding-top: 1.4mm; }
+.rtr .ledger h2 { border-bottom: 1pt solid var(--rule-strong); padding-bottom: .8mm; display: flex; justify-content: space-between; }
+.rtr .ledger h2 span { font-weight: 400; font-size: 7.4pt; color: var(--ink-soft); }
+.rtr .ledger-stack { display: flex; flex-direction: column; gap: 3.5mm; }
+.rtr .detail { font-size: 7.2pt; color: var(--ink-soft); }
+.rtr .empty { color: var(--ink-soft); font-style: italic; padding: 1.4mm 0; border-bottom: .4pt solid var(--rule); }
+
+/* ---------- Other amounts ---------- */
+.rtr .others { display: grid; grid-template-columns: 1fr 1fr; border: .8pt solid var(--rule-strong); }
+.rtr .others > div { padding: 1.6mm 2.4mm; display: flex; justify-content: space-between; gap: 4mm; }
+.rtr .others > div + div { border-left: .5pt solid var(--rule); }
+.rtr .others strong { font-size: 9.6pt; }
+
+/* ---------- Settlement ---------- */
+.rtr .settlement { display: grid; grid-template-columns: 1fr 52mm; gap: 5mm; align-items: stretch; }
+@media screen and (max-width: 820px) { .rtr .settlement { grid-template-columns: 1fr; } }
+.rtr .summary { border: .8pt solid var(--rule-strong); }
+.rtr .summary th, .rtr .summary td { border-bottom: .5pt solid var(--rule); padding: .9mm 2.4mm; }
+.rtr .summary thead th { background: var(--band); font-size: 7.6pt; font-weight: 600; border-bottom: .8pt solid var(--rule-strong); }
+.rtr .summary thead th.num { text-align: right; }
+.rtr .summary tbody th { text-align: left; font-weight: 600; }
+.rtr .summary td.net { font-weight: 700; border-left: .5pt solid var(--rule); }
+.rtr .summary tr.profit th, .rtr .summary tr.profit td { border-top: .8pt solid var(--rule-strong); }
+.rtr .summary tr.cash th, .rtr .summary tr.cash td { font-weight: 700; font-size: 10pt; border-bottom: 0;
+  border-top: 1.2pt solid var(--rule-strong); }
+.rtr .deposit { background: var(--deposit); color: var(--deposit-ink); padding: 4mm; display: flex;
+  flex-direction: column; justify-content: space-between; gap: 3mm; }
+.rtr .deposit-label { font-weight: 600; font-size: 9.6pt; }
+.rtr .deposit-amount { font: 700 24pt/1 var(--sans); letter-spacing: -.01em; }
+.rtr .deposit-amount small { font-size: 10pt; font-weight: 600; margin-right: 1.2mm; }
+.rtr .deposit-meta { font-size: 7.4pt; opacity: .85; line-height: 1.4; }
+
+/* ---------- Sign-off ---------- */
+.rtr .signoff { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; padding-top: 2mm; }
+.rtr .sig { border-top: .8pt solid var(--rule-strong); padding-top: 1.2mm; min-height: 11mm; }
+.rtr .sig b { display: block; font-weight: 600; }
+.rtr .sig span { font-size: 7.4pt; color: var(--ink-soft); }
+.rtr .colophon { display: flex; flex-wrap: wrap; gap: 2mm; justify-content: space-between; font-size: 6.8pt; color: var(--ink-soft);
+  border-top: .4pt solid var(--rule); padding-top: 1.4mm; }
+
+/* ---------- Toolbar and notices (screen only) ---------- */
+.rtr .toolbar { max-width: 210mm; margin: 0 auto; padding: 12px 12px 0; display: flex; flex-wrap: wrap;
+  align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+.rtr .toolbar .live { color: var(--ink-soft); }
+.rtr .toolbar .buttons { display: flex; gap: 8px; }
+.rtr .toolbar button, .rtr .toolbar a.btn { font: 600 13px var(--sans); padding: 7px 14px; border-radius: 6px;
+  border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink); cursor: pointer; text-decoration: none; }
+.rtr .toolbar button:focus-visible, .rtr .toolbar a.btn:focus-visible { outline: 2px solid var(--deposit); outline-offset: 2px; }
+.rtr .notice { max-width: 34rem; margin: 15vh auto 0; padding: 24px; background: var(--paper); border: 1px solid var(--rule);
+  border-radius: 10px; text-align: center; font-size: 15px; line-height: 1.5; }
+.rtr .notice h1 { font: 700 20px/1.2 var(--sans); margin-bottom: 8px; }
+.rtr .notice .buttons { margin-top: 16px; display: flex; justify-content: center; gap: 8px; }
+.rtr .notice button, .rtr .notice a { font: 600 14px var(--sans); padding: 8px 16px; border-radius: 6px;
+  border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink); cursor: pointer; text-decoration: none; }
+
+/* ---------- Print ---------- */
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  .rtr { --ink:#000; --ink-soft:#444; --rule:#999; --rule-strong:#000; --band:#ececec; --paper:#fff;
+    --deposit:#1d4d3c; --flag-bg:#fff; color-scheme: light; padding: 0; background: #fff; min-height: 0; }
+  .rtr .sheet { margin: 0; box-shadow: none; width: 210mm; height: 297mm; overflow: hidden; }
+  .rtr .no-print { display: none !important; }
+  .rtr .sales tr.is-scanned td { background: transparent; }
+  .rtr .sales tr.is-scanned td:first-child { box-shadow: none; }
+}

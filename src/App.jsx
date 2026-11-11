@@ -24,6 +24,8 @@ import Terminals from "./pages/Terminals";
 
 /** Admin panel: a separate bundle, downloaded only when /admin is opened. */
 const AdminApp = lazy(() => import("./admin/AdminApp"));
+/** Round Trip Report opened by a voucher QR code (/r/<token>): its own bundle and print styles. */
+const ScanPage = lazy(() => import("./report/ScanPage"));
 
 /** Sets <html lang/dir>, scrolls to the top (or the #hash) on navigation, and draws the site chrome. */
 function Layout() {
@@ -87,6 +89,14 @@ export default function App() {
           element={
             <Suspense fallback={<p className="p-6 text-mute">Loading admin…</p>}>
               <AdminApp />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/r/:token"
+          element={
+            <Suspense fallback={<p className="p-6 text-mute">Opening the report…</p>}>
+              <ScanPage />
             </Suspense>
           }
         />
