@@ -86,7 +86,8 @@ export const getTrip = async (tripId) => tripById(tripId, occupancy);
 export const getSeats = async (tripId) => seatMap(tripId, occupancy);
 
 export async function createBooking({ legs, passengers, contactEmail, holderCnic }) {
-  if (!/^\d{13}$/.test(String(holderCnic ?? "").replace(/\D/g, ""))) throw new ApiError("INVALID_INPUT", "Enter the booking holder's CNIC (13 digits).");
+  // Optional; checked only when given.
+  if (holderCnic && !/^\d{13}$/.test(String(holderCnic).replace(/\D/g, ""))) throw new ApiError("INVALID_INPUT", "Enter the booking holder's CNIC (13 digits) or leave it empty.");
   if (!Array.isArray(legs) || legs.length < 1 || legs.length > MAX_LEGS) throw new ApiError("INVALID_INPUT", `A booking has 1 to ${MAX_LEGS} legs.`);
   if (!Array.isArray(passengers) || passengers.length < 1 || passengers.length > MAX_PAX) throw new ApiError("INVALID_INPUT", `1 to ${MAX_PAX} passengers.`);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail ?? "")) throw new ApiError("INVALID_INPUT", "Enter a valid email.");

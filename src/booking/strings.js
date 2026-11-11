@@ -114,11 +114,11 @@ export const bk = {
   phone: { en: "Phone (for ticket lookup)", ur: "فون (ٹکٹ تلاش کرنے کے لیے)" },
   contact: { en: "Contact", ur: "رابطہ" },
   contactEmail: { en: "Email for your ticket", ur: "ٹکٹ کے لیے ای میل" },
-  holderCnic: { en: "Booking holder's CNIC", ur: "بکنگ ہولڈر کا شناختی کارڈ نمبر" },
-  holderCnicStaff: { en: "Customer's CNIC (booking holder)", ur: "گاہک کا شناختی کارڈ نمبر (بکنگ ہولڈر)" },
+  holderCnic: { en: "Booking holder's CNIC (optional)", ur: "بکنگ ہولڈر کا شناختی کارڈ نمبر (اختیاری)" },
+  holderCnicStaff: { en: "Customer's CNIC (optional)", ur: "گاہک کا شناختی کارڈ نمبر (اختیاری)" },
   holderCnicHint: {
-    en: "The person who can cancel this booking. To cancel and get a refund at a counter, they must show this CNIC.",
-    ur: "وہ شخص جو یہ بکنگ منسوخ کر سکتا ہے۔ کاؤنٹر پر منسوخی اور رقم کی واپسی کے لیے یہی شناختی کارڈ دکھانا ہو گا۔",
+    en: "Optional. With it, the holder shows this CNIC to cancel and get a refund at a counter; without it, a code is sent by SMS to the booking's phone instead.",
+    ur: "اختیاری۔ اس کے ساتھ، کاؤنٹر پر منسوخی اور رقم کی واپسی کے لیے یہی شناختی کارڈ دکھانا ہو گا؛ اس کے بغیر بکنگ کے فون پر SMS سے کوڈ بھیجا جائے گا۔",
   },
   errHolderCnic: { en: "Enter a 13-digit CNIC, like 35202-1234567-1.", ur: "13 ہندسوں کا شناختی کارڈ نمبر لکھیں، جیسے 35202-1234567-1۔" },
   holderCnicLocked: {
@@ -126,8 +126,8 @@ export const bk = {
     ur: "آپ کے اکاؤنٹ کا شناختی کارڈ نمبر، جو آپ کی ہر بکنگ میں شامل ہوتا ہے۔ کاؤنٹر پر منسوخی اور رقم کی واپسی کے لیے یہی شناختی کارڈ دکھائیں۔",
   },
   holderCnicFirst: {
-    en: "Your account has no CNIC yet. Enter yours: it is saved to your account and added to every booking you make.",
-    ur: "آپ کے اکاؤنٹ میں ابھی شناختی کارڈ نمبر نہیں ہے۔ اپنا نمبر لکھیں: یہ آپ کے اکاؤنٹ میں محفوظ ہو کر آپ کی ہر بکنگ میں شامل ہو گا۔",
+    en: "Optional. Your account has no CNIC yet. If you enter it, it is saved to your account and added to every booking you make.",
+    ur: "اختیاری۔ آپ کے اکاؤنٹ میں ابھی شناختی کارڈ نمبر نہیں ہے۔ اگر آپ لکھیں تو یہ آپ کے اکاؤنٹ میں محفوظ ہو کر آپ کی ہر بکنگ میں شامل ہو گا۔",
   },
   reserve: { en: "Reserve seats", ur: "سیٹیں محفوظ کریں" },
   reserving: { en: "Reserving…", ur: "سیٹیں محفوظ کی جا رہی ہیں…" },

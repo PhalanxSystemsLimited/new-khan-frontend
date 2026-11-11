@@ -13,11 +13,11 @@ const T = {
   password: { en: "Password", ur: "پاس ورڈ" },
   pwHint: { en: "At least 8 characters, with upper-case, lower-case and a number.", ur: "کم از کم 8 حروف، بڑے اور چھوٹے حروف اور ایک ہندسہ۔" },
   phone: { en: "Mobile number", ur: "موبائل نمبر" },
-  phoneOpt: { en: "Mobile number (optional)", ur: "موبائل نمبر (اختیاری)" },
-  cnic: { en: "CNIC", ur: "شناختی کارڈ نمبر" },
+  phoneErr: { en: "Enter your mobile number, like 0300 1234567.", ur: "اپنا موبائل نمبر لکھیں، جیسے 0300 1234567۔" },
+  cnic: { en: "CNIC (optional)", ur: "شناختی کارڈ نمبر (اختیاری)" },
   cnicHint: {
-    en: "Added to every booking you make. Show this CNIC at a counter to cancel a booking and collect a refund.",
-    ur: "آپ کی ہر بکنگ میں شامل ہو گا۔ کاؤنٹر پر بکنگ منسوخ کرنے اور رقم واپس لینے کے لیے یہی شناختی کارڈ دکھائیں۔",
+    en: "Optional. If you add it, it goes on every booking you make, and you show this CNIC at a counter to cancel a booking and collect a refund.",
+    ur: "اختیاری۔ اگر آپ لکھیں تو یہ آپ کی ہر بکنگ میں شامل ہو گا، اور کاؤنٹر پر بکنگ منسوخ کرنے اور رقم واپس لینے کے لیے یہی شناختی کارڈ دکھانا ہو گا۔",
   },
   cnicErr: { en: "Enter your 13-digit CNIC, like 35202-1234567-1.", ur: "اپنا 13 ہندسوں کا شناختی کارڈ نمبر لکھیں، جیسے 35202-1234567-1۔" },
   sendCode: { en: "Send code", ur: "کوڈ بھیجیں" },
@@ -74,9 +74,11 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
     e.preventDefault();
     if (mode === "signin") return run(async () => { await apiLogin(f.email.trim(), f.password); done(); });
     if (mode === "signup") {
-      if (!/^\d{5}-\d{7}-\d$/.test(f.cnic)) return setMsg({ kind: "error", text: t("cnicErr") });
+      if (!/^(?:\+92|0092|92|0)?3\d{9}$/.test(f.phone.replace(/[\s-]/g, ""))) return setMsg({ kind: "error", text: t("phoneErr") });
+      // Optional: checked only when something is typed.
+      if (f.cnic && !/^\d{5}-\d{7}-\d$/.test(f.cnic)) return setMsg({ kind: "error", text: t("cnicErr") });
       return run(async () => {
-        const r = await apiSignup(f.name.trim(), f.email.trim(), f.password, f.phone.trim() || undefined, f.cnic);
+        const r = await apiSignup(f.name.trim(), f.email.trim(), f.password, f.phone.trim(), f.cnic || undefined);
         if (r.needsConfirmation) {
           setMode("signin");
           setMsg({ kind: "ok", text: t("checkEmail") });
@@ -133,8 +135,8 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
           )}
           {(mode === "otp" || mode === "signup") && (
             <div>
-              <label htmlFor="au-phone" className="label">{t(mode === "signup" ? "phoneOpt" : "phone")}</label>
-              <input id="au-phone" className="field ltr" inputMode="tel" autoComplete="tel" placeholder="0311 1007555" value={f.phone} onChange={set("phone")} />
+              <label htmlFor="au-phone" className="label">{t("phone")}</label>
+              <input id="au-phone" className="field ltr" inputMode="tel" autoComplete="tel" placeholder="0311 1007555" value={f.phone} onChange={set("phone")} required />
             </div>
           )}
           {mode === "signup" && (
@@ -148,7 +150,6 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
                 placeholder="35202-1234567-1"
                 value={f.cnic}
                 onChange={setCnic}
-                required
                 aria-describedby="au-cnic-hint"
               />
               <p id="au-cnic-hint" className="mt-1 text-xs text-mute">{t("cnicHint")}</p>

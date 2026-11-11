@@ -95,7 +95,7 @@ export { request as apiRequest };
 
 export const apiLogin = async (email, password) => setSession(await request("/auth/login", { method: "POST", body: { email, password } }));
 export async function apiSignup(fullName, email, password, phone, cnic) {
-  const data = await request("/auth/signup", { method: "POST", body: { fullName, email, password, cnic, ...(phone ? { phone } : {}) } });
+  const data = await request("/auth/signup", { method: "POST", body: { fullName, email, password, ...(cnic ? { cnic } : {}), ...(phone ? { phone } : {}) } });
   if (data.accessToken) setSession(data);
   return { needsConfirmation: !data.accessToken, message: data.message };
 }

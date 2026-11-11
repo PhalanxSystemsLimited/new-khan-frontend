@@ -222,7 +222,7 @@ function SeatDialog({ seat, data, onClose, onDone }) {
       destinationStopId: Number(f.destinationStopId),
       fare: f.free ? 0 : Math.max(0, Math.round(Number(f.fare)) || 0),
       free: f.free,
-      ...(f.phone.trim() ? { phone: f.phone.trim() } : {}),
+      phone: f.phone.trim(),
     };
     const ok = await act(() => adminApi.conductorAddPassenger(data.trip.id, body), `Seat ${seat.seatNumber} booked`, f.free ? "Travelling free." : `Fare Rs ${money(body.fare)} collected.`);
     setBusy(false);
@@ -276,8 +276,8 @@ function SeatDialog({ seat, data, onClose, onDone }) {
             </div>
           </div>
           <div>
-            <Label htmlFor="rp-ph">Phone (optional)</Label>
-            <Input id="rp-ph" inputMode="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="03001234567" />
+            <Label htmlFor="rp-ph">Mobile number *</Label>
+            <Input id="rp-ph" required inputMode="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="03001234567" />
           </div>
           <label className="flex items-center gap-2 text-sm font-semibold">
             <input type="checkbox" className="h-5 w-5 accent-black" checked={f.free} onChange={(e) => set("free", e.target.checked)} />

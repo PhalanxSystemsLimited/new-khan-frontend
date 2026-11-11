@@ -140,9 +140,9 @@ function QuickSale({ trip, onClose, onSold }) {
         boardingStopId: trip.stopId,
         droppingStopId: Number(dest),
         contact: { name: contact.name.trim(), phone: contact.phone.trim() },
-        holderCnic: contact.cnic.trim(),
+        ...(contact.cnic.trim() ? { holderCnic: contact.cnic.trim() } : {}),
         channel: "counter",
-        passengers: picked.map((id, i) => ({ seatId: id, name: (pax[id]?.name || (i === 0 ? contact.name : "")).trim(), gender: pax[id]?.gender ?? "male" })),
+        passengers: picked.map((id, i) => ({ seatId: id, name: (pax[id]?.name || (i === 0 ? contact.name : "")).trim(), gender: pax[id]?.gender ?? "male", phone: contact.phone.trim() })),
       });
       try {
         await adminApi.cashPayment(booking.id, booking.totalAmount);
@@ -213,12 +213,12 @@ function QuickSale({ trip, onClose, onSold }) {
               <Input id="qs-n" required minLength={2} value={contact.name} onChange={(e) => setContact({ ...contact, name: e.target.value })} />
             </div>
             <div>
-              <Label htmlFor="qs-p">Phone *</Label>
+              <Label htmlFor="qs-p">Mobile number *</Label>
               <Input id="qs-p" required inputMode="tel" value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} placeholder="03001234567" />
             </div>
             <div>
-              <Label htmlFor="qs-c">CNIC *</Label>
-              <Input id="qs-c" required inputMode="numeric" value={contact.cnic} onChange={(e) => setContact({ ...contact, cnic: e.target.value })} placeholder="35202-1234567-1" />
+              <Label htmlFor="qs-c">CNIC (optional)</Label>
+              <Input id="qs-c" inputMode="numeric" value={contact.cnic} onChange={(e) => setContact({ ...contact, cnic: e.target.value })} placeholder="35202-1234567-1" />
             </div>
           </div>
           {picked.length > 0 && (

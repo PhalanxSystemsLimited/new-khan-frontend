@@ -161,7 +161,8 @@ export function SeatsClient({ lang }) {
     return ok(pass[i][f] ?? "") ? "" : bt(key, lang);
   };
   const emailErr = emailOk(email) ? "" : bt("errEmail", lang);
-  const holderCnicErr = holderCnicOk(holderCnic) ? "" : bt("errHolderCnic", lang);
+  // Optional: only checked when something is typed.
+  const holderCnicErr = !(holderCnic ?? "").trim() || holderCnicOk(holderCnic) ? "" : bt("errHolderCnic", lang);
   const show = (k) => submitted || touched[k];
   const blur = (k) => setTouched((t) => ({ ...t, [k]: true }));
 
@@ -195,7 +196,7 @@ export function SeatsClient({ lang }) {
         legs: legs.map((l, li) => ({ tripId: l.trip.id, seats: pass.map((_, i) => seatFor(li, i)), group: groupOf(li) })),
         passengers: pass.map((p, i) => ({ name: p.name.trim(), phone: p.phone.trim(), gender: genders[i] })),
         contactEmail: email.trim(),
-        holderCnic: formatCnic(holderCnic),
+        holderCnic: (holderCnic ?? "").trim() ? formatCnic(holderCnic) : undefined,
       });
       if (savesToAccount) refreshMe(); // the account now has this CNIC
       toast(bt("toastReserved", lang), { body: bt("toastReservedBody", lang) });
