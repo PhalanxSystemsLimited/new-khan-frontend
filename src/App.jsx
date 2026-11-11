@@ -21,6 +21,7 @@ import { NotFound } from "./pages/NotFound";
 import Policies, { Privacy, Terms } from "./pages/Policies";
 import { BusToPage, RoutePage } from "./pages/RoutePages";
 import Terminals from "./pages/Terminals";
+import AuthCallback from "./pages/AuthCallback";
 
 /** Admin panel: a separate bundle, downloaded only when /admin is opened. */
 const AdminApp = lazy(() => import("./admin/AdminApp"));
@@ -62,6 +63,12 @@ function Layout() {
   );
 }
 
+/** /auth/callback -> /en/auth/callback, keeping "?..." and "#..." (the email link's result). */
+function ToLang() {
+  const { pathname, search, hash } = useLocation();
+  return <Navigate to={`/en${pathname}${search}${hash}`} replace />;
+}
+
 /** One booking screen inside the common booking frame. */
 function Book({ title, Screen }) {
   const lang = useLang();
@@ -84,6 +91,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/en" replace />} />
+        {/* Email links (confirm account, reset password) land here; keep what Supabase put after # and ?. */}
+        <Route path="/auth/callback" element={<ToLang />} />
         <Route
           path="/admin/*"
           element={
@@ -108,6 +117,7 @@ export default function App() {
           <Route path="routes/to/:city" element={<BusToPage />} />
           <Route path="routes/:slug" element={<RoutePage />} />
           <Route path="terminals" element={<Terminals />} />
+          <Route path="auth/callback" element={<AuthCallback />} />
           <Route path="policies" element={<Policies />} />
           <Route path="privacy" element={<Privacy />} />
           <Route path="terms" element={<Terms />} />
