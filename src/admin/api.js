@@ -106,6 +106,8 @@ export const adminApi = {
   cashReport: (from, to) => get(`/admin/reports/cash${qs({ from, to })}`).then((r) => r.data),
   dailyRevenue: (from, to) => get(`/admin/reports/daily-revenue${qs({ from, to })}`).then((r) => r.data),
   auditLogs: (q) => get(`/admin/audit-logs${qs(q)}`),
+  auditLogMeta: () => get("/admin/audit-logs/meta").then((r) => r.data),
+  auditLog: (id) => get(`/admin/audit-logs/${encodeURIComponent(id)}`).then((r) => r.data),
 
   // live trip vouchers (from paid seats)
   tripVouchers: (q) => get(`/trip-vouchers${qs(q)}`),

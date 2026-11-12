@@ -190,45 +190,5 @@ export function Reports() {
 
 /* ------------------------------------------------------------------ activity log */
 
-const ENTITIES = ["", "booking", "payment", "refund", "trip", "fare", "route", "promo_code", "cancellation_policy", "user", "schedule", "site_content", "trip_voucher", "employee", "employee_list", "conductor", "staff_member", "terminal_deduction", "round_trip", "terminal_voucher", "offroute_category", "offroute_default", "onroute_category", "online_platform"];
-
-export function Activity() {
-  const [entityType, setEntityType] = useState("");
-  const [page, setPage] = useState(1);
-  const list = useLoad(() => adminApi.auditLogs({ entityType: entityType || undefined, page, limit: 30 }), [entityType, page]);
-  const [open, setOpen] = useState(null);
-  const rows = list.data?.data;
-  return (
-    <Page title="Activity log" intro="Who changed what in the admin tools, newest first.">
-      <Filters>
-        <div>
-          <Label htmlFor="a-e">Type</Label>
-          <Select id="a-e" value={entityType} onChange={(e) => { setEntityType(e.target.value); setPage(1); }} options={ENTITIES.map((e) => ({ value: e, label: e ? e.replace("_", " ") : "All" }))} />
-        </div>
-        <Btn onClick={list.reload}>Refresh</Btn>
-      </Filters>
-      <ErrorNote err={list.err} onRetry={list.reload} />
-      <Table
-        loading={list.loading}
-        rows={rows}
-        cols={[
-          { key: "createdAt", label: "When", render: (r) => fmtDT(r.createdAt) },
-          { key: "actorName", label: "Who", render: (r) => r.actorName ?? "System" },
-          { key: "action", label: "Action", render: (r) => <span className="font-mono text-xs">{r.action}</span> },
-          { key: "e", label: "Item", render: (r) => <span className="text-xs">{r.entityType} · {String(r.entityId).slice(0, 12)}</span> },
-          { key: "a", label: "", render: (r) => (r.newData || r.oldData ? <Btn small onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? "Hide" : "Details"}</Btn> : null) },
-        ]}
-      />
-      {open && rows?.find((r) => r.id === open) && (
-        <pre className="mt-3 max-h-96 overflow-auto rounded-xl border border-neutral-300 bg-white p-3 text-xs">
-          {JSON.stringify({ before: rows.find((r) => r.id === open).oldData, after: rows.find((r) => r.id === open).newData }, null, 2)}
-        </pre>
-      )}
-      <div className="mt-3 flex gap-2 text-sm">
-        <Btn small disabled={page <= 1} onClick={() => setPage(page - 1)}>‹ Newer</Btn>
-        <span>Page {page}</span>
-        <Btn small disabled={(rows?.length ?? 0) < 30} onClick={() => setPage(page + 1)}>Older ›</Btn>
-      </div>
-    </Page>
-  );
-}
+// Activity log: its own file (readable details window, filters).
+export { Activity } from "./ActivityLog";
