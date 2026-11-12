@@ -139,6 +139,11 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
           <div>
             <p className="label">{bt("reference", lang)}</p>
             <p id={`bk-ref-${b.ref}`} className="ltr font-mono text-3xl font-bold tracking-wider text-black sm:text-4xl">{b.ref}</p>
+            {b.holderCnicMasked && (
+              <p className="mt-1 text-sm text-mute">
+                {bt("holderCnicShort", lang)}: <span className="ltr font-mono text-black">{b.holderCnicMasked}</span>
+              </p>
+            )}
           </div>
           <span className={`rounded-full border px-3 py-1 text-sm font-bold ${badge[b.status]}`}>{bt(`status${b.status}`, lang)}</span>
         </div>

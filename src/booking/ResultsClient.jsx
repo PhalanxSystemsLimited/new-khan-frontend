@@ -236,7 +236,7 @@ export function ResultsClient({ lang }) {
 
   return (
     <div className="pb-40">
-      <button type="button" onClick={() => setShowSearch((s) => !s)} aria-expanded={showSearch} className="btn btn-ghost mt-4 !min-h-11 text-sm">{bt("changeSearch", lang)}</button>
+      <button type="button" onClick={() => setShowSearch((s) => !s)} aria-expanded={showSearch} className="nk-change btn btn-ghost mt-4 md:!min-h-11 text-sm">{bt("changeSearch", lang)}</button>
       {showSearch && (
         <div className="mt-3">
           <BookingSearch lang={lang} initial={{ from, to, date, ret: ret ?? "", pax, trip: isReturn ? "return" : "oneway" }} />

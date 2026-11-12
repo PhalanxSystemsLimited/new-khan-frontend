@@ -119,11 +119,12 @@ export const bk = {
   phone: { en: "Phone (for ticket lookup)", ur: "فون (ٹکٹ تلاش کرنے کے لیے)" },
   contact: { en: "Contact", ur: "رابطہ" },
   contactEmail: { en: "Email for your ticket", ur: "ٹکٹ کے لیے ای میل" },
-  holderCnic: { en: "Booking holder's CNIC (optional)", ur: "بکنگ ہولڈر کا شناختی کارڈ نمبر (اختیاری)" },
-  holderCnicStaff: { en: "Customer's CNIC (optional)", ur: "گاہک کا شناختی کارڈ نمبر (اختیاری)" },
+  holderCnic: { en: "Booking holder's CNIC", ur: "بکنگ ہولڈر کا شناختی کارڈ نمبر" },
+  holderCnicShort: { en: "Holder's CNIC", ur: "ہولڈر کا شناختی کارڈ" },
+  holderCnicStaff: { en: "Customer's CNIC", ur: "گاہک کا شناختی کارڈ نمبر" },
   holderCnicHint: {
-    en: "Optional. With it, the holder shows this CNIC to cancel and get a refund at a counter; without it, a code is sent by SMS to the booking's phone instead.",
-    ur: "اختیاری۔ اس کے ساتھ، کاؤنٹر پر منسوخی اور رقم کی واپسی کے لیے یہی شناختی کارڈ دکھانا ہو گا؛ اس کے بغیر بکنگ کے فون پر SMS سے کوڈ بھیجا جائے گا۔",
+    en: "One CNIC for the whole booking (a family needs only one). Show this CNIC at a New Khan counter to cancel and collect a refund.",
+    ur: "پوری بکنگ کے لیے ایک شناختی کارڈ (پورے خاندان کے لیے ایک کافی ہے)۔ منسوخی اور رقم کی واپسی کے لیے نیو خان کاؤنٹر پر یہی شناختی کارڈ دکھائیں۔",
   },
   errHolderCnic: { en: "Enter a 13-digit CNIC, like 35202-1234567-1.", ur: "13 ہندسوں کا شناختی کارڈ نمبر لکھیں، جیسے 35202-1234567-1۔" },
   holderCnicLocked: {
@@ -131,8 +132,8 @@ export const bk = {
     ur: "آپ کے اکاؤنٹ کا شناختی کارڈ نمبر، جو آپ کی ہر بکنگ میں شامل ہوتا ہے۔ کاؤنٹر پر منسوخی اور رقم کی واپسی کے لیے یہی شناختی کارڈ دکھائیں۔",
   },
   holderCnicFirst: {
-    en: "Optional. Your account has no CNIC yet. If you enter it, it is saved to your account and added to every booking you make.",
-    ur: "اختیاری۔ آپ کے اکاؤنٹ میں ابھی شناختی کارڈ نمبر نہیں ہے۔ اگر آپ لکھیں تو یہ آپ کے اکاؤنٹ میں محفوظ ہو کر آپ کی ہر بکنگ میں شامل ہو گا۔",
+    en: "One CNIC for the whole booking (a family needs only one). It is saved to your account and added to every booking you make. Show it at a counter to cancel and collect a refund.",
+    ur: "پوری بکنگ کے لیے ایک شناختی کارڈ (پورے خاندان کے لیے ایک کافی ہے)۔ یہ آپ کے اکاؤنٹ میں محفوظ ہو کر آپ کی ہر بکنگ میں شامل ہو گا۔ منسوخی اور رقم کی واپسی کے لیے کاؤنٹر پر یہی دکھائیں۔",
   },
   reserve: { en: "Reserve seats", ur: "سیٹیں محفوظ کریں" },
   reserving: { en: "Reserving…", ur: "سیٹیں محفوظ کی جا رہی ہیں…" },

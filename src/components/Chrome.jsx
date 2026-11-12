@@ -354,8 +354,10 @@ export function StickyBar({ lang }) {
   // own bottom bar (total + Continue). One bar at a time on phones.
   const { pathname } = useLocation();
   if (/\/book(\/(results|seats))?\/?$/.test(pathname)) return null;
+  // Phones: also not while the customer is paying (the page has its own Pay button there).
+  const paying = /\/book\/(reserved|pay|gateway)\/?$/.test(pathname);
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-gold bg-white/95 p-3 backdrop-blur lg:hidden">
+    <div className={`nk-sticky ${paying ? "nk-sticky-paying" : ""} fixed inset-x-0 bottom-0 z-40 border-t-2 border-gold bg-white/95 p-3 backdrop-blur lg:hidden`}>
       <div className="mx-auto flex max-w-xl gap-3">
         <Link to={href(lang, "/book")} className="btn btn-gold flex-1" data-cta="book-a-seat">{u("book", lang)}</Link>
         <a href={whatsappLink(lang)} target="_blank" rel="noopener" className="btn btn-ghost !px-4" aria-label={lang === "ur" ? "واٹس ایپ" : "WhatsApp"}>

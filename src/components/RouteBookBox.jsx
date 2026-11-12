@@ -30,12 +30,12 @@ export function RouteBookBox({ lang, from, to, fromId, toId }) {
 
   return (
     <div className="card border-gold/40">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
+      <div className="nk-dates grid grid-cols-2 gap-3">
+        <div className="nk-mfield">
           <label htmlFor="rb-date" className="label">{ui.date[lang]}</label>
           <DatePicker id="rb-date" label={ui.date[lang]} value={date} onChange={setDate} min={min} lang={lang} />
         </div>
-        <div>
+        <div className="nk-mfield">
           <label htmlFor="rb-seats" className="label">{ui.seats[lang]}</label>
           <select id="rb-seats" className="field" value={seats} onChange={(e) => setSeats(Number(e.target.value))}>
             {[1, 2, 3, 4, 5, 6].map((n) => (

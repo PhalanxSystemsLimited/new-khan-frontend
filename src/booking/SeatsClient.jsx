@@ -6,6 +6,8 @@ import { arrow } from "../lib/links";
 import { createBooking, getSeats, getTrip, IS_LIVE } from "./api";
 import { getSession } from "./auth";
 import { AuthDialog } from "./AuthDialog";
+import { PhoneVerifyDialog } from "./PhoneVerifyDialog";
+import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../lib/cnic";
 import { ApiError } from "./errors";
 import { bookUrl } from "./hooks";
 import { SeatMap } from "./SeatMap";
@@ -17,13 +19,6 @@ import { fmtDate, fmtTime, pkr } from "./time";
 /* ---- client-side validation (helps the customer; the backend re-validates everything) ---- */
 const phoneOk = (v) => /^(?:\+92|0092|92|0)?3\d{9}$/.test(v.replace(/[\s-]/g, ""));
 const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-const cnicDigits = (v) => (v ?? "").replace(/\D/g, "");
-const holderCnicOk = (v) => /^\d{5}-?\d{7}-?\d$/.test((v ?? "").trim());
-/** 3520212345671 -> 35202-1234567-1 as the customer types. */
-const formatCnic = (v) => {
-  const d = cnicDigits(v).slice(0, 13);
-  return [d.slice(0, 5), d.slice(5, 12), d.slice(12)].filter(Boolean).join("-");
-};
 const nameOk = (v) => v.trim().length >= 2 && /^[\p{L}\p{M} .'-]+$/u.test(v.trim());
 
 const checks = {
@@ -76,6 +71,7 @@ export function SeatsClient({ lang }) {
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false); // "verify your mobile" (only when SMS is set up)
   const summaryRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -161,8 +157,9 @@ export function SeatsClient({ lang }) {
     return ok(pass[i][f] ?? "") ? "" : bt(key, lang);
   };
   const emailErr = emailOk(email) ? "" : bt("errEmail", lang);
-  // Optional: only checked when something is typed.
-  const holderCnicErr = !(holderCnic ?? "").trim() || holderCnicOk(holderCnic) ? "" : bt("errHolderCnic", lang);
+  // Required: one CNIC per booking (the holder's; a family travels on one CNIC).
+  const cnicIssue = cnicProblem(holderCnic);
+  const holderCnicErr = cnicIssue ? CNIC_MESSAGES[cnicIssue][lang] : "";
   const show = (k) => submitted || touched[k];
   const blur = (k) => setTouched((t) => ({ ...t, [k]: true }));
 
@@ -196,7 +193,7 @@ export function SeatsClient({ lang }) {
         legs: legs.map((l, li) => ({ tripId: l.trip.id, seats: pass.map((_, i) => seatFor(li, i)), group: groupOf(li) })),
         passengers: pass.map((p, i) => ({ name: p.name.trim(), phone: p.phone.trim(), gender: genders[i] })),
         contactEmail: email.trim(),
-        holderCnic: (holderCnic ?? "").trim() ? formatCnic(holderCnic) : undefined,
+        holderCnic: formatCnic(holderCnic),
       });
       if (savesToAccount) refreshMe(); // the account now has this CNIC
       toast(bt("toastReserved", lang), { body: bt("toastReservedBody", lang) });
@@ -205,6 +202,14 @@ export function SeatsClient({ lang }) {
       if (e instanceof ApiError && (e.code === "SEAT_TAKEN" || e.code === "SEAT_GENDER")) {
         setBanner(bt(e.code === "SEAT_GENDER" ? "seatGenderConflict" : "seatTaken", lang));
         await load(); // refresh the map; conflicting picks are dropped
+      } else if (e instanceof ApiError && e.code === "PHONE_NOT_VERIFIED") {
+        // SMS is set up: the contact mobile (first passenger's) must be verified once, then booking continues.
+        setBusy(false);
+        setPhoneOpen(true);
+        return;
+      } else if (e instanceof ApiError && e.code === "CNIC_REQUIRED") {
+        setTouched((t) => ({ ...t, holderCnic: true }));
+        setBanner(e.message);
       } else if (e instanceof ApiError && e.code === "AUTH_REQUIRED") {
         setBanner(bt("signInToBook", lang));
         setAuthOpen(true);
@@ -265,7 +270,7 @@ export function SeatsClient({ lang }) {
       <section className="card mt-6" aria-labelledby="pax-h">
         <h2 id="pax-h" className="h3 text-black">{bt("passengerDetails", lang)}</h2>
         {pass.map((p, i) => (
-          <fieldset key={i} className="mt-5 border-t border-line pt-4 first:mt-3 first:border-0 first:pt-0">
+          <fieldset key={i} data-g={genders[i] || undefined} className="nk-pax mt-5 border-t border-line pt-4 first:mt-3 first:border-0 first:pt-0">
             <legend className="font-semibold text-black">
               {bt("passengerN", lang, { n: i + 1 })}
               {genders[i] ? (
@@ -288,7 +293,7 @@ export function SeatsClient({ lang }) {
                 const label = bt(f === "name" ? "fullName" : f, lang);
                 const update = (v) => setPass((ps) => ps.map((x, j) => (j === i ? { ...x, [f]: v } : x)));
                 return (
-                  <div key={f}>
+                  <div key={f} className="nk-mfield">
                     <label htmlFor={`p-${key}`} className="label">{label}</label>
                     <input
                       id={`p-${key}`}
@@ -310,22 +315,25 @@ export function SeatsClient({ lang }) {
         ))}
 
         <div className="mt-6 border-t border-line pt-4">
-          <label htmlFor="contact-email" className="label">{bt("contactEmail", lang)}</label>
-          <input
-            id="contact-email"
-            type="email"
-            className="field ltr sm:max-w-md"
-            autoComplete="email"
-            value={email}
-            aria-invalid={show("email") && !!emailErr}
-            aria-describedby={show("email") && emailErr ? "e-email" : undefined}
-            onBlur={() => blur("email")}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <div className="nk-mfield">
+            <label htmlFor="contact-email" className="label">{bt("contactEmail", lang)}</label>
+            <input
+              id="contact-email"
+              type="email"
+              className="field ltr sm:max-w-md"
+              autoComplete="email"
+              value={email}
+              aria-invalid={show("email") && !!emailErr}
+              aria-describedby={show("email") && emailErr ? "e-email" : undefined}
+              onBlur={() => blur("email")}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
           {show("email") && emailErr && <p id="e-email" role="alert" className="mt-1 text-sm text-red-700">{emailErr}</p>}
         </div>
 
         <div className="mt-5">
+          <div className="nk-mfield">
           <label htmlFor="holder-cnic" className="label">{bt(staff ? "holderCnicStaff" : "holderCnic", lang)}</label>
           <input
             id="holder-cnic"
@@ -337,11 +345,13 @@ export function SeatsClient({ lang }) {
             readOnly={cnicLocked}
             aria-readonly={cnicLocked}
             aria-invalid={show("holderCnic") && !!holderCnicErr}
+            required
             aria-describedby="holder-cnic-hint"
             onBlur={() => blur("holderCnic")}
             onChange={(e) => setTypedCnic(formatCnic(e.target.value))}
             style={cnicLocked ? { backgroundColor: "#f3f4f6" } : undefined}
           />
+          </div>
           <p id="holder-cnic-hint" className="mt-1 text-sm text-mute">
             {bt(cnicLocked ? "holderCnicLocked" : savesToAccount ? "holderCnicFirst" : "holderCnicHint", lang)}
           </p>
@@ -353,7 +363,13 @@ export function SeatsClient({ lang }) {
         <div className="container-nk">
           <p className="truncate text-xs text-mute sm:whitespace-normal">{bt(IS_LIVE ? "reserveNoteLive" : "reserveNote", lang)}</p>
           <div className="mt-1.5 flex items-center justify-between gap-3">
-            <p className="ltr whitespace-nowrap text-lg font-bold text-black sm:text-xl">{bt("total", lang)} {pkr(total)}<sup>{star}</sup></p>
+            <p className="ltr whitespace-nowrap text-lg font-bold text-black sm:text-xl">
+              <span className="nk-total-k">
+                {bt("total", lang)}
+                <span className="md:hidden"> · {pax} {lang === "ur" ? "سیٹیں" : pax === 1 ? "seat" : "seats"}</span>
+              </span>{" "}
+              {pkr(total)}<sup>{star}</sup>
+            </p>
             {/* Always clickable: validation happens on click and moves focus to the message */}
             <button type="button" onClick={reserve} aria-busy={busy} className="btn btn-gold btn-shine shrink-0 whitespace-nowrap">{busy ? bt("reserving", lang) : bt("reserve", lang)}</button>
           </div>
@@ -361,6 +377,15 @@ export function SeatsClient({ lang }) {
       </aside>
 
       {IS_LIVE && <AuthDialog lang={lang} open={authOpen} onClose={() => setAuthOpen(false)} onSuccess={reserve} />}
+      {IS_LIVE && (
+        <PhoneVerifyDialog
+          lang={lang}
+          phone={pass[0]?.phone?.trim() ?? ""}
+          open={phoneOpen}
+          onClose={() => setPhoneOpen(false)}
+          onVerified={() => { setPhoneOpen(false); reserve(); }}
+        />
+      )}
     </div>
   );
 }

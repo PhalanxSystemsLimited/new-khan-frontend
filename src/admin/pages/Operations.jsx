@@ -315,7 +315,8 @@ const METHOD_NAME = { cash: "cash", card: "card", jazzcash: "JazzCash", easypais
 
 /**
  * Counter cancellation of a paid booking, for a customer standing at the counter. Step 1: confirm the holder
- * (CNIC on file must match, or a code sent by SMS for older bookings without one). Step 2: cancel. The refund is
+ * (CNIC on file must match; older bookings made before CNICs were required have none: a manager or admin approves
+ * it, writing how they checked the customer, or, once SMS is on, a code is sent to the booking's phone). Step 2: cancel. The refund is
  * worked out by the cancellation rules: paid in cash, it is handed over now; paid online, it goes to a super
  * admin for approval and back to the card or wallet.
  */
@@ -329,6 +330,7 @@ function CounterRefundModal({ id, onClose, onDone }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState(null);
+  const [asManager, setAsManager] = useState(false); // approve a no-CNIC booking without an SMS code
 
   const fmtCnic = (v) => {
     const x = v.replace(/\D/g, "").slice(0, 13);
@@ -352,7 +354,7 @@ function CounterRefundModal({ id, onClose, onDone }) {
     setErr("");
     try {
       const r = await adminApi.counterCancel(id, {
-        ...(d.identityCheck === "cnic" ? { cnic } : { code: code.trim() }),
+        ...(d.identityCheck === "cnic" ? { cnic } : managerRoute ? {} : { code: code.trim() }),
         ...(reason.trim() ? { reason: reason.trim() } : {}),
       });
       setDone(r);
@@ -364,7 +366,15 @@ function CounterRefundModal({ id, onClose, onDone }) {
   }
 
   const how = d?.refundHow;
-  const ready = d && (d.identityCheck === "cnic" ? /^\d{5}-\d{7}-\d$/.test(cnic) : /^\d{6}$/.test(code.trim()));
+  // No CNIC on the booking: a manager / admin approves it (with a note), or the SMS code is used.
+  const managerRoute = d && d.identityCheck !== "cnic" && d.canApproveWithoutCnic && (d.identityCheck === "manager" || asManager);
+  const ready =
+    d &&
+    (d.identityCheck === "cnic"
+      ? /^\d{5}-\d{7}-\d$/.test(cnic)
+      : managerRoute
+        ? reason.trim().length >= 5
+        : d.identityCheck === "sms_code" && /^\d{6}$/.test(code.trim()));
   const submitLabel = how === "cash_now" ? `Cancel and pay ${rs(d.refundAmount)} in cash` : "Cancel booking";
 
   return (
@@ -411,9 +421,26 @@ function CounterRefundModal({ id, onClose, onDone }) {
                 <Input id="cr-cnic" inputMode="numeric" autoComplete="off" placeholder="35202-1234567-1" value={cnic} onChange={(e) => setCnic(fmtCnic(e.target.value))} />
                 <p className="mt-1 text-xs text-mute">On the booking: {d.holderCnicMasked}. The full number must match.</p>
               </div>
+            ) : d.identityCheck === "manager" || asManager ? (
+              <div className="mt-2 grid gap-2">
+                <p className="text-sm text-neutral-800">
+                  This booking was made before CNICs were required, so there is no CNIC to check (booking phone: {d.phoneMasked}).
+                </p>
+                {d.canApproveWithoutCnic ? (
+                  <p className="rounded-lg border border-amber-400 bg-amber-50 p-2 text-sm text-amber-900">
+                    As a manager you can approve it. Check the customer yourself (their phone, name and ticket) and write in the note below how you checked. The note is saved with the refund.
+                  </p>
+                ) : (
+                  <p className="rounded-lg border-2 border-red-400 bg-red-50 p-2 text-sm font-semibold text-red-900">
+                    A manager or admin must approve this refund. Ask them to open this booking and cancel it.
+                  </p>
+                )}
+                {asManager && <div><Btn type="button" small onClick={() => setAsManager(false)}>Use an SMS code instead</Btn></div>}
+              </div>
             ) : (
               <div className="mt-2 grid gap-2">
                 <p className="text-sm text-neutral-800">This booking has no CNIC. Send a code to the booking&apos;s phone ({d.phoneMasked}) and ask the customer for it.</p>
+                {d.canApproveWithoutCnic && <div><Btn type="button" small onClick={() => setAsManager(true)}>Approve as manager instead</Btn></div>}
                 <div><Btn type="button" small onClick={sendCode} disabled={busy}>{sent ? "Send a new code" : "Send code by SMS"}</Btn></div>
                 {sent && <p className="text-xs text-mute">Sent to {sent.sentTo}. Valid for {sent.expiresInMinutes} minutes.</p>}
                 {sent?.devCode && (
@@ -428,8 +455,14 @@ function CounterRefundModal({ id, onClose, onDone }) {
           </div>
 
           <div>
-            <Label htmlFor="cr-reason">Note (optional)</Label>
-            <Input id="cr-reason" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Customer changed plans" />
+            <Label htmlFor="cr-reason">{managerRoute ? "How you checked the customer *" : "Note (optional)"}</Label>
+            <Input
+              id="cr-reason"
+              maxLength={500}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={managerRoute ? "e.g. Called the booking's phone, customer showed ticket NK…" : "e.g. Customer changed plans"}
+            />
           </div>
 
           {err && <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-900">{err}</p>}
@@ -503,7 +536,7 @@ function BookingModal({ id, onClose, onChanged, isAdmin }) {
               ["Boards at", fmtDT(d.boardingAt)],
               ["Trip status", d.tripStatus],
               ["Contact", `${d.contactName} · ${d.contactPhone}${d.contactEmail ? ` · ${d.contactEmail}` : ""}`],
-              ["Holder CNIC", d.holderCnicMasked ?? "Not on file (an SMS code is used for counter refunds)"],
+              ["Holder CNIC", d.holderCnicMasked ?? "Not on file (booked before CNICs were required: a manager approves counter refunds)"],
               ["Total", `${rs(d.totalAmount)}${Number(d.discountAmount) ? ` (discount ${rs(d.discountAmount)})` : ""}`],
               ...(d.status === "pending" ? [["Hold ends", fmtDT(d.holdExpiresAt)]] : []),
               ...(d.cancelReason ? [["Cancel reason", d.cancelReason]] : []),
@@ -720,7 +753,7 @@ export function Refunds({ me }) {
                   Counter, cash
                   <br />
                   <span className="text-xs text-mute">
-                    {r.processedByName ?? "staff"} · {r.identityCheck === "sms_code" ? "SMS code" : "CNIC"} checked
+                    {r.processedByName ?? "staff"} · {r.identityCheck === "sms_code" ? "SMS code" : r.identityCheck === "manager" ? "manager approved, no CNIC" : "CNIC"} checked
                   </span>
                 </>
               ) : (

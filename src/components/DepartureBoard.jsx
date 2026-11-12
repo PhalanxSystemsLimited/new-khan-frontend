@@ -148,7 +148,7 @@ export function DepartureBoard({ lang }) {
     <section className="border-b-4 border-gold bg-[#0e1013] text-white" aria-label={L2("Leaving Lahore", "لاہور سے روانگی")}>
       <div className="container-nk py-6 sm:py-8">
         {/* Board header: the station sign and a live clock */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="nk-board-head flex items-center justify-between gap-4">
           <p className="flex items-center gap-2.5 text-sm font-bold uppercase tracking-[0.25em] text-gold-bright">
             <span aria-hidden className="relative flex h-2.5 w-2.5">
               <span className="absolute inset-0 animate-ping rounded-full bg-green-400/70 motion-reduce:hidden" />

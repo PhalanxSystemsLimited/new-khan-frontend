@@ -60,8 +60,8 @@ export function BookingSearch({ lang, initial = {}, compact = false, variant = "
   const options = cities ?? [];
 
   return (
-    <form onSubmit={submit} noValidate className={bar ? "rounded-2xl border-2 border-black bg-white p-4 text-black shadow-[0_18px_50px_-18px_rgba(0,0,0,0.6)] sm:p-5" : "card !p-4 text-black sm:!p-5"} aria-label={bt("bookTitle", lang)}>
-      <div role="radiogroup" aria-label={bt("bookTitle", lang)} className="mb-3 flex w-full rounded-xl border border-black p-1 sm:mb-4 sm:inline-flex sm:w-auto">
+    <form onSubmit={submit} noValidate className={`nk-search nk-primary-card ${bar ? "rounded-2xl border-2 border-black bg-white p-4 text-black shadow-[0_18px_50px_-18px_rgba(0,0,0,0.6)] sm:p-5" : "card !p-4 text-black sm:!p-5"}`} aria-label={bt("bookTitle", lang)}>
+      <div role="radiogroup" aria-label={bt("bookTitle", lang)} className="nk-seg mb-3 flex w-full rounded-xl border border-black p-1 sm:mb-4 sm:inline-flex sm:w-auto">
         {["oneway", "return"].map((m) => (
           <button
             key={m}
@@ -77,8 +77,8 @@ export function BookingSearch({ lang, initial = {}, compact = false, variant = "
       </div>
 
       <div className={bar ? "flex flex-col gap-3 lg:flex-row lg:items-end" : ""}>
-        <div className={`grid max-sm:grid-cols-1 gap-x-2 gap-y-2.5 sm:gap-3 ${bar ? "lg:contents" : compact ? "" : "lg:grid-cols-[1fr_auto_1fr]"} sm:grid-cols-[1fr_auto_1fr]`}>
-          <div className={`max-sm:row-start-1 ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
+        <div className={`nk-route grid gap-x-2 gap-y-2.5 sm:gap-3 ${bar ? "lg:contents" : compact ? "" : "lg:grid-cols-[1fr_auto_1fr]"} sm:grid-cols-[1fr_auto_1fr]`}>
+          <div className={`nk-mfield ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
             <label htmlFor={`${idp}-from`} className="label">{bt("from", lang)}</label>
             <CityPicker id={`${idp}-from`} ref={refs.from} label={bt("from", lang)} value={from} onChange={setFrom} options={options} lang={lang} placeholder={bt("chooseCity", lang)} disabledId={to} error={!!errors.from} describedBy={errors.from ? `${idp}-from-err` : undefined} />
             {err("from")}
@@ -87,11 +87,11 @@ export function BookingSearch({ lang, initial = {}, compact = false, variant = "
             type="button"
             onClick={() => { setFrom(to); setTo(from); }}
             aria-label={bt("swap", lang)}
-            className={`btn btn-ghost max-sm:relative max-sm:z-10 max-sm:row-start-2 max-sm:-mb-8 max-sm:h-8 max-sm:justify-self-end max-sm:!min-h-0 max-sm:!rounded-full max-sm:!border max-sm:!px-3 max-sm:!py-0 max-sm:text-xs sm:!min-h-12 sm:!px-4 sm:mt-6 ${bar ? "lg:!mt-0 lg:shrink-0" : ""}`}
+            className={`nk-swap btn btn-ghost md:!min-h-12 md:!px-4 sm:mt-6 ${bar ? "lg:!mt-0 lg:shrink-0" : ""}`}
           >
-            <span className="sm:hidden">⇅ {lang === "ur" ? "اُلٹ دیں" : "Swap"}</span><span className="hidden sm:inline">⇄</span>
+            <span className="md:hidden" aria-hidden>⇅</span><span className="hidden md:inline" aria-hidden>⇄</span>
           </button>
-          <div className={`max-sm:row-start-3 ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
+          <div className={`nk-mfield ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
             <label htmlFor={`${idp}-to`} className="label">{bt("to", lang)}</label>
             <CityPicker id={`${idp}-to`} ref={refs.to} label={bt("to", lang)} value={to} onChange={setTo} options={options} lang={lang} placeholder={bt("chooseCity", lang)} disabledId={from} error={!!errors.to} describedBy={errors.to ? `${idp}-to-err` : undefined} />
             {err("to")}
@@ -99,20 +99,20 @@ export function BookingSearch({ lang, initial = {}, compact = false, variant = "
           </div>
         </div>
 
-        <div className={`mt-2.5 grid gap-x-2 gap-y-2.5 sm:mt-3 sm:gap-3 ${bar ? "lg:contents" : ""} ${mode === "return" ? "max-sm:grid-cols-2 sm:grid-cols-3" : "max-sm:grid-cols-[minmax(0,1fr)_92px] sm:grid-cols-2"}`}>
-          <div className={bar ? "lg:min-w-0 lg:flex-1" : ""}>
+        <div className={`nk-dates mt-2.5 grid gap-x-2 gap-y-2.5 sm:mt-3 sm:gap-3 ${bar ? "lg:contents" : ""} ${mode === "return" ? "max-sm:grid-cols-2 sm:grid-cols-3" : "max-sm:grid-cols-[minmax(0,1fr)_92px] sm:grid-cols-2"}`}>
+          <div className={`nk-mfield ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
             <label htmlFor={`${idp}-date`} className="label">{bt("departDate", lang)}</label>
             <DatePicker id={`${idp}-date`} ref={refs.date} label={bt("departDate", lang)} value={date} onChange={(d) => { setDate(d); if (ret && ret < d) setRet(""); }} min={today} lang={lang} error={!!errors.date} describedBy={errors.date ? `${idp}-date-err` : undefined} />
             {err("date")}
           </div>
           {mode === "return" && (
-            <div className={bar ? "lg:min-w-0 lg:flex-1" : ""}>
+            <div className={`nk-mfield ${bar ? "lg:min-w-0 lg:flex-1" : ""}`}>
               <label htmlFor={`${idp}-ret`} className="label">{bt("returnDate", lang)}</label>
               <DatePicker id={`${idp}-ret`} ref={refs.ret} label={bt("returnDate", lang)} value={ret} onChange={setRet} min={date || today} lang={lang} error={!!errors.ret} describedBy={errors.ret ? `${idp}-ret-err` : undefined} />
               {err("ret")}
             </div>
           )}
-          <div className={`${mode === "return" ? "max-sm:col-span-2" : ""} ${bar ? "lg:w-28 lg:shrink-0" : ""}`}>
+          <div className={`nk-mfield ${mode === "return" ? "max-sm:col-span-2" : ""} ${bar ? "lg:w-28 lg:shrink-0" : ""}`}>
             <label htmlFor={`${idp}-pax`} className="label">{bt("passengers", lang)}</label>
             <select id={`${idp}-pax`} className="field" value={pax} onChange={(e) => setPax(Number(e.target.value))}>
               {Array.from({ length: MAX_PAX }, (_, i) => i + 1).map((n) => (<option key={n} value={n}>{n}</option>))}
@@ -120,7 +120,7 @@ export function BookingSearch({ lang, initial = {}, compact = false, variant = "
           </div>
         </div>
 
-        <button type="submit" className={`btn btn-gold btn-shine mt-3 w-full text-lg sm:mt-4 sm:w-auto ${bar ? "lg:mt-0 lg:shrink-0 lg:px-8" : ""}`}>{bt("searchBuses", lang)}</button>
+        <button type="submit" className={`nk-search-btn btn btn-gold btn-shine mt-3 w-full text-lg sm:mt-4 sm:w-auto ${bar ? "lg:mt-0 lg:shrink-0 lg:px-8" : ""}`}>{bt("searchBuses", lang)}</button>
       </div>
       <p className="mt-2 text-[11px] leading-snug text-mute sm:mt-3 sm:text-xs">{bt(IS_LIVE ? "liveNote" : "placeholderNote", lang)}</p>
     </form>

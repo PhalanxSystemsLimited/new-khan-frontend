@@ -49,12 +49,18 @@ async function validToken() {
   return s.accessToken;
 }
 
+/** Server error codes the screens react to themselves (sign-in form, phone code box, counter refund). */
+const PASS_THROUGH = [
+  "EMAIL_NOT_CONFIRMED", "ACCOUNT_EXISTS", "CNIC_REQUIRED", "PHONE_NOT_VERIFIED", "CODE_WRONG", "CODE_EXPIRED",
+  "TOO_MANY_CODES", "SMS_FAILED", "SMS_UNAVAILABLE", "MANAGER_APPROVAL_REQUIRED", "IDENTITY_MISMATCH",
+];
+
 function toApiError(status, body) {
   const e = body?.error ?? {};
   const detail = e.details?.[0]?.message;
   const message = detail ? `${e.message}: ${detail}` : e.message || "Something went wrong. Please try again.";
   // Sign-in / sign-up outcomes the sign-in form reacts to (shows "Verify now").
-  if (["EMAIL_NOT_CONFIRMED", "ACCOUNT_EXISTS"].includes(e.code)) return new ApiError(e.code, message);
+  if (PASS_THROUGH.includes(e.code)) return new ApiError(e.code, message);
   if (status === 401) return new ApiError("AUTH_REQUIRED", message);
   if (status === 404) return new ApiError("NOT_FOUND", message);
   if (status === 409 && e.code === "DUPLICATE") return new ApiError("SEAT_TAKEN", message);
@@ -103,6 +109,9 @@ export async function apiSignup(fullName, email, password, phone, cnic) {
 }
 export const apiOtpSend = (phone) => request("/auth/otp/send", { method: "POST", body: { phone } });
 /** Emails a password-reset link (the link opens /auth/callback, where the new password is chosen). */
+/** Online booking, once SMS is set up: verify the contact mobile with a 6-digit code. */
+export const apiPhoneSendCode = (phone) => request("/phone/send-code", { method: "POST", auth: true, body: { phone } }).then((r) => r.data);
+export const apiPhoneVerify = (phone, code) => request("/phone/verify", { method: "POST", auth: true, body: { phone, code } }).then((r) => r.data);
 /** Sends the account-verification email again. */
 export const apiResendConfirmation = (email) => request("/auth/resend-confirmation", { method: "POST", body: { email } });
 export const apiForgotPassword = (email) => request("/auth/password/forgot", { method: "POST", body: { email } });
@@ -213,6 +222,7 @@ function mapBooking(d) {
     status: STATUS[d.status] ?? "HELD",
     holdExpiresAt: d.holdExpiresAt,
     contactEmail: d.contactEmail ?? "",
+    holderCnicMasked: d.holderCnicMasked ?? null, // e.g. 35202-•••••••-1 (the full number never reaches the browser)
     passengers: d.tickets.map((t) => ({ name: t.passengerName })),
     legs: [
       {

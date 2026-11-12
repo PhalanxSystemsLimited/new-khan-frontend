@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { loadSiteContent } from "./lib/content";
 import "./index.css";
+import "./mobile.css"; // phone layout only (under 768px)
 
 const root = document.getElementById("root");
 
@@ -15,6 +16,8 @@ const root = document.getElementById("root");
  */
 const unzoomed = () => /^\/(admin|r)(\/|$)/.test(window.location.pathname);
 function fitToScreen() {
+  // The phone layout (mobile.css) applies to the customer website only, never to the admin panel or the QR report.
+  document.documentElement.classList.toggle("nk-site", !unzoomed());
   const w = document.documentElement.clientWidth;
   const h = window.innerHeight;
   const z = w >= 1024 && !unzoomed() ? Math.max(0.7, Math.min(Math.max(w, 1440) / 1440, h / 850, 2.4)) : 1;

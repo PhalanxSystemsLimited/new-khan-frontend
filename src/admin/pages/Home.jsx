@@ -5,6 +5,7 @@
  *   MyTrips        /admin/my-trips       driver / conductor: their own trips
  *   Board          /admin/board          manager: the whole day at a glance, refreshing every minute
  */
+import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../../lib/cnic";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi } from "../api";
@@ -132,6 +133,9 @@ function QuickSale({ trip, onClose, onSold }) {
   async function sell(e) {
     e.preventDefault();
     if (!picked.length) return act(() => Promise.reject(new Error("Choose at least one seat.")));
+    // One CNIC per sale (the customer's; a family needs one). Checked again by the server.
+    const cnicIssue = cnicProblem(contact.cnic);
+    if (cnicIssue) return act(() => Promise.reject(new Error(`Customer's CNIC: ${CNIC_MESSAGES[cnicIssue].en}`)));
     setBusy(true);
     let booking;
     const ok = await act(async () => {
@@ -140,7 +144,7 @@ function QuickSale({ trip, onClose, onSold }) {
         boardingStopId: trip.stopId,
         droppingStopId: Number(dest),
         contact: { name: contact.name.trim(), phone: contact.phone.trim() },
-        ...(contact.cnic.trim() ? { holderCnic: contact.cnic.trim() } : {}),
+        holderCnic: formatCnic(contact.cnic),
         channel: "counter",
         passengers: picked.map((id, i) => ({ seatId: id, name: (pax[id]?.name || (i === 0 ? contact.name : "")).trim(), gender: pax[id]?.gender ?? "male", phone: contact.phone.trim() })),
       });
@@ -217,8 +221,8 @@ function QuickSale({ trip, onClose, onSold }) {
               <Input id="qs-p" required inputMode="tel" value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} placeholder="03001234567" />
             </div>
             <div>
-              <Label htmlFor="qs-c">CNIC (optional)</Label>
-              <Input id="qs-c" inputMode="numeric" value={contact.cnic} onChange={(e) => setContact({ ...contact, cnic: e.target.value })} placeholder="35202-1234567-1" />
+              <Label htmlFor="qs-c">Customer&apos;s CNIC *</Label>
+              <Input id="qs-c" required inputMode="numeric" value={contact.cnic} onChange={(e) => setContact({ ...contact, cnic: formatCnic(e.target.value) })} placeholder="35202-1234567-1" />
             </div>
           </div>
           {picked.length > 0 && (

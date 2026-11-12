@@ -7,6 +7,7 @@
  *   4. Tap a passenger who did not travel to mark it with a note.
  * Only the trip's conductor (or its stand-in) can open it; managers and admins can open any trip.
  */
+import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../../lib/cnic";
 import { useCallback, useEffect, useState } from "react";
 import { adminApi } from "../api";
 import { act, Badge, Btn, ErrorNote, Input, Label, Modal, Page, Section, Select, StatusBadge } from "../ui";
@@ -207,16 +208,19 @@ export function ConductorScreen() {
 function SeatDialog({ seat, data, onClose, onDone }) {
   const p = seat.passenger;
   const road = data.roadBooking;
-  const [f, setF] = useState({ name: "", gender: "male", phone: "", destinationStopId: road?.destinations.at(-1)?.id ?? "", fare: "", free: false });
+  const [f, setF] = useState({ name: "", gender: "male", phone: "", cnic: "", destinationStopId: road?.destinations.at(-1)?.id ?? "", fare: "", free: false });
   const [note, setNote] = useState("Did not travel");
   const [busy, setBusy] = useState(false);
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
 
   async function book(e) {
     e.preventDefault();
+    const cnicIssue = cnicProblem(f.cnic);
+    if (cnicIssue) return act(() => Promise.reject(new Error(`CNIC: ${CNIC_MESSAGES[cnicIssue].en}`)));
     setBusy(true);
     const body = {
       seatId: seat.seatId,
+      cnic: formatCnic(f.cnic),
       name: f.name.trim(),
       gender: f.gender,
       destinationStopId: Number(f.destinationStopId),
@@ -278,6 +282,10 @@ function SeatDialog({ seat, data, onClose, onDone }) {
           <div>
             <Label htmlFor="rp-ph">Mobile number *</Label>
             <Input id="rp-ph" required inputMode="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="03001234567" />
+          </div>
+          <div>
+            <Label htmlFor="rp-cnic">CNIC *</Label>
+            <Input id="rp-cnic" required inputMode="numeric" value={f.cnic} onChange={(e) => set("cnic", formatCnic(e.target.value))} placeholder="35202-1234567-1" />
           </div>
           <label className="flex items-center gap-2 text-sm font-semibold">
             <input type="checkbox" className="h-5 w-5 accent-black" checked={f.free} onChange={(e) => set("free", e.target.checked)} />

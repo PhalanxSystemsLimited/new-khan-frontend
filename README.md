@@ -224,6 +224,15 @@ falls back to the copy this browser saved last time, then to the built-in text.
   - `pk-*`: Pakka design layer (paper & ink, 2px outlines, 4px offset shadow): header, nav, buttons (`pk-btn`, `pk-btn-ink`).
   - `card`, `btn`, `btn-gold`, `btn-ghost`, `h1`–`h3`, `label`, `field`: shared components used by the booking screens.
 - The header switches to the hamburger menu below 1100px wide; the mobile sticky bar (Book / WhatsApp / Call) shows below 1024px.
+- **Phone layout** (screens under 768px): [`src/mobile.css`](src/mobile.css). Light chrome (1px grey borders, soft
+  shadows), compact pill buttons with 44px tap areas, form fields with the label inside the box (`nk-mfield`), the
+  booking progress bar (`nk-steps`, in `booking/Shell.jsx`), seat-rule chips and passenger cards.
+  - Every rule in it is inside `@media (max-width: 767px)` **and** scoped to the customer website with
+    `:where(html.nk-site)` (`main.jsx` sets that class except on `/admin` and `/r/...`), so tablets, desktops, the
+    admin panel and the QR report page are not affected. `:where()` adds no specificity, so rule priority is the same
+    as without the scope.
+  - The `nk-*` class names in the JSX are hooks for this file only; they have no style on larger screens.
+  - Elements added for phones only carry `md:hidden` (progress bar, seat-rule chips, picked-seat chips).
 
 ---
 

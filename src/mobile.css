@@ -1,0 +1,338 @@
+/*
+ * Phone layout for the customer website (screens under 768px).
+ *
+ * EVERYTHING in this file is inside @media (max-width: 767px): tablets and desktops never see it, so the approved
+ * desktop design cannot change because of it. The admin panel (/admin) does not use these classes.
+ *
+ * Design rules (from the New Khan mobile references):
+ *   - 16px side margins, 16px between blocks, 32-40px between page sections
+ *   - light chrome: 1px grey borders, soft shadows; the main action card keeps the bold black border
+ *   - type: hero 30px, page titles 26px, section titles 24px, card titles 16px, body 14-15px, small caps labels 11px
+ *   - pills and buttons look compact but every tap target is at least 44 x 44px
+ *   - form fields: one box, the label small inside it at the top, the value under it
+ *   - nothing ever scrolls sideways
+ */
+@media (max-width: 767px) {
+  :root:where(.nk-site) {
+    --m-gutter: 16px;
+    --m-line: #e4e4e7;
+    --m-line-strong: #d4d4d8;
+    --m-soft-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.07), 0 1px 3px -1px rgba(0, 0, 0, 0.04);
+    --m-lift-shadow: 0 10px 25px -8px rgba(0, 0, 0, 0.18);
+    --m-radius: 16px;
+    --m-radius-s: 12px;
+  }
+
+  html:where(.nk-site),
+  :where(html.nk-site) body { overflow-x: clip; }
+  :where(html.nk-site) body { -webkit-tap-highlight-color: transparent; }
+  :where(html.nk-site) .container-nk { padding-inline: var(--m-gutter) !important; }
+
+  /* ---------- Frame: top bar, header, menu ---------- */
+  :where(html.nk-site) .pk-bar { display: none; } /* the helpline is in the bottom bar, the menu and the footer on phones */
+
+  :where(html.nk-site) .pk-header { border-bottom: 1px solid var(--m-line); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  :where(html.nk-site) .pk-header-in { min-height: 56px; padding-block: 8px; gap: 8px; }
+  :where(html.nk-site) .pk-logo img { height: 34px; }
+  :where(html.nk-site) .pk-header-actions { gap: 6px; }
+  :where(html.nk-site) .pk-header-actions .pk-btn,
+  :where(html.nk-site) .pk-header-actions .pk-btn-s {
+    position: relative;
+    min-height: 36px;
+    height: 36px;
+    padding: 0 12px;
+    border-width: 1px;
+    border-color: var(--m-line-strong);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: none;
+  }
+  :where(html.nk-site) .pk-header-actions .pk-btn:hover { transform: none; box-shadow: none; background: #f4f4f5; }
+  /* 36px to look at, 44px to tap */
+  :where(html.nk-site) .pk-header-actions .pk-btn::before { content: ""; position: absolute; inset: -4px; }
+  :where(html.nk-site) .pk-header-actions .pk-burger { width: 36px; padding: 0; border-radius: 10px; }
+  :where(html.nk-site) .pk-header-actions .pk-burger svg { width: 19px; height: 19px; }
+  :where(html.nk-site) .pk-header-actions .pk-book { display: none; } /* "Book a seat" is in the bottom bar */
+  :where(html.nk-site) .pk-lang[lang="ur"] { line-height: 1; padding-top: 3px; }
+  :where(html.nk-site) .pk-acct-btn { gap: 5px; padding: 0 10px !important; }
+  :where(html.nk-site) .pk-acct-btn > svg:first-child { width: 15px; height: 15px; color: #52525b; }
+  :where(html.nk-site) .pk-acct-name,
+  :where(html.nk-site) .pk-acct-chev { display: inline-block !important; }
+  :where(html.nk-site) .pk-acct-name { max-width: 64px; }
+  :where(html.nk-site) .pk-acct-chev { width: 10px; height: 10px; color: #a1a1aa; }
+  :where(html.nk-site) .pk-acct-panel { width: min(270px, calc(100vw - 32px)); border-width: 1px; border-color: var(--m-line-strong); box-shadow: var(--m-lift-shadow); }
+
+  :where(html.nk-site) .pk-menu { border-top: 1px solid var(--m-line); max-height: calc(100dvh - 56px); }
+  :where(html.nk-site) .pk-menu-in { padding-block: 8px 112px; gap: 0; }
+  :where(html.nk-site) .pk-menu-in > a { padding: 13px 12px; font-size: 16px; border-radius: 12px; }
+  :where(html.nk-site) .pk-menu-k { margin: 16px 12px 4px; font-size: 11px; }
+  :where(html.nk-site) .pk-menu-actions { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
+  :where(html.nk-site) .pk-menu-actions .pk-btn { min-height: 48px; border-width: 1px; border-radius: 12px; }
+
+  /* Bottom bar: Book a seat / WhatsApp / Call */
+  :where(html.nk-site) .nk-sticky { border-top: 1px solid var(--m-line) !important; padding: 10px 12px max(10px, env(safe-area-inset-bottom)) !important; background: rgba(255, 255, 255, 0.95) !important; }
+  :where(html.nk-site) .nk-sticky > div { gap: 8px !important; }
+  :where(html.nk-site) .nk-sticky .btn { min-height: 48px; border-radius: 12px; }
+  :where(html.nk-site) .nk-sticky .btn-ghost { border-width: 1px; border-color: var(--m-line-strong); }
+  :where(html.nk-site) .nk-sticky-paying { display: none !important; }
+
+  /* ---------- Shared building blocks ---------- */
+  :where(html.nk-site) .pk-card,
+  :where(html.nk-site) .card,
+  :where(html.nk-site) .ink-card {
+    border: 1px solid var(--m-line) !important;
+    border-radius: var(--m-radius) !important;
+    box-shadow: var(--m-soft-shadow) !important;
+  }
+  :where(html.nk-site) .pk-frame { border: 1px solid var(--m-line-strong); box-shadow: var(--m-soft-shadow); }
+  :where(html.nk-site) .pk-screen { border: 1px solid #27272a; box-shadow: var(--m-soft-shadow); }
+  :where(html.nk-site) .pk-btn { min-height: 46px; border-width: 1.5px; border-radius: var(--m-radius-s); font-size: 15px; }
+  :where(html.nk-site) .pk-btn:hover { transform: none; box-shadow: none; }
+  :where(html.nk-site) .btn { border-radius: var(--m-radius-s); }
+  /* Light inputs and outline buttons (the references); a field with an error stays red */
+  :where(html.nk-site) .field { border: 1px solid var(--m-line-strong) !important; }
+  :where(html.nk-site) .field:focus,
+  :where(html.nk-site) .field:focus-visible { border-color: var(--pk-ink) !important; }
+  :where(html.nk-site) .field[aria-invalid="true"] { border-color: #dc2626 !important; }
+  :where(html.nk-site) .btn-ghost { border: 1px solid var(--m-line-strong) !important; }
+
+  :where(html.nk-site) .pk-section { padding-top: 36px; }
+  :where(html.nk-site) .pk-head { margin-bottom: 14px; gap: 10px; }
+  :where(html.nk-site) .pk-head-main { gap: 4px; }
+  :where(html.nk-site) .pk-head h2 { font-size: 24px; line-height: 1.12; }
+  html:where(.nk-site)[lang="ur"] .pk-head h2 { font-size: 24px; line-height: 1.8; }
+  :where(html.nk-site) .pk-eyebrow { font-size: 11px; letter-spacing: 0.18em; }
+  :where(html.nk-site) .pk-lead { font-size: 15px; line-height: 1.5; }
+  :where(html.nk-site) .pk-small { font-size: 13px; }
+  :where(html.nk-site) .pk-head-action,
+  :where(html.nk-site) .pk-head-action .pk-btn { width: 100%; }
+
+  /* ---------- Home: hero ---------- */
+  :where(html.nk-site) .pk-hero { border-bottom: 0; background: var(--pk-paper); }
+  :where(html.nk-site) .pk-hero-in { padding-block: 16px 8px; gap: 16px; }
+  :where(html.nk-site) .pk-hero-text { gap: 8px; }
+  :where(html.nk-site) .pk-hero-ur { font-size: 22px; line-height: 1.9; margin-bottom: -10px; }
+  :where(html.nk-site) .pk-hero h1 { font-size: 30px; line-height: 1.05; }
+  html:where(.nk-site)[lang="ur"] .pk-hero h1 { font-size: 28px; line-height: 1.8; }
+  :where(html.nk-site) .pk-hero .pk-lead { font-size: 14px; line-height: 1.5; color: #52525b; }
+  :where(html.nk-site) .pk-hero .pk-small { text-align: center; }
+  :where(html.nk-site) .pk-search-card { margin-top: 4px; }
+  :where(html.nk-site) .pk-hero-media { padding-bottom: 0; }
+  :where(html.nk-site) .pk-hero-media .pk-frame { border-radius: var(--m-radius); aspect-ratio: 16 / 10; height: auto; }
+  :where(html.nk-site) .pk-stub {
+    position: static;
+    width: 100%;
+    margin-top: 10px;
+    transform: none;
+    grid-template-columns: 1fr 1px 96px;
+    border-radius: var(--m-radius-s) !important;
+  }
+  :where(html.nk-site) .pk-stub-main { padding: 10px 14px; }
+  :where(html.nk-site) .pk-stub-side { padding: 8px; flex-direction: row; gap: 8px; }
+  :where(html.nk-site) .pk-stub .pk-badge { width: 28px; height: 28px; font-size: 12px; border-width: 0; }
+  :where(html.nk-site) .pk-stub .pk-k { font-size: 10px; }
+  :where(html.nk-site) .pk-stub .pk-tno { font-size: 15px; }
+  :where(html.nk-site) .pk-stub-route { font-size: 12.5px; }
+
+  /* ---------- Search form (home, booking page, "change search") ---------- */
+  :where(html.nk-site) .nk-search { padding: 14px !important; }
+  :where(html.nk-site) .nk-primary-card { border: 2px solid var(--pk-ink) !important; box-shadow: var(--m-lift-shadow) !important; }
+  :where(html.nk-site) .nk-seg { display: flex !important; width: 100%; padding: 3px !important; margin-bottom: 12px !important; background: #f4f4f5; border: 1px solid var(--m-line) !important; border-radius: 12px !important; }
+  :where(html.nk-site) .nk-seg > button { min-height: 40px !important; border-radius: 9px !important; font-size: 14px; }
+  :where(html.nk-site) .nk-route { position: relative; display: flex !important; flex-direction: column; gap: 8px !important; }
+  :where(html.nk-site) .nk-mfield { position: relative; min-width: 0; }
+  :where(html.nk-site) .nk-mfield > .label {
+    position: absolute;
+    top: 8px;
+    inset-inline-start: 13px;
+    z-index: 1;
+    margin: 0;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #71717a;
+    pointer-events: none;
+    line-height: 1.2;
+  }
+  html:where(.nk-site)[lang="ur"] .nk-mfield > .label { letter-spacing: 0; font-size: 12px; top: 4px; }
+  :where(html.nk-site) .nk-mfield .field {
+    min-height: 58px;
+    padding-top: 22px !important;
+    padding-bottom: 6px !important;
+    border-radius: 12px !important;
+    background: #fafafa;
+    font-size: 15px;
+  }
+  :where(html.nk-site) .nk-mfield .field:focus,
+  :where(html.nk-site) .nk-mfield .field:focus-visible,
+  :where(html.nk-site) .nk-mfield .field[aria-expanded="true"] { border-color: var(--pk-ink); background: #fff; }
+  :where(html.nk-site) .nk-mfield select.field { padding-inline-start: 13px; }
+  :where(html.nk-site) .nk-swap {
+    position: absolute !important;
+    z-index: 2;
+    top: 42px;
+    inset-inline-end: 44px;
+    width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid var(--m-line-strong) !important;
+    border-radius: 999px !important;
+    background: #fff !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-size: 16px;
+  }
+  :where(html.nk-site) .nk-swap::before { content: ""; position: absolute; inset: -5px; }
+  :where(html.nk-site) .nk-dates { margin-top: 8px !important; gap: 8px !important; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) !important; }
+  :where(html.nk-site) .nk-dates:has(> .nk-mfield:nth-child(3)) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  :where(html.nk-site) .nk-dates > .nk-mfield:nth-child(3) { grid-column: 1 / -1; } /* return trip: passengers on its own row */
+  :where(html.nk-site) .nk-search-btn { min-height: 50px; margin-top: 12px !important; font-size: 16px !important; }
+
+  /* ---------- Home: promises as a 2 x 2 grid of small cards ---------- */
+  :where(html.nk-site) .pk-band-wash { padding-block: 28px 0; }
+  :where(html.nk-site) .pk-promises { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; background: transparent; border: 0; box-shadow: none; overflow: visible; }
+  :where(html.nk-site) .pk-promises > div { margin: 0; padding: 12px; gap: 3px; border: 1px solid var(--m-line) !important; border-radius: var(--m-radius-s); background: #fff; box-shadow: var(--m-soft-shadow); }
+  :where(html.nk-site) .pk-promises .pk-num { width: 26px; height: 26px; font-size: 12px; border-width: 0; background: #f4f4f5; }
+  :where(html.nk-site) .pk-promises h3 { margin-top: 4px; font-size: 14.5px; line-height: 1.2; }
+  :where(html.nk-site) .pk-promises .pk-ur { font-size: 13px; line-height: 1.8; }
+  :where(html.nk-site) .pk-promises .pk-body { font-size: 13px; line-height: 1.45; color: #52525b; }
+
+  /* ---------- Home: parcels, family tiles, journey ---------- */
+  :where(html.nk-site) .pk-two { gap: 12px; }
+  :where(html.nk-site) .pk-pad { padding: 18px !important; }
+  :where(html.nk-site) .pk-ptrack { gap: 18px; }
+  :where(html.nk-site) .pk-ptrack h3 { font-size: 17px; }
+  :where(html.nk-site) .pk-slip-top,
+  :where(html.nk-site) .pk-slip-bottom { padding: 16px; gap: 8px; }
+  :where(html.nk-site) .pk-chips li,
+  :where(html.nk-site) .pk-chips > * { border-width: 1px !important; }
+  :where(html.nk-site) .pk-row { gap: 8px; }
+  :where(html.nk-site) .pk-row .pk-btn { flex: 1 1 auto; }
+  :where(html.nk-site) .pk-tag { border-width: 1px; font-size: 11px; }
+
+  :where(html.nk-site) .pk-ftiles { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; margin-bottom: 14px; }
+  :where(html.nk-site) .pk-ftile { padding: 12px; gap: 3px; border: 1px solid var(--m-line); box-shadow: var(--m-soft-shadow) !important; }
+  :where(html.nk-site) .pk-ftile h3 { font-size: 14.5px; margin-top: 6px; }
+  html:where(.nk-site)[lang="ur"] .pk-ftile h3 { font-size: 15px; }
+  :where(html.nk-site) .pk-ftile .pk-body { font-size: 13px; line-height: 1.45; color: #52525b; }
+  :where(html.nk-site) .pk-ftile .pk-ur-s { font-size: 13px; }
+  :where(html.nk-site) .pk-ficon { width: 30px; height: 30px; border-radius: 8px; }
+
+  :where(html.nk-site) .pk-jstop { gap: 12px; }
+  :where(html.nk-site) .pk-jyear { height: 38px; padding: 0 14px; font-size: 17px; border-width: 1.5px; }
+  :where(html.nk-site) .pk-pola { border-width: 1px; border-color: var(--m-line-strong); box-shadow: var(--m-soft-shadow); padding: 8px 8px 12px; font-size: 13px; }
+  :where(html.nk-site) .pk-pola img { border-width: 0; border-radius: 4px; }
+
+  /* ---------- Home: departure board ---------- */
+  :where(html.nk-site) .nk-board-head { gap: 8px !important; }
+  :where(html.nk-site) .nk-board-head > p:first-child { font-size: 12px; letter-spacing: 0.14em; }
+  :where(html.nk-site) .nk-board-head > p:last-child { font-size: 15px; }
+
+  /* ---------- Home: FAQ, closing band ---------- */
+  :where(html.nk-site) .pk-faq { gap: 8px; }
+  :where(html.nk-site) .pk-faq details { padding: 14px 16px; }
+  :where(html.nk-site) .pk-faq summary { font-size: 15px; align-items: center; }
+  :where(html.nk-site) .pk-faq p { font-size: 14px; }
+  :where(html.nk-site) .pk-closing { padding: 22px 18px; border-width: 0; box-shadow: var(--m-soft-shadow); gap: 14px; }
+  :where(html.nk-site) .pk-closing h2 { font-size: 24px; }
+  :where(html.nk-site) .pk-closing-ur { font-size: 20px; }
+  :where(html.nk-site) .pk-closing-actions { width: 100%; }
+  :where(html.nk-site) .pk-closing-actions .pk-btn { flex: 1; }
+
+  /* ---------- Footer ---------- */
+  :where(html.nk-site) .pk-footer { border-top: 1px solid var(--m-line); }
+  :where(html.nk-site) .pk-footer-in { grid-template-columns: 1fr 1fr; gap: 18px 16px; padding-block: 28px 100px; font-size: 13px; }
+  :where(html.nk-site) .pk-footer-in > div:first-child { grid-column: 1 / -1; }
+  :where(html.nk-site) .pk-footer-in > div:first-child img { height: 36px !important; }
+  :where(html.nk-site) .pk-footer-links { gap: 6px; }
+}
+
+/* ======================= Booking flow (phones) ======================= */
+@media (max-width: 767px) {
+  :where(html.nk-site) .nk-book { padding-top: 14px !important; padding-bottom: 28px !important; }
+  :where(html.nk-site) .nk-book > .h1 { line-height: 1.15 !important; }
+
+  /* Progress: Search › Bus › Seats › Pay */
+  :where(html.nk-site) .nk-steps { margin-bottom: 14px; }
+  :where(html.nk-site) .nk-steps ol { display: flex; gap: 4px; margin: 0; padding: 4px; list-style: none; background: #f4f4f5; border: 1px solid var(--m-line); border-radius: 999px; }
+  :where(html.nk-site) .nk-steps li { flex: 1; min-width: 0; min-height: 30px; display: flex; align-items: center; justify-content: center; gap: 5px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #71717a; white-space: nowrap; }
+  :where(html.nk-site) .nk-steps li[data-state="now"] { background: #fff; color: var(--pk-ink); font-weight: 800; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+  :where(html.nk-site) .nk-steps li[data-state="done"] { color: #047857; }
+  :where(html.nk-site) .nk-step-dot { width: 18px; height: 18px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--m-line-strong); font-size: 10px; font-weight: 800; line-height: 1; }
+  :where(html.nk-site) .nk-steps li[data-state="now"] .nk-step-dot { background: var(--pk-ink); border-color: var(--pk-ink); color: #fff; }
+  :where(html.nk-site) .nk-steps li[data-state="done"] .nk-step-dot { background: #d1fae5; border-color: #a7f3d0; color: #047857; }
+  html:where(.nk-site)[lang="ur"] .nk-steps li { font-size: 13px; }
+
+  /* Bus list */
+  :where(html.nk-site) .nk-change { min-height: 36px; padding: 0 14px; border-radius: 999px !important; font-size: 13px; }
+
+  /* Seats: tap rule, legend, the bus, picked seats */
+  :where(html.nk-site) .nk-seat-rule { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+  :where(html.nk-site) .nk-seat-rule li { padding: 6px 4px; border: 1px solid var(--m-line); border-radius: 8px; background: #f4f4f5; color: #3f3f46; font-size: 12px; font-weight: 700; text-align: center; }
+  :where(html.nk-site) .nk-seat-rule li[data-g="female"] { background: #fdf2f8; border-color: #fbcfe8; color: #be185d; }
+  :where(html.nk-site) .nk-seat-rule li[data-g="male"] { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+  :where(html.nk-site) .nk-legend { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px !important; padding-bottom: 12px; border-bottom: 1px solid var(--m-line); font-size: 13px !important; }
+  :where(html.nk-site) .nk-legend > li > span { width: 16px !important; height: 16px !important; }
+  :where(html.nk-site) .nk-bus { padding: 12px !important; border: 1.5px solid var(--m-line-strong) !important; border-radius: 24px !important; background: linear-gradient(180deg, #f4f4f5, #fff 40%, #fafafa) !important; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05); }
+  :where(html.nk-site) .nk-picked { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+  :where(html.nk-site) .nk-picked li { padding: 3px 10px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  :where(html.nk-site) .nk-picked li[data-g="female"] { background: #fce7f3; border-color: #fbcfe8; color: #9d174d; }
+  :where(html.nk-site) .nk-picked li[data-g="male"] { background: #dbeafe; border-color: #bfdbfe; color: #1e40af; }
+
+  /* Passengers: one small card each, tinted by the seat's gender */
+  :where(html.nk-site) .nk-pax { margin-top: 10px !important; padding: 12px !important; border: 1px solid var(--m-line) !important; border-radius: 12px; background: #fafafa; }
+  :where(html.nk-site) .nk-pax[data-g="female"] { background: #fdf6fa; border-color: #fbcfe8 !important; }
+  :where(html.nk-site) .nk-pax[data-g="male"] { background: #f5f9ff; border-color: #bfdbfe !important; }
+  :where(html.nk-site) .nk-pax > legend { float: inline-start; width: 100%; margin-bottom: 10px; font-size: 14px; }
+  :where(html.nk-site) .nk-pax > legend + * { clear: both; margin-top: 0 !important; gap: 8px !important; }
+  :where(html.nk-site) .nk-pax .nk-mfield .field { background: #fff; }
+
+  /* Bottom bar total: small label over the amount */
+  :where(html.nk-site) .nk-total-k { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #71717a; line-height: 1.3; }
+  html:where(.nk-site)[lang="ur"] .nk-total-k { letter-spacing: 0; font-size: 12px; }
+}
+
+/* ======================= Other customer pages (phones) ======================= */
+@media (max-width: 767px) {
+  /* Many page parts use a 2px near-black outline with a hard offset shadow (Tailwind classes): on phones they get
+     the same light outline and soft shadow as everything else. Forms and buttons keep their own look. */
+  :where(html.nk-site) .pk-main [class*="border-2 border-[#1b1e21]"],
+  :where(html.nk-site) .pk-main [class*="border-[2.5px] border-[#1b1e21]"],
+  :where(html.nk-site) .pk-main [class*="border-2 border-black"]:not(form):not(button) {
+    border-width: 1px !important;
+    border-color: var(--m-line-strong) !important;
+  }
+  :where(html.nk-site) .pk-main [class*="shadow-[4px_4px_0"],
+  :where(html.nk-site) .pk-main [class*="shadow-[5px_5px_0"],
+  :where(html.nk-site) .pk-main [class*="shadow-[6px_6px_0"] {
+    box-shadow: var(--m-soft-shadow) !important;
+  }
+
+  /* Fact pills under page titles (Rs 550 FARES FROM, 9 TERMINALS...) */
+  :where(html.nk-site) .pk-facts { gap: 6px; }
+  :where(html.nk-site) .pk-facts > div { padding: 4px 12px; border-width: 1px; border-color: var(--m-line-strong); }
+  :where(html.nk-site) .pk-facts dd { font-size: 15px; }
+  :where(html.nk-site) .pk-facts dt { font-size: 10.5px; }
+
+  /* Timetables: a fare never breaks over two lines */
+  :where(html.nk-site) .pk-main td.text-end,
+  :where(html.nk-site) .pk-main th.text-end { white-space: nowrap; }
+}
+
+/* Very small phones (under 360px, e.g. older iPhone SE): the seat map keeps 44px seats but less space around them */
+@media (max-width: 359px) {
+  :where(html.nk-site) .card:has(.nk-bus) { padding-inline: 10px !important; }
+  :where(html.nk-site) .nk-bus { padding: 8px !important; }
+  :where(html.nk-site) .nk-bus .space-y-2 > div { gap: 5px; }
+  :where(html.nk-site) .nk-bus [class*="ms-6"] { margin-inline-start: 12px; }
+  :where(html.nk-site) .nk-bus .w-5 { width: 12px; }
+}
+
+/* Sign-in box: the three tabs stay on one line */
+@media (max-width: 767px) {
+  :where(html.nk-site) .nk-auth-tabs { gap: 2px; background: #f4f4f5; border-color: var(--m-line) !important; }
+  :where(html.nk-site) .nk-auth-tabs > button { padding-inline: 4px !important; font-size: 13px; white-space: nowrap; }
+}

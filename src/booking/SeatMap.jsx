@@ -64,12 +64,18 @@ export function SeatMap({ seats, chosen, max, onCycle, notice, lang, legLabel })
   return (
     <div>
       {/* Short rule up front so the seat map stays on screen; the full explanation is one tap away. */}
-      <p id={`${legLabel}-hint`} className="text-sm text-mute">{bt("seatHintShort", lang)}</p>
+      <p id={`${legLabel}-hint`} className="text-sm text-mute max-md:sr-only">{bt("seatHintShort", lang)}</p>
+      {/* Phones: the same rule as three chips */}
+      <ul aria-hidden className="nk-seat-rule md:hidden">
+        <li data-g="female">{lang === "ur" ? "1 بار: خاتون" : "1 tap: female"}</li>
+        <li data-g="male">{lang === "ur" ? "2 بار: مرد" : "2 taps: male"}</li>
+        <li>{lang === "ur" ? "3 بار: خالی" : "3 taps: free"}</li>
+      </ul>
       <details className="mt-1 text-sm text-mute">
         <summary className="cursor-pointer font-semibold text-black underline underline-offset-4">{bt("seatHintMore", lang)}</summary>
         <p className="mt-1">{bt("seatHint", lang)}</p>
       </details>
-      <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm" aria-label={bt("legend", lang)}>
+      <ul className="nk-legend mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm" aria-label={bt("legend", lang)}>
         {legend.map(([c, k]) => (
           <li key={k} className="flex items-center gap-2">
             <span aria-hidden className={`h-5 w-5 rounded border-2 ${c}`} />
@@ -78,7 +84,7 @@ export function SeatMap({ seats, chosen, max, onCycle, notice, lang, legLabel })
         ))}
       </ul>
 
-      <div role="group" aria-label={`${legLabel}, ${bt("seatsTitle", lang)}`} aria-describedby={`${legLabel}-hint`} className="mx-auto mt-4 w-fit rounded-3xl border-2 border-black bg-coal p-4">
+      <div role="group" aria-label={`${legLabel}, ${bt("seatsTitle", lang)}`} aria-describedby={`${legLabel}-hint`} className="nk-bus mx-auto mt-4 w-fit rounded-3xl border-2 border-black bg-coal p-4">
         <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-mute">▲ {bt("front", lang)}</p>
         <div className="space-y-2" dir="ltr">
           {rows.map((r) => (
@@ -121,6 +127,18 @@ export function SeatMap({ seats, chosen, max, onCycle, notice, lang, legLabel })
         </div>
       </div>
       <p className="mt-2 text-center text-sm font-semibold text-black" aria-live="polite">{bt("seatsPicked", lang, { x: chosen.size, n: max })}</p>
+      {/* Phones: the seats picked so far, as chips */}
+      {chosen.size > 0 && (
+        <ul aria-hidden className="nk-picked md:hidden">
+          {seats
+            .filter((s) => chosen.has(s.id))
+            .map((s) => (
+              <li key={s.id} data-g={chosen.get(s.id)}>
+                {s.label ?? s.id} · {bt(chosen.get(s.id), lang)}
+              </li>
+            ))}
+        </ul>
+      )}
       <p role="status" aria-live="polite" className={notice ? "mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-center text-sm text-amber-900" : "sr-only"}>
         {notice}
       </p>
