@@ -182,9 +182,55 @@ export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignat
 
   /** The server's message for this field, when it rejected the save. */
   const serverMsg = (k) => err?.byField[k] && <p role="alert" className="mt-1 text-sm text-red-700">{err.byField[k]}</p>;
-  /** An expiry date already in the past: allowed (as before), but pointed out. */
-  const expiredNote = (k) =>
-    v[k] && v[k] < pkDate() ? <p className="mt-1 text-xs font-semibold text-amber-800">Already expired.</p> : null;
+  /**
+   * CNIC / licence expiry, as soon as a date is picked (warnings only: the form still saves):
+   *   already passed   red     ask for the renewed document (an expired licence cannot be put on trips)
+   *   within 30 days   yellow  ask the employee to renew it (same 30 days as the "expires soon" tag in the list)
+   *   odd year         grey    more than 15 years ahead, or more than 10 years ago: probably a typing mistake
+   * Days are counted in Pakistan time.
+   */
+  const expiredNote = (k) => {
+    const d = v[k];
+    if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+    const days = Math.round((Date.parse(`${d}T00:00:00Z`) - Date.parse(`${pkDate()}T00:00:00Z`)) / 86_400_000);
+    const when = fmtD(`${d}T12:00:00+05:00`);
+    const licence = k === "licenceExpiry";
+    const what = licence ? "Licence" : "CNIC";
+    const dayWord = (n) => `${n} day${n === 1 ? "" : "s"}`;
+    let tone = null;
+    let text = "";
+    if (days < 0) {
+      tone = "red";
+      text = licence
+        ? isDriver
+          ? `Licence expired on ${when}. This driver cannot be assigned to trips until it is renewed.`
+          : `Licence expired on ${when}.`
+        : `CNIC expired on ${when}. Ask the employee for their renewed CNIC.`;
+    } else if (days < 30) {
+      tone = "yellow";
+      const inDays = days === 0 ? "today" : `in ${dayWord(days)} (${when})`;
+      text = licence
+        ? isDriver
+          ? `Licence expires ${inDays}. After that date this driver cannot be assigned to trips. Ask them to renew it and update this record.`
+          : `Licence expires ${inDays}. Ask the employee to renew it and update this record.`
+        : `CNIC expires ${inDays}. Ask the employee to renew it and update this record.`;
+    }
+    const oddYear = days > 15 * 365 ? "That is more than 15 years from now. Please check the year." : days < -10 * 365 ? "That is more than 10 years ago. Please check the year." : "";
+    const box = {
+      red: "border-red-300 bg-red-50 text-red-900",
+      yellow: "border-amber-400 bg-amber-50 text-amber-900",
+    };
+    return (
+      <>
+        {tone && (
+          <p role="status" className={`mt-1 rounded-lg border px-2 py-1 text-xs font-semibold ${box[tone]}`} data-expiry={tone}>
+            {text}
+          </p>
+        )}
+        {oddYear && <p className="mt-1 text-xs text-neutral-600" data-expiry="check">{oddYear}</p>}
+      </>
+    );
+  };
   const field = (k, label, props = {}) => (
     <div>
       <Label htmlFor={`ef-${k}`}>{label}{props.required ? " *" : ""}</Label>
