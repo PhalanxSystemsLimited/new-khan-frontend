@@ -96,8 +96,8 @@ export function Drivers() {
   const [openForm, form] = useForm();
   const fields = [
     { name: "fullName", label: "Full name", type: "text", required: true },
-    { name: "phone", label: "Phone", type: "text", required: true, placeholder: "03001234567" },
-    { name: "cnic", label: "CNIC", type: "text", placeholder: "35202-1234567-1" },
+    { name: "phone", label: "Phone", type: "phone", required: true },
+    { name: "cnic", label: "CNIC", type: "cnic" },
     { name: "licenseNo", label: "Licence no.", type: "text", required: true },
     { name: "licenseExpiry", label: "Licence expiry", type: "date", required: true, hint: "Drivers with an expired licence can't be assigned to trips." },
     { name: "isActive", label: "Active", type: "checkbox", checkLabel: "Can be assigned to trips" },
@@ -153,8 +153,8 @@ export function Conductors() {
   const loginOpts = (logins.data?.data ?? []).map((u) => ({ value: u.id, label: `${u.fullName || "–"} · ${u.email ?? u.phone ?? ""}` }));
   const fields = [
     { name: "fullName", label: "Full name", type: "text", required: true },
-    { name: "phone", label: "Phone", type: "text", required: true, placeholder: "03001234567" },
-    { name: "cnic", label: "CNIC", type: "text", placeholder: "35202-1234567-1" },
+    { name: "phone", label: "Phone", type: "phone", required: true },
+    { name: "cnic", label: "CNIC", type: "cnic" },
     {
       name: "userId", label: "Login account", type: "select", nullable: true, options: loginOpts,
       hint: "So the conductor can sign in and use the conductor screen: they sign up on the website, an admin gives the account the Conductor role (Users & staff), then you pick it here.",
@@ -221,8 +221,8 @@ export function StaffDirectory() {
     { name: "fullName", label: "Full name", type: "text", required: true },
     { name: "job", label: "Job", type: "select", required: true, options: JOBS },
     { name: "terminalId", label: "Terminal", type: "select", numeric: true, nullable: true, options: terminalOpts },
-    { name: "phone", label: "Phone", type: "text", placeholder: "03001234567" },
-    { name: "cnic", label: "CNIC", type: "text", placeholder: "35202-1234567-1" },
+    { name: "phone", label: "Phone", type: "phone" },
+    { name: "cnic", label: "CNIC", type: "cnic" },
     { name: "notes", label: "Notes", type: "text" },
     { name: "isActive", label: "Active", type: "checkbox", checkLabel: "Still working" },
   ];

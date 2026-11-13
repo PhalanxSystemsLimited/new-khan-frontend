@@ -56,6 +56,13 @@ const PASS_THROUGH = [
 ];
 
 function toApiError(status, body) {
+  const err = makeApiError(status, body);
+  // Which field(s) the server rejected ([{ field, message }]), so a form can show the message under that field.
+  err.details = Array.isArray(body?.error?.details) ? body.error.details : [];
+  return err;
+}
+
+function makeApiError(status, body) {
   const e = body?.error ?? {};
   const detail = e.details?.[0]?.message;
   const message = detail ? `${e.message}: ${detail}` : e.message || "Something went wrong. Please try again.";

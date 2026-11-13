@@ -13,6 +13,7 @@ import { AuthDialog } from "../booking/AuthDialog";
 import { IS_LIVE } from "../booking/api";
 import { signOut, useSession } from "../booking/auth";
 import { PasswordChecklist, PasswordInput, passwordOk } from "../components/PasswordField";
+import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../components/PatternFields";
 import { apiRequest } from "../booking/live/liveApi";
 import { isStaffRole, refreshMe } from "../booking/useRole";
 import { href } from "../lib/links";
@@ -116,14 +117,24 @@ export default function Account() {
   }, [token]);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const [triedDetails, setTriedDetails] = useState(false);
 
   async function saveDetails(e) {
     e.preventDefault();
     const f = form;
     if (f.fullName.trim().length < 2) return setSave({ busy: false, err: t("nameErr") });
     const tel = f.phone.replace(/[\s-]/g, "");
-    if (!PHONE_RE.test(tel)) return setSave({ busy: false, err: t("phoneErr") });
-    if (f.cnic.trim() && !CNIC_RE.test(f.cnic.trim())) return setSave({ busy: false, err: t("cnicErr") });
+    // A wrong mobile number / CNIC: the message shows under the field and the cursor goes there.
+    if (phoneMessage(f.phone, { required: true }) || !PHONE_RE.test(tel)) {
+      setTriedDetails(true);
+      setSave({ busy: false, err: "" });
+      return document.getElementById("acc-phone")?.focus();
+    }
+    if (cnicMessage(f.cnic) || (f.cnic.trim() && !CNIC_RE.test(f.cnic.trim()))) {
+      setTriedDetails(true);
+      setSave({ busy: false, err: "" });
+      return document.getElementById("acc-cnic")?.focus();
+    }
     setSave({ busy: true, err: "" });
     try {
       const r = await apiRequest("/users/me", {
@@ -243,11 +254,11 @@ export default function Account() {
               </div>
               <div>
                 <label htmlFor="acc-phone" className="label">{t("phone")}</label>
-                <input id="acc-phone" type="tel" inputMode="tel" className="field" autoComplete="tel" placeholder="03001234567" value={form.phone} onChange={set("phone")} required />
+                <PhoneInput id="acc-phone" className="field" lang={lang} value={form.phone} onChange={(x) => setForm({ ...form, phone: x })} required showErrors={triedDetails} />
               </div>
               <div>
                 <label htmlFor="acc-cnic" className="label">{t("cnic")}</label>
-                <input id="acc-cnic" inputMode="numeric" className="field" placeholder="35202-1234567-1" value={form.cnic} onChange={set("cnic")} />
+                <CnicInput id="acc-cnic" className="field" lang={lang} value={form.cnic} onChange={(x) => setForm({ ...form, cnic: x })} showErrors={triedDetails} />
               </div>
               <div>
                 <label htmlFor="acc-gender" className="label">{t("gender")}</label>

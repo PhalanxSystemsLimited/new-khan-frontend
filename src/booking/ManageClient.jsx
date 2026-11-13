@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PhoneInput } from "../components/PatternFields";
 import { company } from "../data/site";
 import { lookupBooking, lookupByPhone } from "./api";
 import { BookingCard } from "./BookingList";
@@ -67,7 +68,7 @@ export function ManageClient({ lang }) {
       <form onSubmit={submit} noValidate className="card mt-4 grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="m-phone" className="label">{bt("mobileField", lang)}</label>
-          <input id="m-phone" className="field ltr" inputMode="tel" autoComplete="tel" placeholder="03xx xxxxxxx" value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, phone: true }))} aria-invalid={touched.phone && !!ePhone} aria-describedby={touched.phone && ePhone ? "m-phone-e" : undefined} />
+          <PhoneInput id="m-phone" className="field" lang={lang} value={phone} messages={false} onChange={setPhone} onBlur={() => setTouched((t) => ({ ...t, phone: true }))} aria-invalid={touched.phone && !!ePhone} describedBy={touched.phone && ePhone ? "m-phone-e" : undefined} />
           {touched.phone && ePhone && <p id="m-phone-e" role="alert" className="mt-1 text-sm text-red-700">{ePhone}</p>}
         </div>
         <div>

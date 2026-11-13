@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "../components/Toast";
+import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../components/PatternFields";
 
 /* ------------------------------------------------------------------ time (Pakistan) */
 
@@ -48,15 +49,51 @@ export function useLoad(fn, deps = []) {
 }
 
 /** Runs an action, shows a toast for success or failure, and returns true when it worked. */
+// Form windows show a failed save INSIDE the form (under the field when the server names it) instead of a
+// notification: while a form is saving, act() keeps the error for the form rather than showing a toast.
+let quietForms = 0;
+let lastError = null;
+/** The error of the last failed act() (for the form that is showing it). */
+export const lastActError = () => lastError;
+/** Runs a form's save with act() errors kept for the form (no "Not saved" notification). */
+export async function inFormSave(fn) {
+  quietForms++;
+  lastError = null;
+  try {
+    return await fn();
+  } finally {
+    quietForms--;
+  }
+}
+
 export async function act(fn, okTitle, okBody = "") {
   try {
     await fn();
     if (okTitle) toast(okTitle, { body: okBody, duration: 3500 });
     return true;
   } catch (e) {
-    toast("Not saved", { body: e.message || "Something went wrong", kind: "error", duration: 7000 });
+    lastError = e;
+    if (!quietForms) toast("Not saved", { body: e.message || "Something went wrong", kind: "error", duration: 7000 });
     return false;
   }
+}
+
+/** A save error inside a form: the server's message, plus the field it names (if any) for that field's own message. */
+export const formError = (e) => {
+  if (!e) return null;
+  const byField = {};
+  for (const d of e.details ?? []) if (d?.field) byField[String(d.field).split(".")[0]] ??= d.message;
+  return { message: e.message || "Not saved. Something went wrong.", byField };
+};
+
+/** The red box above a form's buttons. */
+export function FormError({ err }) {
+  if (!err) return null;
+  return (
+    <p role="alert" className="rounded-xl border-2 border-red-600 bg-red-50 p-3 text-sm font-semibold text-red-900">
+      Not saved: {err.message}
+    </p>
+  );
 }
 
 /* ------------------------------------------------------------------ layout pieces */
@@ -223,7 +260,8 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 /**
  * A form described by a field list. Field: { name, label, type, options?, required?, hint?, nullable?, min?, max?, step? }
- * Types: text, textarea, number, select, checkbox, date, time, datetime (Pakistan time), days (1-7 checkboxes), multi (checkbox list).
+ * Types: text, textarea, number, select, checkbox, date, time, datetime (Pakistan time), days (1-7 checkboxes), multi (checkbox list),
+ *        cnic (35202-1234567-1, stops at 13 digits), phone (Pakistani mobile 0300 1234567, stops at 11 digits).
  * Blank optional fields are left out (or sent as null when nullable). Numbers are sent as numbers.
  */
 export function FormModal({ title, fields, initial = {}, submitLabel = "Save", onSubmit, onClose, note }) {
@@ -233,10 +271,21 @@ export function FormModal({ title, fields, initial = {}, submitLabel = "Save", o
     return o;
   });
   const [busy, setBusy] = useState(false);
+  const [tried, setTried] = useState(false); // submit pressed: show every field's message
+  const [err, setErr] = useState(null); // the server's answer when the save failed
   const set = (k, x) => setV((p) => ({ ...p, [k]: x }));
 
   async function submit(e) {
     e.preventDefault();
+    setTried(true);
+    // A CNIC or mobile number that is incomplete or wrong: say so under the field, do not send.
+    const bad = fields.find(
+      (f) => !f.readOnly && ((f.type === "cnic" && cnicMessage(v[f.name], { required: f.required })) || (f.type === "phone" && phoneMessage(v[f.name], { required: f.required }))),
+    );
+    if (bad) {
+      document.getElementById(`f-${bad.name}`)?.focus();
+      return;
+    }
     const out = {};
     for (const f of fields) {
       let x = v[f.name];
@@ -251,9 +300,11 @@ export function FormModal({ title, fields, initial = {}, submitLabel = "Save", o
       else out[f.name] = typeof x === "string" ? x.trim() : x;
     }
     setBusy(true);
-    const ok = await onSubmit(out);
+    setErr(null);
+    const ok = await inFormSave(() => onSubmit(out));
     setBusy(false);
     if (ok !== false) onClose();
+    else setErr(formError(lastActError()));
   }
 
   return (
@@ -264,7 +315,10 @@ export function FormModal({ title, fields, initial = {}, submitLabel = "Save", o
           const id = `f-${f.name}`;
           const common = { id, disabled: f.readOnly, required: f.required };
           let input;
-          if (f.type === "textarea") input = <textarea {...common} rows={f.rows ?? 3} className={inputCls} value={v[f.name]} onChange={(e) => set(f.name, e.target.value)} />;
+          if (f.type === "cnic" || f.type === "phone") {
+            const P = f.type === "cnic" ? CnicInput : PhoneInput;
+            input = <P {...common} className={inputCls} value={v[f.name]} onChange={(x) => set(f.name, x)} showErrors={tried} />;
+          } else if (f.type === "textarea") input = <textarea {...common} rows={f.rows ?? 3} className={inputCls} value={v[f.name]} onChange={(e) => set(f.name, e.target.value)} />;
           else if (f.type === "select")
             input = <Select {...common} value={v[f.name]} onChange={(e) => set(f.name, e.target.value)} options={[{ value: "", label: f.required ? "— choose —" : "—" }, ...f.options]} />;
           else if (f.type === "checkbox")
@@ -302,10 +356,12 @@ export function FormModal({ title, fields, initial = {}, submitLabel = "Save", o
             <div key={f.name}>
               {f.type !== "checkbox" || f.label ? <Label htmlFor={id}>{f.label}{f.required ? " *" : ""}</Label> : null}
               {input}
+              {err?.byField[f.name] && <p role="alert" className="mt-1 text-sm text-red-700">{err.byField[f.name]}</p>}
               {f.hint && <p className="mt-1 text-xs text-mute">{f.hint}</p>}
             </div>
           );
         })}
+        <FormError err={err} />
         <div className="flex flex-wrap gap-2 pt-1">
           <Btn kind="primary" type="submit" disabled={busy}>{busy ? "Saving…" : submitLabel}</Btn>
           <Btn onClick={onClose}>Cancel</Btn>

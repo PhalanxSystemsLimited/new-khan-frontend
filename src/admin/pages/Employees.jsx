@@ -8,7 +8,12 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, Filters, fmtD, Input, Label, Modal, Page, Section, Select, StatusBadge, Table, useForm, useLoad } from "../ui";
+import { act, Badge, Btn, ErrorNote, Filters, fmtD, FormError, formError, inFormSave, Input, Label, lastActError, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useForm, useLoad } from "../ui";
+import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../../components/PatternFields";
+
+/** The server's rule for licence numbers: letters, digits, / and - (2 to 40). */
+const LICENCE_RE = /^[A-Z0-9/ -]{2,40}$/;
+const licenceMessage = (v) => (v && !LICENCE_RE.test(v.trim()) ? "Licence no.: letters, digits, / and - only (2 to 40 characters)." : "");
 import { Pager } from "./Operations";
 
 const MARITAL = [["single", "Single"], ["married", "Married"], ["widowed", "Widowed"], ["divorced", "Divorced"]];
@@ -119,6 +124,9 @@ export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignat
   const [v, setV] = useState(() => blankForm(employee, lists, presetDesignationId));
   const [code, setCode] = useState(employee?.employeeCode ?? "");
   const [busy, setBusy] = useState(false);
+  const [tried, setTried] = useState(false); // Register / Save pressed: show every field's message
+  const [touchedLicence, setTouchedLicence] = useState(false);
+  const [err, setErr] = useState(null); // the server's answer when saving failed
   const set = (k, x) => setV((p) => ({ ...p, [k]: x }));
   // New form: show the ID this employee will get. It is only taken when the form is saved.
   useEffect(() => {
@@ -130,8 +138,21 @@ export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignat
   const opts = (rows, current) => rows.filter((r) => r.isActive || String(r.id) === String(current)).map((r) => ({ value: r.id, label: r.name }));
   const authorityOpts = lists.authorities.filter((a) => a.isActive || a.name === v.licenceAuthority).map((a) => ({ value: a.name, label: a.name }));
 
+  const phoneRequired = isDriver || desig?.crew === "conductor";
+
   async function submit(e) {
     e.preventDefault();
+    setTried(true);
+    // Wrong or incomplete CNIC / contact no. / licence no.: say so under the field, do not send.
+    const firstBad = [
+      ["cnic", cnicMessage(v.cnic)],
+      ["phone", phoneMessage(v.phone, { required: phoneRequired })],
+      ["licenceNo", licenceMessage(v.licenceNo)],
+    ].find(([, m]) => m);
+    if (firstBad) {
+      document.getElementById(`ef-${firstBad[0]}`)?.focus();
+      return;
+    }
     const body = {};
     for (const [k, x] of Object.entries(v)) {
       if (k === "isActive") body[k] = Boolean(x);
@@ -144,21 +165,32 @@ export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignat
     body.fullName = v.fullName.trim();
     body.designationId = Number(v.designationId);
     setBusy(true);
+    setErr(null);
     let saved;
-    const ok = await act(async () => {
-      saved = employee ? await adminApi.updateEmployee(employee.id, body) : await adminApi.createEmployee(body);
-    }, employee ? "Employee saved" : "Employee registered");
+    const ok = await inFormSave(() =>
+      act(async () => {
+        saved = employee ? await adminApi.updateEmployee(employee.id, body) : await adminApi.createEmployee(body);
+      }, employee ? "Employee saved" : "Employee registered"),
+    );
     setBusy(false);
+    if (!ok) setErr(formError(lastActError()));
     if (ok) {
       if (!employee) act(async () => {}, `Employee ID ${saved.employeeCode}`, saved.employeeCode !== code ? "Someone else registered an employee at the same moment, so this is the next free ID." : "");
       onSaved(saved);
     }
   }
 
+  /** The server's message for this field, when it rejected the save. */
+  const serverMsg = (k) => err?.byField[k] && <p role="alert" className="mt-1 text-sm text-red-700">{err.byField[k]}</p>;
+  /** An expiry date already in the past: allowed (as before), but pointed out. */
+  const expiredNote = (k) =>
+    v[k] && v[k] < pkDate() ? <p className="mt-1 text-xs font-semibold text-amber-800">Already expired.</p> : null;
   const field = (k, label, props = {}) => (
     <div>
       <Label htmlFor={`ef-${k}`}>{label}{props.required ? " *" : ""}</Label>
       <Input id={`ef-${k}`} value={v[k]} onChange={(e) => set(k, e.target.value)} {...props} />
+      {serverMsg(k)}
+      {(k === "cnicExpiry" || k === "licenceExpiry") && expiredNote(k)}
     </div>
   );
   const select = (k, label, options, props = {}) => (
@@ -186,10 +218,18 @@ export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignat
 
         <fieldset className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <legend className="mb-2 text-sm font-extrabold uppercase tracking-wide">Personal</legend>
-          {field("cnic", "CNIC", { placeholder: "35202-1234567-1", inputMode: "numeric" })}
+          <div>
+            <Label htmlFor="ef-cnic">CNIC</Label>
+            <CnicInput id="ef-cnic" className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={v.cnic} onChange={(x) => set("cnic", x)} showErrors={tried} />
+            {serverMsg("cnic")}
+          </div>
           {field("cnicExpiry", "CNIC expiry", { type: "date" })}
           {select("maritalStatus", "Status", MARITAL.map(([value, label]) => ({ value, label })))}
-          {field("phone", "Contact #", { placeholder: "03001234567", inputMode: "tel", required: isDriver || desig?.crew === "conductor" })}
+          <div>
+            <Label htmlFor="ef-phone">Contact #{phoneRequired ? " *" : ""}</Label>
+            <PhoneInput id="ef-phone" className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={v.phone} onChange={(x) => set("phone", x)} required={phoneRequired} showErrors={tried} />
+            {serverMsg("phone")}
+          </div>
           {select("bloodGroup", "Blood group", BLOOD.map((b) => ({ value: b, label: b })))}
           {field("city", "City", { maxLength: 80 })}
           <div className="sm:col-span-2 lg:col-span-3 grid gap-3 sm:grid-cols-2">
@@ -200,7 +240,20 @@ export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignat
 
         <fieldset className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <legend className="mb-2 text-sm font-extrabold uppercase tracking-wide">Licence details {isDriver ? "(required for drivers)" : "(drivers)"}</legend>
-          {field("licenceNo", "Licence no.", { required: isDriver, maxLength: 40 })}
+          <div>
+            <Label htmlFor="ef-licenceNo">Licence no.{isDriver ? " *" : ""}</Label>
+            <Input
+              id="ef-licenceNo"
+              value={v.licenceNo}
+              required={isDriver}
+              maxLength={40}
+              onChange={(e) => set("licenceNo", e.target.value.toUpperCase())}
+              onBlur={() => setTouchedLicence(true)}
+              aria-invalid={(touchedLicence || tried) && licenceMessage(v.licenceNo) ? true : undefined}
+            />
+            {(touchedLicence || tried) && licenceMessage(v.licenceNo) && <p role="alert" className="mt-1 text-sm text-red-700">{licenceMessage(v.licenceNo)}</p>}
+            {serverMsg("licenceNo")}
+          </div>
           {select("licenceTypeId", "Licence type", opts(lists.licenceTypes, v.licenceTypeId))}
           {field("licenceExpiry", "Licence expiry", { type: "date", required: isDriver })}
           {select("licenceAuthority", "Issuing authority", authorityOpts)}
@@ -221,6 +274,7 @@ export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignat
         </fieldset>
 
         <div className="flex flex-wrap gap-2">
+          {err && <div className="w-full"><FormError err={err} /></div>}
           <Btn kind="primary" type="submit" disabled={busy}>{busy ? "Saving…" : employee ? "Save" : "Register employee"}</Btn>
           <Btn onClick={onClose}>Cancel</Btn>
         </div>

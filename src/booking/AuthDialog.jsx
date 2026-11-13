@@ -1,6 +1,7 @@
 import { toast } from "../components/Toast";
 import { useEffect, useRef, useState } from "react";
 import { PasswordChecklist, PasswordInput, passwordOk } from "../components/PasswordField";
+import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../components/PatternFields";
 import { apiForgotPassword, apiLogin, apiResendConfirmation, apiOtpSend, apiOtpVerify, apiSignup } from "./live/liveApi";
 
 const T = {
@@ -54,6 +55,13 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
   const dlg = useRef(null);
   const [mode, setMode] = useState("signin");
   const [f, setF] = useState({ name: "", email: "", password: "", phone: "", code: "", cnic: "" });
+  const [tried, setTried] = useState(false); // submit pressed: mobile / CNIC messages show under their fields
+  /** A wrong mobile number / CNIC: the message is under the field; the cursor goes there. */
+  const badField = (fid) => {
+    setTried(true);
+    setMsg({ kind: "", text: "" });
+    document.getElementById(fid)?.focus();
+  };
   const [codeSent, setCodeSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ kind: "", text: "" });
@@ -102,9 +110,9 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
     if (mode === "signin") return run(async () => { await apiLogin(f.email.trim(), f.password); done(); });
     if (mode === "forgot") return run(async () => { await apiForgotPassword(f.email.trim()); setMsg({ kind: "ok", text: t("resetSent") }); });
     if (mode === "signup") {
-      if (!/^(?:\+92|0092|92|0)?3\d{9}$/.test(f.phone.replace(/[\s-]/g, ""))) return setMsg({ kind: "error", text: t("phoneErr") });
+      if (phoneMessage(f.phone, { required: true })) return badField("au-phone");
       // Optional: checked only when something is typed.
-      if (f.cnic && !/^\d{5}-\d{7}-\d$/.test(f.cnic)) return setMsg({ kind: "error", text: t("cnicErr") });
+      if (cnicMessage(f.cnic)) return badField("au-cnic");
       if (!passwordOk(f.password)) return setMsg({ kind: "error", text: t("pwWeak") });
       return run(async () => {
         const r = await apiSignup(f.name.trim(), f.email.trim(), f.password, f.phone.trim(), f.cnic || undefined);
@@ -114,6 +122,7 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
         } else done();
       });
     }
+    if (!codeSent && phoneMessage(f.phone, { required: true })) return badField("au-phone");
     if (!codeSent) return run(async () => { await apiOtpSend(f.phone.trim()); setCodeSent(true); setMsg({ kind: "ok", text: t("codeSent") }); });
     return run(async () => { await apiOtpVerify(f.phone.trim(), f.code.trim()); done(); });
   }
@@ -174,22 +183,13 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
           {(mode === "otp" || mode === "signup") && (
             <div>
               <label htmlFor="au-phone" className="label">{t("phone")}</label>
-              <input id="au-phone" className="field ltr" inputMode="tel" autoComplete="tel" placeholder="0311 1007555" value={f.phone} onChange={set("phone")} required />
+              <PhoneInput id="au-phone" className="field" lang={lang} value={f.phone} onChange={(x) => setF((p) => ({ ...p, phone: x }))} required showErrors={tried} />
             </div>
           )}
           {mode === "signup" && (
             <div>
               <label htmlFor="au-cnic" className="label">{t("cnic")}</label>
-              <input
-                id="au-cnic"
-                className="field ltr"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder="35202-1234567-1"
-                value={f.cnic}
-                onChange={setCnic}
-                aria-describedby="au-cnic-hint"
-              />
+              <CnicInput id="au-cnic" className="field" lang={lang} value={f.cnic} onChange={(x) => setF((p) => ({ ...p, cnic: x }))} showErrors={tried} describedBy="au-cnic-hint" />
               <p id="au-cnic-hint" className="mt-1 text-xs text-mute">{t("cnicHint")}</p>
             </div>
           )}

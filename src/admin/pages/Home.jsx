@@ -5,6 +5,7 @@
  *   MyTrips        /admin/my-trips       driver / conductor: their own trips
  *   Board          /admin/board          manager: the whole day at a glance, refreshing every minute
  */
+import { CnicInput, PhoneInput, phoneMessage } from "../../components/PatternFields";
 import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../../lib/cnic";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -112,6 +113,7 @@ function QuickSale({ trip, onClose, onSold }) {
   const [picked, setPicked] = useState([]); // seat ids in click order
   const [dest, setDest] = useState(trip.destinations.at(-1)?.stopId ?? "");
   const [contact, setContact] = useState({ name: "", phone: "", cnic: "" });
+  const [triedSale, setTriedSale] = useState(false); // Sell pressed: show the mobile number's message
   const [pax, setPax] = useState({}); // seatId -> { name, gender }
   const [busy, setBusy] = useState(false);
   const [sold, setSold] = useState(null);
@@ -134,6 +136,9 @@ function QuickSale({ trip, onClose, onSold }) {
     e.preventDefault();
     if (!picked.length) return act(() => Promise.reject(new Error("Choose at least one seat.")));
     // One CNIC per sale (the customer's; a family needs one). Checked again by the server.
+    setTriedSale(true);
+    const phoneIssue = phoneMessage(contact.phone, { required: true });
+    if (phoneIssue) return act(() => Promise.reject(new Error(`Mobile number: ${phoneIssue}`)));
     const cnicIssue = cnicProblem(contact.cnic);
     if (cnicIssue) return act(() => Promise.reject(new Error(`Customer's CNIC: ${CNIC_MESSAGES[cnicIssue].en}`)));
     setBusy(true);
@@ -218,11 +223,11 @@ function QuickSale({ trip, onClose, onSold }) {
             </div>
             <div>
               <Label htmlFor="qs-p">Mobile number *</Label>
-              <Input id="qs-p" required inputMode="tel" value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} placeholder="03001234567" />
+              <PhoneInput id="qs-p" required className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={contact.phone} onChange={(x) => setContact({ ...contact, phone: x })} showErrors={triedSale} />
             </div>
             <div>
               <Label htmlFor="qs-c">Customer&apos;s CNIC *</Label>
-              <Input id="qs-c" required inputMode="numeric" value={contact.cnic} onChange={(e) => setContact({ ...contact, cnic: formatCnic(e.target.value) })} placeholder="35202-1234567-1" />
+              <CnicInput id="qs-c" required className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={contact.cnic} onChange={(x) => setContact({ ...contact, cnic: x })} showErrors={triedSale} />
             </div>
           </div>
           {picked.length > 0 && (

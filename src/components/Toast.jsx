@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 /*
  * Toast notifications. Call toast() from anywhere (components or plain functions):
@@ -90,8 +90,27 @@ function ToastItem({ t, lang }) {
 /** Top-end on larger screens; across the top on phones (the sticky booking bar sits at the bottom). */
 export function Toaster({ lang }) {
   const list = useToasts();
+  const box = useRef(null);
+  // An open form window (<dialog>) sits in the browser's top layer, above everything else on the page, so a
+  // notification would be hidden behind it. Shown as a popover, the notifications go into the top layer too, and
+  // are re-raised whenever one arrives so they stay above the window. Browsers without popovers: as before.
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof el.showPopover !== "function") return;
+    try {
+      if (el.matches(":popover-open")) el.hidePopover();
+      if (list.length) el.showPopover();
+    } catch {
+      // never let a notification break the page
+    }
+  }, [list]);
   return (
-    <div aria-live="polite" className="no-print pointer-events-none fixed inset-x-3 top-3 z-[70] flex flex-col gap-3 sm:inset-x-auto sm:end-5 sm:top-5 sm:w-[24rem]">
+    <div
+      ref={box}
+      popover="manual"
+      aria-live="polite"
+      className="no-print pointer-events-none fixed inset-x-3 top-3 bottom-auto z-[70] m-0 flex h-auto w-auto flex-col gap-3 overflow-visible border-0 bg-transparent p-0 sm:inset-x-auto sm:end-5 sm:top-5 sm:w-[24rem]"
+    >
       {list.map((t) => (
         <ToastItem key={t.id} t={t} lang={lang} />
       ))}

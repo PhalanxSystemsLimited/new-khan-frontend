@@ -7,6 +7,7 @@ import { createBooking, getSeats, getTrip, IS_LIVE } from "./api";
 import { getSession } from "./auth";
 import { AuthDialog } from "./AuthDialog";
 import { PhoneVerifyDialog } from "./PhoneVerifyDialog";
+import { PhoneInput } from "../components/PatternFields";
 import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../lib/cnic";
 import { ApiError } from "./errors";
 import { bookUrl } from "./hooks";
@@ -295,17 +296,32 @@ export function SeatsClient({ lang }) {
                 return (
                   <div key={f} className="nk-mfield">
                     <label htmlFor={`p-${key}`} className="label">{label}</label>
-                    <input
-                      id={`p-${key}`}
-                      className="field"
-                      value={p[f] ?? ""}
-                      inputMode={f === "name" ? "text" : "numeric"}
-                      autoComplete={f === "name" ? "name" : f === "phone" ? "tel" : "off"}
-                      aria-invalid={!!e}
-                      aria-describedby={e ? `e-${key}` : undefined}
-                      onBlur={() => blur(key)}
-                      onChange={(ev) => update(ev.target.value)}
-                    />
+                    {f === "phone" ? (
+                      // Formats as typed (0300 1234567, stops at 11 digits); the message below is this form's own.
+                      <PhoneInput
+                        id={`p-${key}`}
+                        className="field"
+                        lang={lang}
+                        value={p[f] ?? ""}
+                        messages={false}
+                        aria-invalid={!!e}
+                        describedBy={e ? `e-${key}` : undefined}
+                        onBlur={() => blur(key)}
+                        onChange={(x) => update(x)}
+                      />
+                    ) : (
+                      <input
+                        id={`p-${key}`}
+                        className="field"
+                        value={p[f] ?? ""}
+                        inputMode={f === "name" ? "text" : "numeric"}
+                        autoComplete={f === "name" ? "name" : f === "phone" ? "tel" : "off"}
+                        aria-invalid={!!e}
+                        aria-describedby={e ? `e-${key}` : undefined}
+                        onBlur={() => blur(key)}
+                        onChange={(ev) => update(ev.target.value)}
+                      />
+                    )}
                     {e && <p id={`e-${key}`} role="alert" className="mt-1 text-sm text-red-700">{e}</p>}
                   </div>
                 );

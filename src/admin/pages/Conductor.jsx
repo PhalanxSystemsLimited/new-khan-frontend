@@ -7,6 +7,7 @@
  *   4. Tap a passenger who did not travel to mark it with a note.
  * Only the trip's conductor (or its stand-in) can open it; managers and admins can open any trip.
  */
+import { CnicInput, PhoneInput, phoneMessage } from "../../components/PatternFields";
 import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../../lib/cnic";
 import { useCallback, useEffect, useState } from "react";
 import { adminApi } from "../api";
@@ -211,10 +212,14 @@ function SeatDialog({ seat, data, onClose, onDone }) {
   const [f, setF] = useState({ name: "", gender: "male", phone: "", cnic: "", destinationStopId: road?.destinations.at(-1)?.id ?? "", fare: "", free: false });
   const [note, setNote] = useState("Did not travel");
   const [busy, setBusy] = useState(false);
+  const [triedRoad, setTriedRoad] = useState(false); // Book pressed: show the mobile number's message
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
 
   async function book(e) {
     e.preventDefault();
+    setTriedRoad(true);
+    const phoneIssue = phoneMessage(f.phone, { required: true });
+    if (phoneIssue) return act(() => Promise.reject(new Error(`Mobile number: ${phoneIssue}`)));
     const cnicIssue = cnicProblem(f.cnic);
     if (cnicIssue) return act(() => Promise.reject(new Error(`CNIC: ${CNIC_MESSAGES[cnicIssue].en}`)));
     setBusy(true);
@@ -281,11 +286,11 @@ function SeatDialog({ seat, data, onClose, onDone }) {
           </div>
           <div>
             <Label htmlFor="rp-ph">Mobile number *</Label>
-            <Input id="rp-ph" required inputMode="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="03001234567" />
+            <PhoneInput id="rp-ph" required className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={f.phone} onChange={(x) => set("phone", x)} showErrors={triedRoad} />
           </div>
           <div>
             <Label htmlFor="rp-cnic">CNIC *</Label>
-            <Input id="rp-cnic" required inputMode="numeric" value={f.cnic} onChange={(e) => set("cnic", formatCnic(e.target.value))} placeholder="35202-1234567-1" />
+            <CnicInput id="rp-cnic" required className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={f.cnic} onChange={(x) => set("cnic", x)} showErrors={triedRoad} />
           </div>
           <label className="flex items-center gap-2 text-sm font-semibold">
             <input type="checkbox" className="h-5 w-5 accent-black" checked={f.free} onChange={(e) => set("free", e.target.checked)} />

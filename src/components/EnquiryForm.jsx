@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "./Toast";
+import { PhoneInput, phoneMessage } from "./PatternFields";
 import { company, getTerminal } from "../data/site";
 import { ui } from "../lib/i18n";
 import { whatsappLink } from "../lib/links";
@@ -70,10 +71,18 @@ p{color:#444;font-size:13px;margin-top:22px}
 export function EnquiryForm({ lang, kind, fields }) {
   const [state, setState] = useState("idle"); // idle | sending | sent | failed
   const [done, setDone] = useState(null); // { ref, values, at, wa }
+  const [triedTel, setTriedTel] = useState(false); // send pressed: phone messages show under their fields
 
   async function onSubmit(e) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    // A wrong mobile number: the message is under the field; the cursor goes there; nothing is sent.
+    const badTel = fields.find((f) => f.type === "tel" && phoneMessage(String(fd.get(f.name) ?? ""), { required: f.required }));
+    if (badTel) {
+      setTriedTel(true);
+      document.getElementById(`f-${kind}-${badTel.name}`)?.focus();
+      return;
+    }
     const values = {};
     for (const f of fields) values[f.name] = f.type === "checkbox" ? (fd.get(f.name) ? "Yes" : "No") : String(fd.get(f.name) ?? "").trim();
     // Parcels get a consignment number up front, so the sender can quote it and it appears on the receipt.
@@ -186,6 +195,8 @@ export function EnquiryForm({ lang, kind, fields }) {
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
+            ) : f.type === "tel" ? (
+              <PhoneInput id={id} name={f.name} className="field" lang={lang} required={f.required} showErrors={triedTel} describedBy={hintId} />
             ) : (
               <input
                 id={id}
