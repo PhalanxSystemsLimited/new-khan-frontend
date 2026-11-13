@@ -77,6 +77,8 @@ export const adminApi = {
   createEmployee: (b) => send("POST", "/admin/employees", b).then((r) => r.data),
   updateEmployee: (id, b) => send("PATCH", `/admin/employees/${id}`, b).then((r) => r.data),
   linkEmployeeLogin: (id, b) => send("PATCH", `/admin/employees/${id}/login`, b).then((r) => r.data),
+  /** Hostesses / Cashiers pages: employees whose designation feeds that dropdown. status: active | left | all. */
+  employeeTeam: (kind, status = "active") => get(`/admin/employees/team${qs({ kind, status })}`).then((r) => r.data),
   /** Active people of one crew kind for dropdowns: driver, conductor, hostess, cashier. */
   crew: (kind) => get(`/employees/crew${qs({ kind })}`).then((r) => r.data),
   conductors: () => get("/fleet/conductors").then((r) => r.data),

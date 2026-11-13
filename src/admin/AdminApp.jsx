@@ -22,6 +22,7 @@ import { OffrouteSettings, ReportLists, RoundTripEditor, RoundTrips, TerminalDed
 import { TripVoucherDetail, TripVouchers, TripVoucherSlip } from "./pages/TripVouchers";
 import { ConductorScreen } from "./pages/Conductor";
 import { EmployeeLists, EmployeePrint, Employees } from "./pages/Employees";
+import { Cashiers, Hostesses } from "./pages/Team";
 import { DayPlan } from "./pages/DayPlan";
 import { Board, CounterScreen, MyTrips, TicketPrint } from "./pages/Home";
 
@@ -79,6 +80,8 @@ const MENU = [
     ["buses", "Buses", "admin", Buses],
     ["drivers", "Drivers", "admin", Drivers],
     ["conductors", "Conductors", "admin", Conductors],
+    ["hostesses", "Hostesses", "admin", Hostesses],
+    ["cashiers", "Cashiers", "admin", Cashiers],
     ["locations", "Cities & terminals", "admin", Locations],
   ]],
   ["Sales rules", [

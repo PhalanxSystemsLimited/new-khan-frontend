@@ -13,7 +13,7 @@ import { Pager } from "./Operations";
 
 const MARITAL = [["single", "Single"], ["married", "Married"], ["widowed", "Widowed"], ["divorced", "Divorced"]];
 const BLOOD = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-const ROLE_LABEL = { agent: "Counter staff", driver: "Driver", conductor: "Conductor", manager: "Manager", admin: "Admin" };
+export const ROLE_LABEL = { agent: "Counter staff", driver: "Driver", conductor: "Conductor", manager: "Manager", admin: "Admin" };
 
 /** Expiry badge: red when passed, amber within 30 days. */
 function ExpiryBadge({ date, expired, soon, what }) {
@@ -106,16 +106,17 @@ export function Employees({ me }) {
 
 /* ------------------------------------------------------------------ register / edit */
 
-const blankForm = (e, lists) => ({
-  fullName: e?.fullName ?? "", departmentId: e?.departmentId ?? (lists.departments.filter((d) => d.isActive).length === 1 ? lists.departments.find((d) => d.isActive).id : ""), designationId: e?.designationId ?? "", joiningDate: e?.joiningDate ?? "",
+const blankForm = (e, lists, presetDesignationId = "") => ({
+  fullName: e?.fullName ?? "", departmentId: e?.departmentId ?? (lists.departments.filter((d) => d.isActive).length === 1 ? lists.departments.find((d) => d.isActive).id : ""), designationId: e?.designationId ?? presetDesignationId, joiningDate: e?.joiningDate ?? "",
   cnic: e?.cnic ?? "", cnicExpiry: e?.cnicExpiry ?? "", maritalStatus: e?.maritalStatus ?? "", currentAddress: e?.currentAddress ?? "",
   permanentAddress: e?.permanentAddress ?? "", city: e?.city ?? "", phone: e?.phone ?? "", bloodGroup: e?.bloodGroup ?? "",
   licenceNo: e?.licenceNo ?? "", licenceTypeId: e?.licenceTypeId ?? "", licenceExpiry: e?.licenceExpiry ?? "", licenceAuthority: e?.licenceAuthority ?? "",
   notes: e?.notes ?? "", isActive: e?.isActive ?? true, leftOn: e?.leftOn ?? "",
 });
 
-function EmployeeForm({ employee, lists, onClose, onSaved }) {
-  const [v, setV] = useState(() => blankForm(employee, lists));
+/** Also used by the Hostesses / Cashiers pages: `presetDesignationId` pre-selects the designation of a new employee. */
+export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignationId = "" }) {
+  const [v, setV] = useState(() => blankForm(employee, lists, presetDesignationId));
   const [code, setCode] = useState(employee?.employeeCode ?? "");
   const [busy, setBusy] = useState(false);
   const set = (k, x) => setV((p) => ({ ...p, [k]: x }));
@@ -230,7 +231,7 @@ function EmployeeForm({ employee, lists, onClose, onSaved }) {
 
 /* ------------------------------------------------------------------ login */
 
-function LoginModal({ employee, me, onClose, onSaved }) {
+export function LoginModal({ employee, me, onClose, onSaved }) {
   const [search, setSearch] = useState(employee.loginEmail ?? "");
   const [found, setFound] = useState(null);
   const [userId, setUserId] = useState(employee.userId ?? "");
@@ -332,7 +333,12 @@ export function EmployeeLists() {
             rows={lists.data?.[key]}
             cols={[
               { key: "name", label: "Name", render: (x) => <b className={x.isActive ? "" : "text-neutral-500 line-through"}>{x.name}</b> },
-              ...(key === "designations" ? [{ key: "crew", label: "Used for", render: (x) => (x.crew ? <Badge tone="blue">{x.crew} dropdown</Badge> : "–") }] : []),
+              ...(key === "designations"
+                ? [
+                    { key: "crew", label: "Used for", render: (x) => (x.crew ? <Badge tone="blue">{x.crew} dropdown</Badge> : "–") },
+                    { key: "login", label: "Login", render: (x) => (x.suggestedRole ? <span className="text-sm">{ROLE_LABEL[x.suggestedRole] ?? x.suggestedRole} <span className="text-neutral-500">(suggested)</span></span> : "–") },
+                  ]
+                : []),
               { key: "s", label: "Status", render: (x) => (x.isActive ? <Badge tone="green">active</Badge> : <Badge tone="red">inactive</Badge>) },
               {
                 key: "a",
@@ -346,6 +352,20 @@ export function EmployeeLists() {
               },
             ]}
           />
+          {key === "designations" && (
+            <div className="mt-3 rounded-xl bg-neutral-100 p-3 text-xs text-neutral-700">
+              <p className="font-bold text-neutral-800">What "Used for" means</p>
+              <ul className="mt-1 list-disc space-y-0.5 ps-5">
+                <li><b>driver dropdown</b>: listed under Fleet &amp; people → Drivers and chosen for trips (Bus &amp; crew).</li>
+                <li><b>conductor dropdown</b>: listed under Fleet &amp; people → Conductors and chosen for trips (Bus &amp; crew).</li>
+                <li><b>hostess dropdown</b>: listed under Fleet &amp; people → Hostesses and chosen for trips (Bus &amp; crew); shown on the Day plan.</li>
+                <li><b>cashier dropdown</b>: listed under Fleet &amp; people → Cashiers and chosen on round trip reports (who received the cash).</li>
+              </ul>
+              <p className="mt-1">
+                <b>Login</b> is the sign-in role offered when an employee with this designation is given an account (Employees → link a login). The admin can still choose another.
+              </p>
+            </div>
+          )}
         </Section>
       ))}
       {form}

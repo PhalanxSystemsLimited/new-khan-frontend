@@ -178,6 +178,7 @@ export function DayPlan() {
               {d.published ? <Badge tone="green">Published v{d.published.version} · {stamp(d.published.publishedAt)} · {d.published.publishedByName}</Badge> : <Badge tone="amber">Not published</Badge>}
               {d.changedSincePublished && <Badge tone="red">Changed since published</Badge>}
               {d.missingCrew > 0 && <Badge tone="red">{d.missingCrew} without driver or conductor</Badge>}
+              {d.missingHostess > 0 && <Badge tone="amber">{d.missingHostess} hostess {d.missingHostess === 1 ? "bus" : "buses"} without a hostess</Badge>}
             </>
           }
         >
@@ -193,7 +194,7 @@ export function DayPlan() {
                   { key: "bus", label: "Bus", render: (t) => <>{t.busNo}{t.fleetNo && <div className="text-xs text-mute">{t.fleetNo}</div>}</> },
                   { key: "driver", label: "Driver", render: (t) => (t.driverName ? <>{t.driverName}<div className="text-xs text-mute">{t.driverPhone}</div></> : <Badge tone="red">none</Badge>) },
                   { key: "conductor", label: "Conductor", render: (t) => (t.conductorName ? <>{t.conductorName}<div className="text-xs text-mute">{t.conductorPhone}</div></> : <Badge tone="red">none</Badge>) },
-                  { key: "hostess", label: "Hostess", render: (t) => t.hostessName ?? "–" },
+                  { key: "hostess", label: "Hostess", render: (t) => t.hostessName ?? (t.busHasHostess && t.status !== "cancelled" ? <Badge tone="amber">needed</Badge> : "–") },
                   { key: "seats", label: "Seats", className: "text-right", render: (t) => `${t.seatsSold}/${t.totalSeats}` },
                   { key: "status", label: "Status", render: (t) => <StatusBadge s={t.status} /> },
                   {

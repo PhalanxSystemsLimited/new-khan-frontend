@@ -3,6 +3,14 @@ import { Link } from "react-router-dom";
 import { adminApi } from "../api";
 import { act, Badge, Btn, ErrorNote, fmtD, Page, Section, StatusBadge, Table, useForm, useLoad } from "../ui";
 import { BUS_CLASSES } from "./Network";
+import { useEmployeeEditor } from "./employeeEditor";
+
+/** Shown when no active designation is used for the driver / conductor dropdown, so the Add button cannot work. */
+const NoDesignation = ({ what }) => (
+  <p role="alert" className="mb-3 rounded-xl border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900">
+    No active designation is used for the {what} dropdown, so a {what} cannot be added here. Check Fleet &amp; people → <Link to="/admin/employee-lists" className="font-semibold underline">Employee lists</Link> → Designations.
+  </p>
+);
 
 const AMENITIES = ["ac", "wifi", "charging", "snacks", "lcd", "washroom", "blanket", "water", "gps"].map((a) => ({ value: a, label: a }));
 
@@ -95,12 +103,14 @@ export function Drivers() {
     { name: "isActive", label: "Active", type: "checkbox", checkLabel: "Can be assigned to trips" },
   ];
   const save = (id) => (b) => act(() => (id ? adminApi.updateDriver(id, b) : adminApi.createDriver(b)), "Driver saved").then((ok) => (ok && list.reload(), ok));
+  const emp = useEmployeeEditor("driver", list.reload);
   return (
     <Page
       title="Drivers"
-      intro="Drivers are registered under Employees (designation Driver); their licence details come from there. Drivers listed here can be assigned to trips."
-      actions={<Link to="/admin/employees" className="btn btn-gold !min-h-10 !px-4 !py-1 text-sm">Register in Employees</Link>}
+      intro="Drivers are employees with the designation Driver; their licence details are on their employee record. Drivers listed here can be assigned to trips."
+      actions={<Btn kind="primary" disabled={!emp.canAdd} onClick={emp.add}>+ Add driver</Btn>}
     >
+      {emp.noDesignation && <NoDesignation what="driver" />}
       <ErrorNote err={list.err} onRetry={list.reload} />
       <Table
         loading={list.loading}
@@ -117,14 +127,18 @@ export function Drivers() {
             label: "",
             render: (r) =>
               r.employeeId ? (
-                <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to="/admin/employees">Edit in Employees</Link>
+                <Btn small disabled={emp.opening || !emp.listsReady} onClick={() => emp.edit(r.employeeId)}>Edit</Btn>
               ) : (
                 <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, cnic: r.cnic ?? "" }, onSubmit: save(r.id) })}>Edit</Btn>
               ),
           },
         ]}
       />
+      <p className="mt-3 text-xs text-neutral-600">
+        Full details, printing and leaving dates: <Link to="/admin/employees" className="font-semibold underline">Employees</Link>.
+      </p>
       {form}
+      {emp.node}
     </Page>
   );
 }
@@ -148,12 +162,14 @@ export function Conductors() {
     { name: "isActive", label: "Active", type: "checkbox", checkLabel: "Can be assigned to trips" },
   ];
   const save = (id) => (b) => act(() => (id ? adminApi.updateConductor(id, b) : adminApi.createConductor(b)), "Conductor saved").then((ok) => (ok && list.reload(), ok));
+  const emp = useEmployeeEditor("conductor", list.reload);
   return (
     <Page
       title="Conductors"
-      intro="Every bus needs a conductor before it can leave. Conductors are registered under Employees (designation Conductor / Fare Collector); link their login there too."
-      actions={<Link to="/admin/employees" className="btn btn-gold !min-h-10 !px-4 !py-1 text-sm">Register in Employees</Link>}
+      intro="Every bus needs a conductor before it can leave. Conductors are employees with the designation Conductor / Fare Collector; link their login on the Employees page."
+      actions={<Btn kind="primary" disabled={!emp.canAdd} onClick={emp.add}>+ Add conductor</Btn>}
     >
+      {emp.noDesignation && <NoDesignation what="conductor" />}
       <ErrorNote err={list.err || logins.err} onRetry={list.reload} />
       <Table
         loading={list.loading}
@@ -170,14 +186,18 @@ export function Conductors() {
             label: "",
             render: (r) =>
               r.employeeId ? (
-                <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to="/admin/employees">Edit in Employees</Link>
+                <Btn small disabled={emp.opening || !emp.listsReady} onClick={() => emp.edit(r.employeeId)}>Edit</Btn>
               ) : (
                 <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, cnic: r.cnic ?? "", userId: r.userId ?? "" }, onSubmit: save(r.id) })}>Edit</Btn>
               ),
           },
         ]}
       />
+      <p className="mt-3 text-xs text-neutral-600">
+        Full details, printing, leaving dates and logins: <Link to="/admin/employees" className="font-semibold underline">Employees</Link>.
+      </p>
       {form}
+      {emp.node}
     </Page>
   );
 }

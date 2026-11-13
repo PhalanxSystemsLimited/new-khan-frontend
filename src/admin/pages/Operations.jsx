@@ -161,6 +161,14 @@ export function Trips({ me, isAdmin, isManager }) {
     ...hostesses.map((h) => ({ value: h.fullName, label: `${h.fullName} (${h.employeeCode})` })),
     ...(current && !hostesses.some((h) => h.fullName === current) ? [{ value: current, label: current }] : []),
   ];
+  /** Whether this trip's bus carries a hostess (Fleet & people > Buses), so the manager knows to choose one. */
+  const hostessHint = (t) => {
+    if (!hostesses.length) return "No hostesses registered yet: add them under Fleet & people → Hostesses.";
+    const bus = buses.find((b) => b.id === t.busId);
+    if (bus?.hasHostess) return t.hostessName ? "This bus carries a hostess." : "This bus carries a hostess: choose who is on this trip.";
+    if (bus) return "This bus is not marked as carrying a hostess (Fleet & people → Buses), so a hostess is usually not needed.";
+    return undefined;
+  };
   const conductorOpts = conductors.filter((c) => c.isActive).map((c) => ({ value: c.id, label: c.fullName }));
   const standInOpts = staffAccounts.map((u) => ({ value: u.id, label: `${u.fullName || u.email} (${u.role === "agent" ? "counter staff" : u.role.replace("_", " ")})` }));
   const done = (t) => ["departed", "arrived"].includes(t.status);
@@ -209,7 +217,7 @@ export function Trips({ me, isAdmin, isManager }) {
             { name: "driverId", label: "Driver", type: "select", numeric: true, nullable: true, options: drivers.filter((d) => d.isActive && !d.licenseExpired).map((d) => ({ value: d.id, label: d.fullName })) },
             { name: "conductorId", label: "Conductor", type: "select", numeric: true, nullable: true, options: conductorOpts, hint: conductorOpts.length ? undefined : "No conductors yet: add them under Fleet & people → Conductors." },
             standInField,
-            { name: "hostessName", label: "Hostess", type: "select", nullable: true, options: hostessOpts(t.hostessName), hint: hostesses.length ? undefined : "No hostesses registered yet: add them under Employees (designation Hostess)." },
+            { name: "hostessName", label: "Hostess", type: "select", nullable: true, options: hostessOpts(t.hostessName), hint: hostessHint(t) },
           ],
           initial: { busId: t.busId, driverId: t.driverId ?? "", conductorId: t.conductorId ?? "", standInConductorId: t.standInConductorId ?? "", hostessName: t.hostessName ?? "" },
           onSubmit: (b) => act(() => adminApi.tripAssign(t.id, b), "Crew saved").then((ok) => (ok && trips.reload(), ok)),
