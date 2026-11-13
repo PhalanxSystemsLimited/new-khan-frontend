@@ -133,6 +133,8 @@ export const adminApi = {
   createRoundTripFromTrips: (b) => send("POST", "/admin/round-trips/from-trips", b),
   syncRoundTripVouchers: (id, includeEdited = false) => send("POST", `/admin/round-trips/${id}/sync-vouchers`, { includeEdited }),
   missingRoundTripVouchers: (id) => get(`/admin/round-trips/${id}/missing-vouchers`).then((r) => r.data),
+  /** Plain-words warnings when a report's legs do not look like one journey (advice only). */
+  roundTripChecks: (id) => get(`/admin/round-trips/${id}/checks`).then((r) => r.data),
   scanCompletedRoundTrips: () => send("POST", "/admin/round-trips/scan-completed").then((r) => r.data),
   updateRoundTrip: (id, b) => send("PATCH", `/admin/round-trips/${id}`, b).then((r) => r.data),
   deleteRoundTrip: (id) => send("DELETE", `/admin/round-trips/${id}`),

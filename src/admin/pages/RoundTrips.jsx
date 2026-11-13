@@ -29,6 +29,21 @@ const int = (v) => (v === "" || v === null || v === undefined ? 0 : Math.max(0, 
 const reportLink = (token) => (token ? `/r/${token}` : null);
 
 /** Same rounding as the server: round(litres × rate) on 3-decimal inputs. */
+
+/** "Leg 1 (6 Nov): Islamabad · Leg 2 (7 Nov): Islamabad" instead of "Islamabad, Islamabad". */
+function missingByLeg(list) {
+  const legs = new Map();
+  for (const m of list) {
+    const key = m.legNo ?? 0;
+    if (!legs.has(key)) {
+      const date = m.departureAt ? new Date(m.departureAt).toLocaleDateString("en-GB", { timeZone: "Asia/Karachi", day: "numeric", month: "short" }) : "";
+      legs.set(key, { legNo: m.legNo, date, cities: [] });
+    }
+    legs.get(key).cities.push(m.city);
+  }
+  return [...legs.values()].map((l) => `${l.legNo ? `Leg ${l.legNo}${l.date ? ` (${l.date})` : ""}: ` : ""}${l.cities.join(", ")}`).join(" · ");
+}
+
 export function fuelAmount(litres, rate) {
   const l = Math.round(Number(litres) * 1000);
   const r = Math.round(Number(rate) * 1000);
@@ -265,6 +280,8 @@ export function RoundTripEditor() {
   const [showScans, setShowScans] = useState(false);
   // Terminals of the report's trips that have not generated their voucher yet (reports built from trips).
   const missing = useLoad(() => adminApi.missingRoundTripVouchers(id), [id, rt.data?.trip.updatedAt]);
+  // Legs that do not look like one journey (a leg that never ran, legs that do not connect, long gaps).
+  const checks = useLoad(() => adminApi.roundTripChecks(id).catch(() => []), [id, rt.data?.trip.updatedAt]);
 
   const r = rt.data;
   const locked = r?.trip.status === "finalized";
@@ -364,9 +381,19 @@ export function RoundTripEditor() {
         </p>
       </Section>
 
+      {!locked && checks.data?.length > 0 && (
+        <div role="note" className="mt-4 rounded-xl border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950">
+          <b>Check this report:</b> its legs do not look like one round trip.
+          <ul className="mt-1 list-disc space-y-0.5 ps-5">
+            {checks.data.map((c) => <li key={c}>{c}</li>)}
+          </ul>
+          <p className="mt-1 text-xs">If a leg does not belong here, remove it (Remove leg), or delete this draft and build it again from the right trips.</p>
+        </div>
+      )}
+
       {fromTrips && (missing.data?.length > 0) && (
         <p className="mt-4 rounded-xl border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950">
-          <b>Not ready to finalize:</b> these terminals have not generated their voucher yet: {missing.data.map((m) => m.city).join(", ")}.
+          <b>Not ready to finalize:</b> these terminals have not generated their voucher yet: {missingByLeg(missing.data)}.
           Generate them under Operations → Vouchers, then click “Update from vouchers”.
         </p>
       )}
