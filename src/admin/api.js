@@ -38,6 +38,30 @@ export const adminApi = {
   refunds: (q) => get(`/admin/refunds${qs(q)}`),
   updateRefund: (id, b) => send("PATCH", `/admin/refunds/${id}`, b).then((r) => r.data),
 
+  // cargo (parcels)
+  cargoSetup: () => get("/cargo/setup").then((r) => r.data),
+  cargoSaveSettings: (b) => send("PUT", "/cargo/settings", b).then((r) => r.data),
+  cargoCreateRate: (b) => send("POST", "/cargo/rates", b).then((r) => r.data),
+  cargoUpdateRate: (id, b) => send("PATCH", `/cargo/rates/${id}`, b).then((r) => r.data),
+  cargoParcels: (q) => get(`/cargo/parcels${qs(q)}`),
+  cargoParcel: (id) => get(`/cargo/parcels/${id}`).then((r) => r.data),
+  cargoBook: (b) => send("POST", "/cargo/parcels", b).then((r) => r.data),
+  /** { data: parcel, refundCash } */
+  cargoCancel: (id, reason) => send("POST", `/cargo/parcels/${id}/cancel`, { reason }),
+  cargoSlip: (id) => get(`/cargo/parcels/${id}/slip`).then((r) => r.data),
+  cargoLoading: (tripId, stopId) => get(`/cargo/loading/${tripId}/${stopId}`).then((r) => r.data),
+  /** { data: the loading screen, added: "CG-…" } */
+  cargoListAdd: (tripId, stopId, parcel) => send("POST", `/cargo/loading/${tripId}/${stopId}`, { parcel }),
+  cargoListRemove: (tripId, stopId, parcelId) => send("DELETE", `/cargo/loading/${tripId}/${stopId}/parcels/${parcelId}`).then((r) => r.data),
+  cargoLists: (q) => get(`/cargo/lists${qs(q)}`),
+  cargoList: (id) => get(`/cargo/lists/${id}`).then((r) => r.data),
+  cargoArrivals: (terminalId) => get(`/cargo/arrivals${qs({ terminalId })}`).then((r) => r.data),
+  /** { data: the arrivals screen, received: ["CG-…"] } */
+  cargoReceive: (b) => send("POST", "/cargo/arrivals/receive", b),
+  /** { data: parcel, cashTaken } */
+  cargoDeliver: (id, b) => send("POST", `/cargo/parcels/${id}/deliver`, b),
+  cargoReturn: (id, reason) => send("POST", `/cargo/parcels/${id}/return`, { reason }).then((r) => r.data),
+
   // setup
   routes: () => get("/admin/routes").then((r) => r.data),
   route: (id) => get(`/admin/routes/${id}`).then((r) => r.data),

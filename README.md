@@ -183,6 +183,11 @@ client refreshes the access token automatically and signs the user out if it is 
 | Dashboard | admin | Today's bookings, seats, money taken, cancellations, departures, refunds waiting |
 | Trips & boarding | agent, admin | Departures by day; change status (boarding / delayed / departed / arrived / cancelled); passenger list with **Board** buttons and print; change bus and crew; add a one-off trip, optionally with the same bus's return trip (both saved together) |
 | Bookings | agent, admin | Search by reference / phone / status; passengers and payments; **Cash received** for held bookings; cancel (shows the refund first) |
+| Book a parcel | agent, admin | Cargo: sender (CNIC required), receiver, destination, pieces, weight; charge from the cargo rates (lower needs a reason); "receiver pays on collection"; then the slip (80 / 58 mm, QR, rules) and one label per piece |
+| Parcels | agent, admin | Find a parcel by CG number (or a scanned slip QR), phone, CNIC or name; details and history; cancel one not on a bus yet |
+| Cargo lists | agent, admin | The parcels each bus carries from a terminal (CL-… numbers): find by number / scanned list QR / bus; open to load or view; print the list for the conductor. Loading also from the Counter screen (**Load cargo** on each bus) and the voucher page; the voucher's Cargo then comes from the list |
+| Arrivals & collection | agent, admin | At the destination terminal: tick parcels off arriving buses, hand them over (receiver with own CNIC, or someone with the slip + their CNIC; take the money if the receiver pays), print the delivery receipt, return uncollected parcels; one scan box receives or opens the hand-over |
+| Cargo settings | admin | Cargo rates per city pair; compensation rules and not-accepted items printed on every slip; overdue days; whether counter staff may change the charge |
 | Refunds | admin | Approve, send the money, then **Mark paid** (with reference); or reject |
 | Routes & stops | admin | Create routes, edit their ordered stops (only before they have bookings), rename, switch off |
 | Fares | admin | Fares per stop pair and bus class; lists stop pairs with **no fare** (not bookable) with one-click "set fare" |

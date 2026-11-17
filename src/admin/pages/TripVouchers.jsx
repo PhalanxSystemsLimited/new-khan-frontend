@@ -16,6 +16,7 @@ import {
 } from "../ui";
 import { Pager } from "./Operations";
 import { departure, money, stamp } from "../../report/format";
+import { CargoLoadWindow } from "./CargoLists";
 
 /** "Voucher – Lahore → DI Khan (via …) · 02-11-2026 6:00 pm" */
 export const voucherTitle = (routeName, departureAt, terminal) =>
@@ -177,13 +178,21 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
   const [busy, setBusy] = useState(false);
   const [replacing, setReplacing] = useState(false);
   const [reason, setReason] = useState("");
+  const [loadingCargo, setLoadingCargo] = useState(false);
   const voucher = useLoad(() => (t.voucher ? adminApi.issuedVoucher(t.voucher.id) : Promise.resolve(null)), [t.voucher?.id]);
   const v = voucher.data;
-  const preview = t.preview ? { ...t.preview, loadAmount: int(load), cargoAmount: int(cargo), cashToConductor: t.preview.terminalCash + int(load) + int(cargo) - t.preview.deductionsTotal } : null;
+  // With parcels on this terminal's cargo list, the voucher's Cargo is the list's paid total (the server uses it too).
+  const fromList = !t.voucher && t.cargo?.parcelCount > 0;
+  const cargoValue = fromList ? t.cargo.paidTotal : int(cargo);
+  const preview = t.preview ? { ...t.preview, loadAmount: int(load), cargoAmount: cargoValue, cashToConductor: t.preview.terminalCash + int(load) + cargoValue - t.preview.deductionsTotal } : null;
 
   async function generate() {
     setBusy(true);
-    const ok = await act(() => adminApi.generateVoucher(trip.id, { boardingStopId: t.stopId, loadAmount: int(load), cargoAmount: int(cargo) }), "Voucher generated", `Booking from ${t.city} is now closed.`);
+    const ok = await act(
+      () => adminApi.generateVoucher(trip.id, { boardingStopId: t.stopId, loadAmount: int(load), cargoAmount: cargoValue }),
+      "Voucher generated",
+      `Booking from ${t.city} is now closed.${fromList ? ` Cargo list ${t.cargo.listNo} closed: its parcels are on the bus.` : ""}`,
+    );
     setBusy(false);
     if (ok) onChanged();
   }
@@ -250,9 +259,21 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
                   </div>
                   <div>
                     <Label htmlFor={`cg-${t.stopId}`}>Cargo (Rs)</Label>
-                    <Input id={`cg-${t.stopId}`} type="number" min="0" step="1" value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="0" />
+                    {fromList ? (
+                      <Input id={`cg-${t.stopId}`} readOnly value={t.cargo.paidTotal} className="!bg-neutral-100" />
+                    ) : (
+                      <Input id={`cg-${t.stopId}`} type="number" min="0" step="1" value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="0" />
+                    )}
                   </div>
                 </div>
+              )}
+              {t.cargo && (
+                <p className="text-xs">
+                  {fromList
+                    ? <>Cargo from list <b>{t.cargo.listNo}</b>: {t.cargo.parcelCount} parcel{t.cargo.parcelCount === 1 ? "" : "s"}, paid {`Rs ${money(t.cargo.paidTotal)}`}{t.cargo.toPayTotal ? ` (+ Rs ${money(t.cargo.toPayTotal)} paid by receivers)` : ""}. </>
+                    : <span className="text-mute">No parcels on this bus's cargo list{t.canGenerate ? ": type cargo by hand, or load the parcels" : ""}. </span>}
+                  <button type="button" className="font-bold underline" onClick={() => setLoadingCargo(true)}>{t.canGenerate ? "Load cargo" : "View cargo"}</button>
+                </p>
               )}
               <MoneyLines v={preview} />
               {t.canGenerate ? (
@@ -267,12 +288,20 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
             </div>
           </div>
         )}
+        {t.voucher && t.cargo?.listId && (
+          <p className="mt-3 text-sm">
+            Cargo list <b>{t.cargo.listNo}</b>: {t.cargo.parcelCount} parcel{t.cargo.parcelCount === 1 ? "" : "s"} on the bus.{" "}
+            <a className="font-bold underline" href={`/admin/cargo-list/${t.cargo.listId}`} target="_blank" rel="noreferrer">Print list</a>{" · "}
+            <button type="button" className="font-bold underline" onClick={() => setLoadingCargo(true)}>View</button>
+          </p>
+        )}
         {t.history.length > 0 && (
           <p className="mt-3 text-xs text-mute">
             Earlier: {t.history.map((h) => `${h.voucherNo} (${h.status}${h.closedReason ? `: ${h.closedReason}` : ""})`).join(" · ")}
           </p>
         )}
       </div>
+      {loadingCargo && <CargoLoadWindow tripId={trip.id} stopId={t.stopId} onClose={() => { setLoadingCargo(false); onChanged(); }} />}
       {replacing && (
         <Modal title={`Replace voucher ${t.voucher.voucherNo}`} onClose={() => setReplacing(false)}>
           <form onSubmit={replace} className="grid gap-3">

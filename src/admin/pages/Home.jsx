@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi } from "../api";
 import { act, Badge, Btn, ErrorNote, Filters, Input, Label, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useLoad } from "../ui";
+import { CargoLoadWindow } from "./CargoLists";
 
 const TZ = "Asia/Karachi";
 const time = (v) => (v ? new Date(v).toLocaleTimeString("en-GB", { timeZone: TZ, hour: "numeric", minute: "2-digit", hour12: true }).toLowerCase() : "–");
@@ -38,6 +39,7 @@ export function CounterScreen({ me }) {
   );
   useEvery(deps.reload, 60_000);
   const [selling, setSelling] = useState(null);
+  const [loading, setLoading] = useState(null); // the bus whose cargo is being loaded
   const d = deps.data;
 
   const arrived = async (t) => {
@@ -51,6 +53,7 @@ export function CounterScreen({ me }) {
     <Page
       title={d ? `Counter · ${d.terminal.city}` : "Counter"}
       intro="Today's buses at your terminal. Sell tickets until the voucher is generated, then print the voucher for the conductor. Mark buses that end here as arrived."
+      actions={<Link to="/admin/book-parcel" className="btn btn-gold !min-h-10 !px-4 !py-1 text-sm">Book a parcel</Link>}
     >
       <Filters>
         {me.role !== "agent" && (
@@ -70,6 +73,18 @@ export function CounterScreen({ me }) {
       </Filters>
       <ErrorNote err={deps.err} onRetry={deps.reload} />
       {me.role !== "agent" && !terminalId && <p className="text-sm text-mute">Choose a terminal.</p>}
+      {(d?.cargoArrivals?.waiting > 0 || d?.cargoArrivals?.onTheWay > 0) && (
+        <p className="mb-3 rounded-xl border-2 border-sky-600 bg-sky-50 p-3 text-sm text-sky-900">
+          Cargo for {d.terminal.city}: <b>{d.cargoArrivals.onTheWay}</b> on the way, <b>{d.cargoArrivals.waiting}</b> waiting for collection
+          {d.cargoArrivals.overdue > 0 ? <> (<b className="text-red-700">{d.cargoArrivals.overdue} overdue</b>)</> : null}.{" "}
+          <Link to="/admin/cargo-arrivals" className="font-bold underline">Arrivals & collection</Link>
+        </p>
+      )}
+      {d?.cargoWaiting > 0 && (
+        <p className="mb-3 rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-sm text-amber-900">
+          <b>{d.cargoWaiting} parcel{d.cargoWaiting === 1 ? "" : "s"}</b> booked at {d.terminal.city} {d.cargoWaiting === 1 ? "is" : "are"} waiting for a bus. Use <b>Load cargo</b> on the bus going there.
+        </p>
+      )}
       {d && d.departures.length === 0 && <p className="rounded-xl border border-dashed border-neutral-400 p-4 text-sm text-mute">No buses at {d.terminal.city} on this day.</p>}
       <div className="grid gap-3">
         {d?.departures.map((t) => (
@@ -94,6 +109,11 @@ export function CounterScreen({ me }) {
                 {t.boardsHere && <p className="text-3xl font-extrabold">{t.seatsLeft}<span className="text-base font-semibold text-mute"> / {t.seats} seats left</span></p>}
                 <div className="mt-2 flex flex-wrap justify-end gap-2">
                   {t.canSell && <Btn kind="primary" disabled={t.seatsLeft === 0} onClick={() => setSelling(t)}>Sell ticket</Btn>}
+                  {t.cargo && (
+                    <Btn onClick={() => setLoading(t)}>
+                      {t.cargo.status === "closed" ? `Cargo list ${t.cargo.listNo} (${t.cargo.parcelCount})` : t.cargo.parcelCount > 0 ? `Load cargo (${t.cargo.parcelCount})` : "Load cargo"}
+                    </Btn>
+                  )}
                   {t.boardsHere && <Link className="btn btn-ghost !min-h-10 !px-4 !py-1 text-sm" to={`/admin/trip-vouchers/${t.tripId}`}>{t.voucher ? "Voucher & passengers" : "Generate voucher"}</Link>}
                   {t.endsHere && t.status === "departed" && <Btn kind="ok" onClick={() => arrived(t)}>Arrived</Btn>}
                 </div>
@@ -102,6 +122,7 @@ export function CounterScreen({ me }) {
           </div>
         ))}
       </div>
+      {loading && <CargoLoadWindow tripId={loading.tripId} stopId={loading.stopId} onClose={() => { setLoading(null); deps.reload(); }} />}
       {selling && <QuickSale trip={selling} onClose={() => setSelling(null)} onSold={() => { setSelling(null); deps.reload(); }} />}
     </Page>
   );

@@ -65,7 +65,8 @@ function toApiError(status, body) {
 function makeApiError(status, body) {
   const e = body?.error ?? {};
   const detail = e.details?.[0]?.message;
-  const message = detail ? `${e.message}: ${detail}` : e.message || "Something went wrong. Please try again.";
+  // The field's own message is added unless the main message already says it.
+  const message = detail && !String(e.message ?? "").includes(detail) ? `${e.message}: ${detail}` : e.message || "Something went wrong. Please try again.";
   // Sign-in / sign-up outcomes the sign-in form reacts to (shows "Verify now").
   if (PASS_THROUGH.includes(e.code)) return new ApiError(e.code, message);
   if (status === 401) return new ApiError("AUTH_REQUIRED", message);

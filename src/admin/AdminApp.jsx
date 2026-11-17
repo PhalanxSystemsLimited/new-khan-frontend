@@ -25,6 +25,10 @@ import { EmployeeLists, EmployeePrint, Employees } from "./pages/Employees";
 import { Cashiers, Hostesses } from "./pages/Team";
 import { DayPlan } from "./pages/DayPlan";
 import { Board, CounterScreen, MyTrips, TicketPrint } from "./pages/Home";
+import { BookParcel, CargoSettings, Parcels } from "./pages/Cargo";
+import { CargoListPrint, ParcelLabels, ParcelReceipt, ParcelSlip } from "./pages/CargoPrint";
+import { CargoLists } from "./pages/CargoLists";
+import { CargoArrivals } from "./pages/CargoArrivals";
 
 /** Everyone who works for New Khan and may open the panel. */
 export const EMPLOYEE = ["agent", "driver", "conductor", "manager", "admin", "super_admin"];
@@ -61,6 +65,13 @@ const MENU = [
     ["day-plan", "Day plan", "manager", DayPlan],
     ["conductor", "Conductor", "conductor", ConductorScreen],
     ["refunds", "Refunds", "manager", Refunds],
+  ]],
+  ["Cargo", [
+    ["book-parcel", "Book a parcel", "staff", BookParcel],
+    ["parcels", "Parcels", "staff", Parcels],
+    ["cargo-lists", "Cargo lists", "staff", CargoLists],
+    ["cargo-arrivals", "Arrivals & collection", "staff", CargoArrivals],
+    ["cargo-settings", "Cargo settings", "admin", CargoSettings],
   ]],
   ["Round trip reports", [
     ["round-trips", "Round trip reports", "admin", RoundTrips],
@@ -225,6 +236,10 @@ export default function AdminApp() {
           <Route path="slip/:id" element={ADMIN.includes(me.role) ? <VoucherSlip /> : <Navigate to="/admin" replace />} />
           <Route path="voucher-slip/:id" element={me.role !== "conductor" ? <TripVoucherSlip /> : <Navigate to="/admin" replace />} />
           <Route path="employee-print/:id" element={ADMIN.includes(me.role) ? <EmployeePrint /> : <Navigate to="/admin" replace />} />
+          <Route path="parcel-slip/:id" element={!["driver", "conductor"].includes(me.role) ? <ParcelSlip /> : <Navigate to="/admin" replace />} />
+          <Route path="parcel-receipt/:id" element={!["driver", "conductor"].includes(me.role) ? <ParcelReceipt /> : <Navigate to="/admin" replace />} />
+          <Route path="cargo-list/:id" element={!["driver", "conductor"].includes(me.role) ? <CargoListPrint /> : <Navigate to="/admin" replace />} />
+          <Route path="parcel-labels/:id" element={!["driver", "conductor"].includes(me.role) ? <ParcelLabels /> : <Navigate to="/admin" replace />} />
           <Route path="ticket/:id" element={!["driver", "conductor"].includes(me.role) ? <TicketPrint /> : <Navigate to="/admin" replace />} />
           <Route path="*" element={<Shell me={me} />} />
         </Routes>
