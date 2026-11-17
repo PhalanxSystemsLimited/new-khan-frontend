@@ -181,7 +181,7 @@ client refreshes the access token automatically and signs the user out if it is 
 | Menu | Who | What it does |
 |---|---|---|
 | Dashboard | admin | Today's bookings, seats, money taken, cancellations, departures, refunds waiting |
-| Trips & boarding | agent, admin | Departures by day; change status (boarding / delayed / departed / arrived / cancelled); passenger list with **Board** buttons and print; change bus and crew; add a one-off trip |
+| Trips & boarding | agent, admin | Departures by day; change status (boarding / delayed / departed / arrived / cancelled); passenger list with **Board** buttons and print; change bus and crew; add a one-off trip, optionally with the same bus's return trip (both saved together) |
 | Bookings | agent, admin | Search by reference / phone / status; passengers and payments; **Cash received** for held bookings; cancel (shows the refund first) |
 | Refunds | admin | Approve, send the money, then **Mark paid** (with reference); or reject |
 | Routes & stops | admin | Create routes, edit their ordered stops (only before they have bookings), rename, switch off |

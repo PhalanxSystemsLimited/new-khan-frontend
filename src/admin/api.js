@@ -21,6 +21,8 @@ export const adminApi = {
   // operations
   trips: (date, status) => get(`/trips${qs({ date, status })}`).then((r) => r.data),
   createTrip: (b) => send("POST", "/trips", b).then((r) => r.data),
+  /** The one-off form: { data: trip, returnTrip, warnings } (returnTrip when b.returnTrip was sent). */
+  createOneOffTrip: (b) => send("POST", "/trips", b),
   tripStatus: (id, b) => send("PATCH", `/trips/${id}/status`, b),
   tripAssign: (id, b) => send("PATCH", `/trips/${id}/assignment`, b).then((r) => r.data),
   manifest: (id) => get(`/trips/${id}/manifest`).then((r) => r.data),

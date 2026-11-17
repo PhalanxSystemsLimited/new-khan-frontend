@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { adminApi } from "../api";
+import OneOffTripForm from "./OneOffTripForm";
 import {
   act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, fmtT, Input, Label, Modal, Page, pkDate, rs, Section, Select,
   StatusBadge, Table, useConfirm, useForm, useLoad,
@@ -223,20 +224,9 @@ export function Trips({ me, isAdmin, isManager }) {
           onSubmit: (b) => act(() => adminApi.tripAssign(t.id, b), "Crew saved").then((ok) => (ok && trips.reload(), ok)),
         });
 
-  const addTrip = () =>
-    openForm({
-      title: "Add a one-off trip",
-      note: "For regular departures use Schedules & trips instead. Times are Pakistan time.",
-      fields: [
-        { name: "routeId", label: "Route", type: "select", numeric: true, required: true, options: routes.filter((r) => r.isActive).map((r) => ({ value: r.id, label: r.name })) },
-        { name: "busId", label: "Bus", type: "select", numeric: true, required: true, options: buses.filter((b) => b.isActive).map((b) => ({ value: b.id, label: `${b.registrationNo} · ${b.layoutName}` })) },
-        { name: "driverId", label: "Driver", type: "select", numeric: true, options: drivers.filter((d) => d.isActive && !d.licenseExpired).map((d) => ({ value: d.id, label: d.fullName })) },
-        { name: "departureAt", label: "Departs from first stop", type: "datetime", required: true },
-      ],
-      initial: {},
-      submitLabel: "Create trip",
-      onSubmit: (b) => act(() => adminApi.createTrip(b), "Trip created").then((ok) => (ok && trips.reload(), ok)),
-    });
+  // One-off trip, optionally with the same bus's return trip (OneOffTripForm).
+  const [addingTrip, setAddingTrip] = useState(false);
+  const addTrip = () => setAddingTrip(true);
 
   return (
     <Page
@@ -312,6 +302,7 @@ export function Trips({ me, isAdmin, isManager }) {
         ]}
       />
       {manifest && <ManifestModal trip={manifest} onClose={() => setManifest(null)} />}
+      {addingTrip && <OneOffTripForm routes={routes} buses={buses} drivers={drivers} onClose={() => setAddingTrip(false)} onCreated={trips.reload} />}
       {form}
     </Page>
   );
