@@ -6,7 +6,8 @@ import { ui } from "../lib/i18n";
 import { whatsappLink } from "../lib/links";
 
 const REF_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-const newRef = () => "CG-" + Array.from({ length: 6 }, () => REF_CHARS[Math.floor(Math.random() * REF_CHARS.length)]).join("");
+// "EQ-": an enquiry only. Real parcel numbers (CG-0000001) are made when the parcel is booked at the counter.
+const newRef = () => "EQ-" + Array.from({ length: 6 }, () => REF_CHARS[Math.floor(Math.random() * REF_CHARS.length)]).join("");
 
 /** Web3Forms access key (public by design). Without one, the enquiry is handed to WhatsApp instead. */
 const W3_KEY = import.meta.env.VITE_WEB3FORMS_KEY;
@@ -22,12 +23,12 @@ const handoff = {
   ur: "واٹس ایپ آپ کی تفصیل کے ساتھ کھل گیا ہے۔ وہاں بھیجیں کا بٹن دبائیں، ہم اسی چیٹ پر جواب دیں گے۔",
 };
 const reopen = { en: "Open WhatsApp again", ur: "واٹس ایپ دوبارہ کھولیں" };
-const printReceipt = { en: "Print parcel receipt", ur: "پارسل کی رسید پرنٹ کریں" };
+const printReceipt = { en: "Print a copy of your enquiry", ur: "اپنی انکوائری کی کاپی پرنٹ کریں" };
 
 /** Terminal ids become town names; everything else is shown as typed. */
 const shown = (f, v, lang) => (f.type === "select" && v ? getTerminal(v).city[lang] : v);
 
-/** The enquiry as a WhatsApp message: a title line, the consignment number for parcels, then one line per filled field. */
+/** The enquiry as a WhatsApp message: a title line, the enquiry number for parcels, then one line per filled field. */
 function waText(kind, lang, fields, values, ref) {
   const lines = [`New Khan: ${kindTitle[kind][lang]}`];
   if (ref) lines.push(`${ui.cargoRef[lang]}: ${ref}`);
@@ -40,7 +41,7 @@ function waText(kind, lang, fields, values, ref) {
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
-/** Parcel receipt in its own window, sized for A4, then the browser's print dialog (works in Urdu too). */
+/** A copy of the parcel enquiry in its own window, sized for A4, then the browser's print dialog (works in Urdu too). */
 function openReceipt(lang, fields, done) {
   const w = window.open("", "_blank");
   if (!w) return window.print();
@@ -58,10 +59,10 @@ small{color:#5f5f5f;text-transform:uppercase;letter-spacing:.12em;font-size:11px
 table{width:100%;border-collapse:collapse;margin-top:18px}th,td{text-align:start;padding:8px 10px;border-bottom:1px solid #ccc;vertical-align:top}th{width:38%;color:#444;font-weight:600}
 p{color:#444;font-size:13px;margin-top:22px}
 </style></head><body>
-<header><div><h1>New Khan</h1><div>${esc(lang === "ur" ? "پارسل کی رسید" : "Parcel receipt")}</div><div>${esc(at)}</div></div>
+<header><div><h1>New Khan</h1><div>${esc(lang === "ur" ? "پارسل کی انکوائری" : "Parcel enquiry")}</div><div>${esc(at)}</div></div>
 <div><small>${esc(ui.cargoRef[lang])}</small><div class="ref">${esc(done.ref)}</div></div></header>
 <table>${rows}</table>
-<p>${esc(lang === "ur" ? `یہ آپ کی درخواست کی رسید ہے۔ سامان ٹرمینل پر دوبارہ تولا جائے گا اور ریٹ کی تصدیق کی جائے گی۔ ہیلپ لائن ${company.helpline}` : `This is a receipt for your request. Your parcel is re-weighed at the terminal and the rate confirmed there. Helpline ${company.helpline}`)}</p>
+<p>${esc(lang === "ur" ? `یہ آپ کی انکوائری کی کاپی ہے، بکنگ نہیں۔ پارسل کا وزن، کرایہ اور بکنگ ٹرمینل پر ہو گی، اور پارسل نمبر وہیں آپ کی رسید پر ملے گا۔ ہیلپ لائن ${company.helpline}` : `This is a copy of your enquiry, not a booking. The parcel is weighed, charged and booked at the terminal, and you get the parcel number on your slip there. Helpline ${company.helpline}`)}</p>
 <script>window.onload=function(){window.print()}</script>
 </body></html>`);
   w.document.close();
@@ -85,7 +86,7 @@ export function EnquiryForm({ lang, kind, fields }) {
     }
     const values = {};
     for (const f of fields) values[f.name] = f.type === "checkbox" ? (fd.get(f.name) ? "Yes" : "No") : String(fd.get(f.name) ?? "").trim();
-    // Parcels get a consignment number up front, so the sender can quote it and it appears on the receipt.
+    // Parcel enquiries get an enquiry number, so the sender can quote it on WhatsApp or the phone.
     const ref = kind === "cargo" ? newRef() : undefined;
     const at = new Date().toISOString();
 

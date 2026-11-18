@@ -4,7 +4,7 @@ import { cargoOrCharterNote } from "../data/site";
 import { u } from "../lib/i18n";
 import { useLang } from "../lib/useLang";
 
-/** Parcels and cargo: send-a-parcel request with a consignment number and printable receipt. */
+/** Parcels and cargo: a parcel enquiry (price quote) with an enquiry number and a printable copy. The parcel itself is booked at a terminal. */
 export function Cargo() {
   const lang = useLang();
   const ur = lang === "ur";
@@ -22,14 +22,14 @@ export function Cargo() {
       aside={
         <ul className="mt-5 list-disc space-y-2 border-t border-line ps-5 pt-4 text-sm text-mute">
           {(ur
-            ? ["ہمارے ٹرمینلز کے درمیان شیڈول بسوں پر", "ریٹ وزن اور سائز کے حساب سے، فون یا واٹس ایپ پر", "سامان کی درست تفصیل اور کلوگرام میں وزن لکھیں"]
-            : ["Between our terminals on scheduled buses", "Rate depends on weight and size, quoted by phone or WhatsApp", "Write the exact item and its weight in kg; both are printed on your receipt"]
+            ? ["ہمارے ٹرمینلز کے درمیان شیڈول بسوں پر", "ریٹ وزن اور سائز کے حساب سے، فون یا واٹس ایپ پر", "سامان کی درست تفصیل اور کلوگرام میں وزن لکھیں", "بکنگ، وزن اور ادائیگی ٹرمینل پر؛ پارسل نمبر وہیں ملنے والی رسید پر ہو گا"]
+            : ["Between our terminals on scheduled buses", "Rate depends on weight and size, quoted by phone or WhatsApp", "Write the exact item and its weight in kg", "Booked, weighed and paid at the terminal; your parcel number is on the slip you get there"]
           ).map((t) => (
             <li key={t}>{t}</li>
           ))}
         </ul>
       }
-      intro={(ur ? "سامان کی درست تفصیل اور وزن لکھیں۔ آپ کو کنسائنمنٹ نمبر اور رسید ملے گی۔ " : "Tell us exactly what you are sending and its weight. You get a consignment number and a receipt that shows both. ") + cargoOrCharterNote[lang]}
+      intro={(ur ? "سامان کی درست تفصیل اور وزن لکھیں۔ آپ کو انکوائری نمبر ملے گا۔ پارسل ٹرمینل پر بُک اور ادا ہوتا ہے۔ " : "Tell us exactly what you are sending and its weight. You get an enquiry number. The parcel itself is booked and paid at the terminal. ") + cargoOrCharterNote[lang]}
     />
   );
 }

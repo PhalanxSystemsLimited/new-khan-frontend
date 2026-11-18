@@ -124,8 +124,8 @@ export const ui = {
   errItem: { en: "Describe the item in at least a few words, with size and packing.", ur: "سامان کی تفصیل کم از کم چند الفاظ میں، سائز اور پیکنگ سمیت لکھیں۔" },
   errWeight: { en: "Enter the weight in kilograms, for example 12.5.", ur: "وزن کلوگرام میں لکھیں، مثلاً 12.5۔" },
   errGeneric: { en: "Please check this field.", ur: "براہِ کرم یہ خانہ چیک کریں۔" },
-  cargoRef: { en: "Consignment number", ur: "کنسائنمنٹ نمبر" },
-  cargoSent: { en: "Your parcel request is in. Keep this number: staff will ask for it at the terminal.", ur: "آپ کی پارسل کی درخواست ہمیں مل گئی ہے۔ یہ نمبر سنبھال کر رکھیں، ٹرمینل پر عملہ یہی نمبر مانگے گا۔" },
+  cargoRef: { en: "Enquiry number", ur: "انکوائری نمبر" },
+  cargoSent: { en: "Your enquiry is sent. We will reply on WhatsApp with the price. Bring the parcel to the terminal: it is weighed, booked and paid there, and you get the parcel number on your slip.", ur: "آپ کی انکوائری بھیج دی گئی ہے۔ ہم واٹس ایپ پر آپ کو ریٹ بتا دیں گے۔ پارسل ٹرمینل پر لے آئیں: وہیں اس کا وزن، بکنگ اور ادائیگی ہو گی، اور پارسل نمبر آپ کی رسید پر ملے گا۔" },
   downloadReceipt: { en: "Download parcel receipt (PDF)", ur: "پارسل کی رسید ڈاؤن لوڈ کریں (PDF)" },
   returnTrip: { en: "Return trip needed", ur: "واپسی کا سفر بھی چاہیے" },
 
