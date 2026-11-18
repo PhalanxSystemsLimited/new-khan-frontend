@@ -137,7 +137,7 @@ export function AuthDialog({ lang, open, onClose, onSuccess }) {
         <p className="mt-1 text-sm text-mute">{t("why")}</p>
 
         <div role="tablist" className="nk-auth-tabs mt-4 flex rounded-xl border border-black p-1">
-          {["signin", "signup", "otp"].map((m) => (
+          {["signin", "signup"].map((m) => (
             <button
               key={m}
               type="button"
