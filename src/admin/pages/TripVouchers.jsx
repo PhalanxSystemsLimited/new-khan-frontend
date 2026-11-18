@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { adminApi } from "../api";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtDT, Input, Label, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useLoad,
+  act, Badge, Btn, ErrorNote, Filters, fmtDT, Input, Label, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useLoad, usePageTitle,
 } from "../ui";
 import { Pager } from "./Operations";
 import { departure, money, stamp } from "../../report/format";
@@ -330,6 +330,7 @@ export function TripVoucherDetail({ isManager }) {
   const highlightNo = search.get("voucher");
   const d = useLoad(() => adminApi.tripVoucher(id), [id]);
   const [onlyStop, setOnlyStop] = useState("");
+  usePageTitle(`Vouchers · Trip ${id}`);
 
   if (d.err) return <Page title="Vouchers"><Link to="/admin/trip-vouchers" className="text-sm">‹ All vouchers</Link><ErrorNote err={d.err} onRetry={d.reload} /></Page>;
   if (!d.data) return <Page title="Vouchers"><p className="text-sm text-mute">Loading…</p></Page>;
@@ -387,9 +388,7 @@ export function TripVoucherSlip() {
     document.head.appendChild(s);
     return () => s.remove();
   }, [width]);
-  useEffect(() => {
-    if (v.data) document.title = `Voucher ${v.data.voucherNo}`;
-  }, [v.data]);
+  usePageTitle(v.data ? `Voucher ${v.data.voucherNo}` : "Voucher slip", { print: true });
 
   if (v.err) return <div className="p-6"><ErrorNote err={v.err} onRetry={v.reload} /></div>;
   const x = v.data;

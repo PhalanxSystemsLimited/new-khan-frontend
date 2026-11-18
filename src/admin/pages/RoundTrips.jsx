@@ -14,7 +14,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { adminApi } from "../api";
 import {
   act, Badge, Btn, ErrorNote, Filters, fmtDT, Input, Label, Modal, Page, pkLocalToIso, Section, Select, Table,
-  useConfirm, useForm, useLoad,
+  useConfirm, useForm, useLoad, usePageTitle,
 } from "../ui";
 import { Pager } from "./Operations";
 import { BUS_CLASSES } from "./Network";
@@ -269,6 +269,7 @@ export function RoundTripEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const rt = useLoad(() => adminApi.roundTrip(id), [id]);
+  usePageTitle(`Round trip report ${id}`);
   const lists = useLists();
   const onroute = useLoad(() => adminApi.reportList("onroute"), []);
   const platforms = useLoad(() => adminApi.reportList("platforms"), []);
@@ -1037,12 +1038,43 @@ export function TerminalDeductions() {
   const amountOf = (tid, cid) => d?.amounts.find((a) => a.terminalId === tid && a.categoryId === cid);
   const edit = (t, c) => {
     const a = amountOf(t.id, c.id);
+    const active = d.terminals.filter((x) => x.isActive);
+    // Other terminals with their own (non-zero) amount in this column: "apply to all" would change them.
+    const others = active.filter((x) => x.id !== t.id && (amountOf(x.id, c.id)?.amount ?? 0) > 0);
+    const othersText = others.map((x) => `${x.city} (Rs ${money(amountOf(x.id, c.id).amount)})`).join(", ");
     openForm({
       title: `${c.name} at ${t.city} · ${t.name}`,
       note: "Deducted automatically on every voucher this terminal generates from now on. Vouchers already generated keep their amounts. 0 = not deducted.",
-      fields: [{ name: "amount", label: "Amount (Rs)", type: "number", required: true, min: 0, step: 1 }],
-      initial: { amount: a?.amount ?? 0 },
-      onSubmit: (b) => act(() => adminApi.setTerminalDeduction({ terminalId: t.id, categoryId: c.id, amount: int(b.amount) }), "Saved").then((ok) => (ok && data.reload(), ok)),
+      fields: [
+        { name: "amount", label: "Amount (Rs)", type: "number", required: true, min: 0, step: 1 },
+        {
+          name: "allTerminals", label: "All terminals", type: "checkbox",
+          checkLabel: `Apply this amount to all terminals (whole ${c.name} column)`,
+          hint: others.length
+            ? `${othersText} already ${others.length === 1 ? "has its own amount, which" : "have their own amounts, which"} will be replaced if the amount is different.`
+            : `Sets ${c.name} at all ${active.length} active terminals.`,
+        },
+      ],
+      initial: { amount: a?.amount ?? 0, allTerminals: false },
+      onSubmit: async (b) => {
+        const amount = int(b.amount);
+        if (!b.allTerminals) {
+          return act(() => adminApi.setTerminalDeduction({ terminalId: t.id, categoryId: c.id, amount }), "Saved").then((ok) => (ok && data.reload(), ok));
+        }
+        let r = null;
+        const ok = await act(async () => {
+          r = await adminApi.setTerminalDeduction({ terminalId: t.id, categoryId: c.id, amount, allTerminals: true });
+        }, null);
+        if (ok && r) {
+          act(
+            async () => {},
+            `${c.name} set to Rs ${money(amount)} at ${r.terminals} terminal${r.terminals === 1 ? "" : "s"}`,
+            r.changed === r.terminals ? "" : r.changed ? `${r.changed} changed; the others already had this amount.` : "Every terminal already had this amount.",
+          );
+          data.reload();
+        }
+        return ok;
+      },
     });
   };
   return (
@@ -1092,8 +1124,12 @@ export function TerminalDeductions() {
 
 export function ReportLists() {
   return (
-    <Page title="On-route expenses and online platforms" intro="The choices offered on each terminal voucher. Deactivate instead of deleting so old reports keep their names.">
-      <ListBlock list="onroute" title="On-route expenses" intro="Paid at terminals on the way (Adda, TMA, Welfare…), entered on each voucher." />
+    <Page title="On-route expenses and online platforms" intro="The names used on terminal vouchers and round trip reports. Deactivate instead of deleting so old reports keep their names.">
+      <ListBlock
+        list="onroute"
+        title="On-route expenses"
+        intro={<>Paid at terminals on the way (Adda, TMA, Welfare…). Set each terminal's amount under <Link to="/admin/terminal-deductions" className="font-semibold underline">Terminal deductions</Link>; it is taken off automatically on that terminal's vouchers.</>}
+      />
       <ListBlock list="platforms" title="Online booking platforms" intro="Where online seats were sold (web app, Bookme, Bookkaro…). Online sales are subtracted before cash deposit." />
     </Page>
   );
@@ -1111,9 +1147,9 @@ export function VoucherSlip() {
     const s = document.createElement("style");
     s.textContent = `@page { size: ${width}mm auto; margin: 3mm; } @media print { body { background: #fff !important; } .slip-tools { display: none !important; } }`;
     document.head.appendChild(s);
-    document.title = slip.data ? `Voucher ${slip.data.voucherNo}` : "Voucher slip";
     return () => s.remove();
-  }, [width, slip.data]);
+  }, [width]);
+  usePageTitle(slip.data ? `Voucher ${slip.data.voucherNo}` : "Voucher slip", { print: true });
 
   if (slip.err) return <div className="p-6"><ErrorNote err={slip.err} onRetry={slip.reload} /></div>;
   const v = slip.data;

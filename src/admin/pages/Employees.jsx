@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, Filters, fmtD, FormError, formError, inFormSave, Input, Label, lastActError, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useForm, useLoad } from "../ui";
+import { act, Badge, Btn, ErrorNote, Filters, fmtD, FormError, formError, inFormSave, Input, Label, lastActError, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useForm, useLoad, usePageTitle } from "../ui";
 import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../../components/PatternFields";
 
 /** The server's rule for licence numbers: letters, digits, / and - (2 to 40). */
@@ -478,9 +478,7 @@ export function EmployeeLists() {
 export function EmployeePrint() {
   const { id } = useParams();
   const e = useLoad(() => adminApi.employee(id), [id]);
-  useEffect(() => {
-    if (e.data) document.title = `${e.data.employeeCode} · ${e.data.fullName}`;
-  }, [e.data]);
+  usePageTitle(e.data ? `${e.data.employeeCode} · ${e.data.fullName}` : "Employee", { print: true });
   if (e.err) return <div className="p-6"><ErrorNote err={e.err} onRetry={e.reload} /></div>;
   const x = e.data;
   if (!x) return <p className="p-6 text-sm">Loading…</p>;

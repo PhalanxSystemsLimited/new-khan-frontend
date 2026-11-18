@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { adminApi } from "../api";
-import { Btn, ErrorNote, Select, useLoad } from "../ui";
+import { Btn, ErrorNote, Select, useLoad, usePageTitle } from "../ui";
 import { phoneText } from "./cargoShared";
 
 const TZ = "Asia/Karachi";
@@ -28,9 +28,7 @@ function usePaper(title) {
     document.head.appendChild(s);
     return () => s.remove();
   }, [width]);
-  useEffect(() => {
-    if (title) document.title = title;
-  }, [title]);
+  usePageTitle(title, { print: true });
   const chooser = (
     <Select aria-label="Paper width" className="!w-auto" value={width} onChange={(e) => setWidth(Number(e.target.value))}
       options={[{ value: 80, label: "80 mm paper" }, { value: 58, label: "58 mm paper" }]} />

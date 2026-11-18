@@ -11,7 +11,7 @@ import { signOut, useSession } from "../booking/auth";
 import { AuthDialog } from "../booking/AuthDialog";
 import { Toaster } from "../components/Toast";
 import { adminApi } from "./api";
-import { Btn } from "./ui";
+import { ADMIN_TITLE, Btn, usePageTitle } from "./ui";
 import { Bookings, Dashboard, Refunds, Trips } from "./pages/Operations";
 import { Fares, RoutesPage, Schedules } from "./pages/Network";
 import { Buses, Conductors, Drivers, Locations } from "./pages/Fleet";
@@ -115,7 +115,6 @@ function Gate({ children }) {
   useEffect(() => {
     document.documentElement.lang = "en";
     document.documentElement.dir = "ltr";
-    document.title = "Admin · New Khan";
   }, []);
 
   useEffect(() => {
@@ -136,6 +135,12 @@ function Gate({ children }) {
     </div>
   );
 
+  // Tab title for the screens shown here. Once signed in, each page sets its own (see usePageTitle).
+  const gateTitle = !IS_LIVE || !session ? "Sign in" : me === undefined ? "" : !me || !EMPLOYEE.includes(me.role) ? "No access" : null;
+  useEffect(() => {
+    if (gateTitle !== null) document.title = gateTitle ? `${gateTitle} · ${ADMIN_TITLE}` : ADMIN_TITLE;
+  }, [gateTitle]);
+
   if (!IS_LIVE)
     return box("Admin panel is off in demo mode", "Build the website with VITE_API_MODE=live to use the admin panel.", <Link to="/en" className="btn btn-gold">Back to website</Link>);
   if (!session)
@@ -151,6 +156,12 @@ function Gate({ children }) {
       </>,
     );
   return children(me);
+}
+
+/** A menu page: its menu name on the browser tab. */
+function Titled({ title, children }) {
+  usePageTitle(title);
+  return children;
 }
 
 function Shell({ me }) {
@@ -213,8 +224,8 @@ function Shell({ me }) {
         </aside>
         <main className="min-w-0 flex-1 p-4 sm:p-6">
           <Routes>
-            {groups.flatMap(([, items]) => items).map(([p, , , El]) => (
-              <Route key={p} path={p || "/"} element={<El me={me} isAdmin={isAdmin} isManager={isManager} />} />
+            {groups.flatMap(([, items]) => items).map(([p, label, , El]) => (
+              <Route key={p} path={p || "/"} element={<Titled title={label}><El me={me} isAdmin={isAdmin} isManager={isManager} /></Titled>} />
             ))}
             {isAdmin && <Route path="round-trips/:id" element={<RoundTripEditor />} />}
             {me.role !== "conductor" && <Route path="trip-vouchers/:id" element={<TripVoucherDetail me={me} isManager={isManager} />} />}

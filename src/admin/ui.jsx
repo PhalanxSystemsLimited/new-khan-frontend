@@ -6,6 +6,26 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "../components/Toast";
 import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../components/PatternFields";
 
+/* ------------------------------------------------------------------ browser tab title */
+
+export const ADMIN_TITLE = "New Khan Admin";
+
+/**
+ * Shows `title` on the browser tab while this screen is open ("Users & staff · New Khan Admin"); leaving the
+ * screen puts back the plain admin title, so a title never sticks to the next page. `print: true` uses the
+ * title as is (print pages: the browser also uses it as the PDF file name). No title = leave the tab alone.
+ */
+export function usePageTitle(title, { print = false } = {}) {
+  useEffect(() => {
+    if (!title) return undefined;
+    const text = print ? title : `${title} · ${ADMIN_TITLE}`;
+    document.title = text;
+    return () => {
+      if (document.title === text) document.title = ADMIN_TITLE;
+    };
+  }, [title, print]);
+}
+
 /* ------------------------------------------------------------------ time (Pakistan) */
 
 const TZ = "Asia/Karachi";
