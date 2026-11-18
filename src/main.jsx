@@ -10,11 +10,11 @@ const root = document.getElementById("root");
  * As in the Pakka build: on laptops and larger the whole public website is laid out for a 1440 x 850 screen and
  * scaled (CSS zoom) to the window, between 0.7 and 2.4. Phones and tablets use their own layout.
  *
- * Not on the admin panel (/admin) or the trip report opened by QR (/r/...): those are work screens with their own
+ * Not on the admin panel (/admin), the trip report opened by QR (/r/...) or the ticket check (/t/...): those are work screens with their own
  * layout built on the window height (100vh), which a zoomed page shrinks or stretches in current browsers (the
  * menu and grey background stopped short of the bottom of the window).
  */
-const unzoomed = () => /^\/(admin|r)(\/|$)/.test(window.location.pathname);
+const unzoomed = () => /^\/(admin|r|t)(\/|$)/.test(window.location.pathname);
 function fitToScreen() {
   // The phone layout (mobile.css) applies to the customer website only, never to the admin panel or the QR report.
   document.documentElement.classList.toggle("nk-site", !unzoomed());

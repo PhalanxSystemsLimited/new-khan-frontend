@@ -88,7 +88,7 @@ export function routeFaq(r, lang) {
       },
       {
         q: `${from} سے ${to} کی سیٹ کیسے بُک کروں؟`,
-        a: `سیٹ بُک کریں دبائیں، واٹس ایپ پر تاریخ سمیت پیغام کھل جائے گا۔ یا ہیلپ لائن پر کال کریں۔ ہم آپ کو ٹکٹ نمبر دیں گے۔`,
+        a: `سیٹ بُک کریں دبائیں، تاریخ اور سیٹیں چنیں، اور کارڈ، بینک اکاؤنٹ یا موبائل والیٹ سے آن لائن ادائیگی کریں۔ ای ٹکٹ اور ٹکٹ نمبر فوراً مل جائے گا۔ آپ واٹس ایپ یا ہیلپ لائن پر کال کر کے بھی بکنگ کر سکتے ہیں۔`,
       },
     ];
   }
@@ -113,7 +113,7 @@ export function routeFaq(r, lang) {
     },
     {
       q: `How do I book a seat from ${from} to ${to}?`,
-      a: `Press Book a seat and WhatsApp opens with your route and date filled in. You can also call the helpline. We give you a ticket number for every seat.`,
+      a: `Press Book a seat, pick your date and seats, and pay online by card, bank account or mobile wallet. Your e-ticket and ticket number appear straight away. You can also book on WhatsApp or by calling the helpline.`,
     },
   ];
 }

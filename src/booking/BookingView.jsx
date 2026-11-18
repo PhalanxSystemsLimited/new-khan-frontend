@@ -7,6 +7,7 @@ import { cancelBooking, getBooking, IS_LIVE, resendConfirmation } from "./api";
 import { bookUrl, useNow } from "./hooks";
 import { bt } from "./strings";
 import { fmtDate, fmtDateTime, fmtTime, hms, pkr } from "./time";
+import { downloadTicketPdf } from "./ticketPdf";
 
 const badge = {
   HELD: "bg-amber-100 text-amber-900 border-amber-500",
@@ -44,7 +45,9 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
   const [copied, setCopied] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const dlg = useRef(null);
+  const ticketEl = useRef(null); // what "Download PDF" captures
 
   const refresh = useCallback(async () => {
     if (initial?.readOnly) return; // public lookups cannot be reloaded without signing in
@@ -109,6 +112,17 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function downloadPdf() {
+    setPdfBusy(true);
+    try {
+      await downloadTicketPdf(ticketEl.current, `New-Khan-ticket-${b.ref}.pdf`);
+    } catch (e) {
+      console.error("Ticket PDF failed", e);
+      toast(bt("downloadFailed", lang), { kind: "error" });
+    }
+    setPdfBusy(false);
+  }
+
   async function act(kind) {
     setBusy(kind);
     setMsg("");
@@ -130,7 +144,7 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
   }
 
   return (
-    <div className="mt-6">
+    <div className="mt-6" ref={ticketEl}>
       {paymentReview && b.status !== "CONFIRMED" && <p role="alert" className="mb-4 rounded-xl border border-red-500 bg-red-50 p-4 font-semibold text-red-900">{bt("paymentReview", lang)}</p>}
       {paymentFailed && b.status === "HELD" && <p role="alert" className="mb-4 rounded-xl border border-amber-500 bg-amber-50 p-4 font-semibold text-amber-900">{bt("paymentFailed", lang)}</p>}
 
@@ -145,7 +159,16 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
               </p>
             )}
           </div>
-          <span className={`rounded-full border px-3 py-1 text-sm font-bold ${badge[b.status]}`}>{bt(`status${b.status}`, lang)}</span>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`rounded-full border px-3 py-1 text-sm font-bold ${badge[b.status]}`}>{bt(`status${b.status}`, lang)}</span>
+            {b.status === "CONFIRMED" && b.ticketQr?.svg && (
+              <figure className="m-0 text-center">
+                {/* SVG made by the server's QR library from the ticket's check link (/t/<code>). */}
+                <div role="img" aria-label={bt("scanToCheck", lang)} className="h-24 w-24 bg-white p-1 [&>svg]:block [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: b.ticketQr.svg }} />
+                <figcaption className="mt-1 max-w-[6.5rem] text-[11px] leading-tight text-mute">{bt("scanToCheck", lang)}</figcaption>
+              </figure>
+            )}
+          </div>
         </div>
 
         {b.readOnly && b.status === "HELD" && <p className="mt-4 rounded-xl border border-line bg-coal p-3 text-sm text-black">{bt("signInToManage", lang)}</p>}
@@ -180,6 +203,7 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
             <p className="mt-1 text-mute">{bt("confirmedBody", lang)}</p>
             <div className="no-print mt-5 flex flex-wrap justify-center gap-3">
               <button type="button" onClick={() => window.print()} className="btn btn-gold btn-shine">{bt("printTicket", lang)}</button>
+              <button type="button" onClick={downloadPdf} disabled={pdfBusy} className="btn btn-ghost disabled:opacity-50">{pdfBusy ? bt("downloadingTicket", lang) : bt("downloadTicket", lang)}</button>
               <button type="button" onClick={copyRef} className="btn btn-ghost">{copied ? `✓ ${bt("copied", lang)}` : bt("copyRef", lang)}</button>
             </div>
           </div>

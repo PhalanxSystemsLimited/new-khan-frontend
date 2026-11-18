@@ -321,6 +321,13 @@ export function TicketPrint() {
         {row("Paid", `Rs ${money(paid)} cash`)}
         {row("Status", x.status)}
         {dash}
+        {x.ticketQr?.svg && (
+          <div className="my-1 text-center">
+            {/* SVG made by the server's QR library from the ticket's check link (/t/<code>). */}
+            <div className="mx-auto [&>svg]:block [&>svg]:h-full [&>svg]:w-full" style={{ width: width === 58 ? "26mm" : "30mm", height: width === 58 ? "26mm" : "30mm" }} dangerouslySetInnerHTML={{ __html: x.ticketQr.svg }} />
+            <div className="mt-0.5 text-[0.85em]">Scan to check this ticket</div>
+          </div>
+        )}
         <div className="text-center text-[0.9em]">Please be at the terminal 30 minutes before departure. Keep this ticket for the journey.</div>
       </div>
     </div>

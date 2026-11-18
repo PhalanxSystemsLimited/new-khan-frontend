@@ -28,6 +28,7 @@ import Account from "./pages/Account";
 const AdminApp = lazy(() => import("./admin/AdminApp"));
 /** Round Trip Report opened by a voucher QR code (/r/<token>): its own bundle and print styles. */
 const ScanPage = lazy(() => import("./report/ScanPage"));
+const TicketCheck = lazy(() => import("./booking/TicketCheck"));
 
 /** Sets <html lang/dir>, scrolls to the top (or the #hash) on navigation, and draws the site chrome. */
 function Layout() {
@@ -107,6 +108,15 @@ export default function App() {
           element={
             <Suspense fallback={<p className="p-6 text-mute">Opening the report…</p>}>
               <ScanPage />
+            </Suspense>
+          }
+        />
+        {/* A ticket's QR code (see booking/TicketCheck.jsx). */}
+        <Route
+          path="/t/:token"
+          element={
+            <Suspense fallback={<p className="p-6 text-mute">Checking the ticket…</p>}>
+              <TicketCheck />
             </Suspense>
           }
         />

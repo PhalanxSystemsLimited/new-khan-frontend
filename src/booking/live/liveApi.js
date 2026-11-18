@@ -253,6 +253,7 @@ function mapBooking(d) {
     payment: paid ? { method: paid.method, paidAt: paid.paidAt, txnId: paid.id.slice(0, 8).toUpperCase(), amount: paid.amount } : undefined,
     emails: [],
     canCancel: ["pending", "confirmed"].includes(d.status),
+    ticketQr: d.ticketQr ?? null, // { url, svg }: the ticket's QR code (paid tickets, once the QR migration has run)
     live: true,
   };
 }
@@ -314,6 +315,7 @@ export async function lookupBooking(pnr, phone) {
     canCancel: false,
     readOnly: true,
     paymentReceived: Boolean(d.paymentReceived),
+    ticketQr: d.ticketQr ?? null,
     live: true,
   };
 }

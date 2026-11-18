@@ -8,7 +8,7 @@
  */
 
 /** Date the documents were last changed, shown on every policy page. */
-export let legalUpdated = {"en":"24 October 2026","ur":"24 اکتوبر 2026"};
+export let legalUpdated = {"en":"18 November 2026","ur":"18 نومبر 2026"};
 
 export let legalDocs = [
  {
@@ -150,12 +150,12 @@ export let legalDocs = [
     },
     "list": [
      {
-      "en": "As soon as an online payment is confirmed, your e-ticket and ticket number are shown on screen and can be downloaded as a PDF. A copy is sent by SMS, WhatsApp or email.",
-      "ur": "آن لائن ادائیگی کی تصدیق ہوتے ہی آپ کا ای ٹکٹ اور ٹکٹ نمبر اسکرین پر دکھا دیا جاتا ہے، اور اسے PDF کی صورت میں ڈاؤن لوڈ کیا جا سکتا ہے۔ اس کی ایک کاپی SMS، واٹس ایپ یا ای میل کے ذریعے بھیجی جاتی ہے۔"
+      "en": "As soon as an online payment is confirmed, your e-ticket and ticket number are shown on screen. You can download it as a PDF or print it, and it is always available under My bookings.",
+      "ur": "آن لائن ادائیگی کی تصدیق ہوتے ہی آپ کا ای ٹکٹ اور ٹکٹ نمبر اسکرین پر دکھا دیا جاتا ہے۔ آپ اسے PDF کی صورت میں ڈاؤن لوڈ یا پرنٹ کر سکتے ہیں، اور یہ ہمیشہ ’میری بکنگز‘ میں موجود رہتا ہے۔"
      },
      {
-      "en": "If you do not receive it within 30 minutes of paying, contact us with your payment reference and we will reissue it.",
-      "ur": "اگر ادائیگی کے 30 منٹ کے اندر آپ کو ٹکٹ نہ ملے تو اپنے ادائیگی ریفرنس کے ساتھ ہم سے رابطہ کریں، ہم ٹکٹ دوبارہ جاری کر دیں گے۔"
+      "en": "If you cannot see your ticket, open My bookings, or Manage booking with your ticket number and mobile number. You can also contact us with your payment reference and we will reissue it.",
+      "ur": "اگر آپ کو اپنا ٹکٹ نظر نہ آئے تو ’میری بکنگز‘ کھولیں، یا ٹکٹ نمبر اور موبائل نمبر کے ساتھ ’بکنگ مینیج کریں‘ استعمال کریں۔ آپ اپنے ادائیگی ریفرنس کے ساتھ ہم سے رابطہ بھی کر سکتے ہیں، ہم ٹکٹ دوبارہ جاری کر دیں گے۔"
      }
     ]
    },
@@ -350,8 +350,8 @@ export let legalDocs = [
     },
     "p": [
      {
-      "en": "Online payments are processed by licensed payment providers such as PayFast, under their own security standards (including PCI DSS for cards). Your card or wallet details are entered on the provider's secure page and go directly to them.",
-      "ur": "آن لائن ادائیگیاں PayFast جیسے لائسنس یافتہ ادائیگی فراہم کنندگان کے ذریعے، ان کے اپنے حفاظتی معیارات کے تحت (کارڈز کے لیے PCI DSS سمیت) پراسیس کی جاتی ہیں۔ آپ کے کارڈ یا والیٹ کی تفصیلات فراہم کنندہ کے محفوظ صفحے پر درج کی جاتی ہیں اور براہ راست انہی کے پاس جاتی ہیں۔"
+      "en": "Online payments are processed by Safepay, a licensed payment provider, under its own security standards (including PCI DSS for cards). Your card, bank or wallet details are entered on Safepay's secure page and go directly to them.",
+      "ur": "آن لائن ادائیگیاں لائسنس یافتہ ادائیگی فراہم کنندہ Safepay کے ذریعے، اس کے اپنے حفاظتی معیارات کے تحت (کارڈز کے لیے PCI DSS سمیت) پراسیس کی جاتی ہیں۔ آپ کے کارڈ، بینک یا والیٹ کی تفصیلات Safepay کے محفوظ صفحے پر درج کی جاتی ہیں اور براہ راست انہی کے پاس جاتی ہیں۔"
      }
     ]
    },

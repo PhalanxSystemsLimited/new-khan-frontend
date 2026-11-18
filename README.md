@@ -56,7 +56,7 @@ Vite variables are **baked in at build time**: change `.env`, then rebuild (or r
 | Mode | What happens |
 |---|---|
 | **`mock`** (demo) | Everything runs in the browser: placeholder trips, fares and seats, simulated payment, bookings saved in this browser's `localStorage`. No backend, no sign-in, nothing charged. Seat hold is 3 hours. Good for design work and demos. |
-| **`live`** | Talks to the backend. Real cities, trips, fares, seat maps. Booking requires signing in (email/password or phone code). Payments go to Safepay. Seat hold is the backend's `BOOKING_HOLD_MINUTES` (20 min). |
+| **`live`** | Talks to the backend. Real cities, trips, fares, seat maps. Booking requires signing in (email and password). Payments go to Safepay. Seat hold is the backend's `BOOKING_HOLD_MINUTES` (20 min). |
 
 For live mode the frontend's address must be in the backend's `CORS_ORIGINS` (localhost is allowed automatically when the
 backend isn't in production mode).
@@ -93,7 +93,7 @@ frontend/
     │   ├── live/liveApi.js   Calls the backend; maps backend data to the shapes the screens use
     │   ├── mock/             Demo implementation (mockApi.js) and placeholder trips/seats (trips.js)
     │   ├── auth.js           Live session store (tokens in localStorage "nk-session")
-    │   ├── AuthDialog.jsx    Sign in / sign up / phone code dialog
+    │   ├── AuthDialog.jsx    Sign in / create account dialog
     │   ├── BookingSearch.jsx Search form            ResultsClient.jsx  Trip results
     │   ├── SeatsClient.jsx   Seat selection + passenger details (SeatMap.jsx draws the bus)
     │   ├── BookingView.jsx   One booking in any state (held/confirmed/expired/cancelled), print ticket, cancel
@@ -134,10 +134,11 @@ Every address starts with the language: `/en/...` or `/ur/...` (`/` redirects to
 | `/en/book/results` → `/en/book/seats` | Results, seat choice |
 | `/en/book/reserved?ref=` | A held booking, "Held, awaiting payment" |
 | `/en/book/pay?ref=` → `/en/book/gateway` | Payment (gateway = mock simulator only) |
-| `/en/book/confirmed?ref=` | Confirmed booking / ticket |
+| `/en/book/confirmed?ref=` | Confirmed booking / ticket: **Print ticket**, **Download PDF** (a picture of the ticket on A4, made in the browser with html2canvas-pro + jsPDF, so Urdu comes out as on screen) and the ticket's QR code |
 | `/en/book/booking?ref=` | Any other booking (expired, cancelled), "Booking details" |
 | `/en/book/my-bookings` | **My bookings** (main nav) |
 | `/en/book/manage` | **Find a booking** by mobile number (Services menu) |
+| `/t/<code>` | **Ticket check**, opened by the QR on a ticket (e-ticket, PDF, counter slip). Valid / cancelled / not paid, the journey and seats; signed-in staff also see contact, masked CNIC, payment and boarding. Read only, English or Urdu |
 | `/admin` | **Admin panel** (staff and admins only, English) |
 
 **Header navigation:** Home · Fleet & Routes · Terminals · My bookings · Services ▾ (Parcels & cargo, Charter a bus, Find a booking) · About · Policies.
