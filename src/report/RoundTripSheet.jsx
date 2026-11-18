@@ -21,6 +21,27 @@ function useReportFonts() {
 
 const COMPANY = "New Khan Road Runners";
 
+/** Empty Cargo / Ticket sale / Others cells on the summary rows that only have a total. */
+const DASHES = [0, 1, 2].map((i) => <td key={i} className="num dash">—</td>);
+
+const SUM_KEYS = ["paxTerminal", "paxEnroute", "incTerminal", "incEnroute", "incOnline", "totalSale"];
+
+/** One leg's sub-total row (the server sends leg.totals; summed here too in case an older server didn't). */
+function LegSubtotal({ leg }) {
+  const t = leg.totals ?? Object.fromEntries(SUM_KEYS.map((k) => [k, leg.rows.reduce((s, r) => s + (Number(r[k]) || 0), 0)]));
+  return (
+    <tr className="leg-sub">
+      <td colSpan={3}>Sub-total ({leg.title})</td>
+      <td className="num split">{t.paxTerminal}</td>
+      <td className="num">{t.paxEnroute}</td>
+      <td className="num split">{money(t.incTerminal)}</td>
+      <td className="num">{money(t.incEnroute)}</td>
+      <td className="num">{money(t.incOnline)}</td>
+      <td className="num split">{money(t.totalSale)}</td>
+    </tr>
+  );
+}
+
 export function RoundTripSheet({ report, printedAt = new Date() }) {
   useReportFonts();
   const { trip, legs, fuel, onroute, offroute, online, totals, expenses, summary, header, scannedVoucherId } = report;
@@ -113,11 +134,12 @@ export function RoundTripSheet({ report, printedAt = new Date() }) {
                     <td className="num split">{money(r.totalSale)}</td>
                   </tr>
                 ))}
+                {legs.length > 1 && <LegSubtotal leg={leg} />}
               </tbody>
             ))}
             <tfoot>
               <tr>
-                <td colSpan={3}>Trip total</td>
+                <td colSpan={3}>{legs.length > 1 ? "Trip total (round trip)" : "Trip total"}</td>
                 <td className="num split">{totals.paxTerminal}</td>
                 <td className="num">{totals.paxEnroute}</td>
                 <td className="num split">{money(totals.incTerminal)}</td>
@@ -206,26 +228,21 @@ export function RoundTripSheet({ report, printedAt = new Date() }) {
       <section className="settlement">
         <table className="summary">
           <thead>
-            <tr><th /><th className="num">Sub-total</th><th className="num">Others</th><th className="num">Net total</th></tr>
+            <tr><th /><th className="num">Cargo</th><th className="num">Ticket sale</th><th className="num">Others</th><th className="num">Total</th></tr>
           </thead>
           <tbody>
+            {/* Total = cargo + ticket sale + other income (summary.incomeNet = C = X + A + B). */}
             <tr>
-              <th>Total income <span className="detail">incl. cargo {money(totals.cargoLoad)}</span></th>
-              <td className="num">{money(summary.incomeSub)}</td><td className="num">{money(summary.incomeOthers)}</td>
+              <th>Income</th>
+              <td className="num">{money(totals.cargoLoad)}</td>
+              <td className="num">{money(summary.incomeSub)}</td>
+              <td className="num">{money(summary.incomeOthers)}</td>
               <td className="num net">{money(summary.incomeNet)}</td>
             </tr>
-            <tr>
-              <th>Total expense</th>
-              <td className="num">{money(summary.expenseSub)}</td><td className="num">{money(summary.expenseOthers)}</td>
-              <td className="num net">{money(summary.expenseNet)}</td>
-            </tr>
-            <tr className="profit">
-              <th>Profit</th>
-              <td className="num">{money(summary.profitSub)}</td><td className="num">{money(summary.profitOthers)}</td>
-              <td className="num net">{money(summary.profitNet)}</td>
-            </tr>
-            <tr><th>Less online sale</th><td /><td /><td className="num net">{money(summary.lessOnline)}</td></tr>
-            <tr className="cash"><th>Net cash</th><td /><td /><td className="num net">{money(summary.netCash)}</td></tr>
+            <tr><th>Total expense</th>{DASHES}<td className="num net">{money(summary.expenseNet)}</td></tr>
+            <tr className="profit"><th>Profit</th>{DASHES}<td className="num net">{money(summary.profitNet)}</td></tr>
+            <tr><th>Less online sale</th>{DASHES}<td className="num net">{money(summary.lessOnline)}</td></tr>
+            <tr className="cash"><th>Net cash</th>{DASHES}<td className="num net">{money(summary.netCash)}</td></tr>
           </tbody>
         </table>
         <div className="deposit">

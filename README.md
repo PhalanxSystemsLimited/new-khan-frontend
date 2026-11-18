@@ -191,7 +191,7 @@ client refreshes the access token automatically and signs the user out if it is 
 | Refunds | admin | Approve, send the money, then **Mark paid** (with reference); or reject |
 | Routes & stops | admin | Create routes, edit their ordered stops (only before they have bookings), rename, switch off |
 | Fares | admin | Fares per stop pair and bus class; lists stop pairs with **no fare** (not bookable) with one-click "set fare" |
-| Schedules & trips | admin | Regular departures (time, days, default bus) and **Create trips** for a date range (up to 92 days) |
+| Schedules & trips | admin | Regular departures (time, days, default bus) and **Create trips** for a date range (up to 92 days); days when the default bus is busy are skipped and listed |
 | Buses, Drivers | admin | Fleet and drivers (expired licences can't be assigned); seat layouts shown read-only |
 | Cities & terminals | admin | Places used by booking search and routes |
 | Promo codes, Refund rules | admin | Discount codes; refund % by hours before departure (with a plain-words preview) |

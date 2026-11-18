@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { adminApi } from "../api";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtD, Input, Label, Modal, Page, pkDate, rs, Select, StatusBadge, Table, useForm, useLoad,
+  act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, Input, Label, Modal, Page, pkDate, rs, Select, StatusBadge, Table, useForm, useLoad,
 } from "../ui";
 
 export const BUS_CLASSES = ["economy", "executive", "business", "sleeper"].map((c) => ({ value: c, label: c }));
@@ -262,7 +262,7 @@ export function Schedules() {
   const generate = (s) =>
     openForm({
       title: `Create trips · ${s.routeName} ${s.departureTime.slice(0, 5)}`,
-      note: "Creates a bookable trip for each running day in the range (up to 92 days). Days that already have this trip are skipped, so it is safe to run again.",
+      note: "Creates a bookable trip for each running day in the range (up to 92 days). Days that already have this trip are skipped, so it is safe to run again. Days when the default bus is already on another trip are skipped and listed.",
       fields: [
         { name: "fromDate", label: "From", type: "date", required: true },
         { name: "toDate", label: "To", type: "date", required: true },
@@ -271,18 +271,40 @@ export function Schedules() {
       initial: { fromDate: pkDate(), toDate: pkDate(30), bookingCloseMinutes: 30 },
       submitLabel: "Create trips",
       onSubmit: async (b) => {
-        let n = 0;
+        let r = null;
         const ok = await act(async () => {
-          n = (await adminApi.generateTrips(s.id, b)).data.created;
+          r = (await adminApi.generateTrips(s.id, b)).data;
         }, "Trips created");
-        if (ok) setResult(`${n} new trip(s) created for ${s.routeName} at ${s.departureTime.slice(0, 5)}.`);
+        if (ok && r) {
+          const parts = [`${r.created} new trip${r.created === 1 ? "" : "s"} created for ${s.routeName} at ${s.departureTime.slice(0, 5)}`];
+          if (r.alreadyThere) parts.push(`${r.alreadyThere} day${r.alreadyThere === 1 ? " was" : "s were"} already there`);
+          setResult({ text: `${parts.join("; ")}.`, bus: r.bus, skipped: r.skipped ?? [] });
+        }
         return ok;
       },
     });
 
   return (
     <Page title="Schedules & trips" intro="A schedule is a regular departure (route, time, days). Trips are the dated departures customers book; create them from a schedule." actions={<Btn kind="primary" onClick={add}>+ New schedule</Btn>}>
-      {result && <p role="status" className="mb-4 rounded-xl border border-green-600 bg-green-50 p-3 text-sm font-semibold text-green-900">{result}</p>}
+      {result && <p role="status" className="mb-4 rounded-xl border border-green-600 bg-green-50 p-3 text-sm font-semibold text-green-900">{result.text}</p>}
+      {result?.skipped.length > 0 && (
+        <div role="status" className="mb-4 rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-bold">
+            {result.skipped.length} day{result.skipped.length === 1 ? " was" : "s were"} skipped because bus {result.bus} is busy then:
+          </p>
+          <ul className="mt-1 list-disc pl-5">
+            {result.skipped.map((k) => (
+              <li key={k.date}>
+                <b>{fmtD(k.departureAt)}</b>
+                {k.clashTripId
+                  ? <>: on trip {k.clashTripId} ({k.clashRoute}, leaves {fmtDT(k.clashDepartureAt)})</>
+                  : <>: still on this schedule's trip from the day before</>}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1">Add these days with another bus from Trips & boarding → "+ One-off trip", or free the bus and run Create trips again.</p>
+        </div>
+      )}
       <ErrorNote err={list.err} onRetry={list.reload} />
       <Table
         loading={list.loading}
