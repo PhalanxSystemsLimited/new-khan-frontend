@@ -251,6 +251,7 @@ export function Trips({ me, isAdmin, isManager }) {
       <Table
         loading={trips.loading}
         rows={trips.data}
+        numbered={{ noun: ["trip", "trips"] }}
         empty="No trips on this day."
         cols={[
           { key: "d", label: "Departs", render: (r) => <><b>{fmtT(r.departureAt)}</b>{r.delayMinutes ? <><br /><Badge tone="amber">+{r.delayMinutes} min</Badge></> : null}</> },
@@ -660,6 +661,7 @@ export function Bookings({ isAdmin }) {
       <Table
         loading={list.loading}
         rows={list.data?.data}
+        numbered={{ noun: ["booking", "bookings"], pagination: list.data?.pagination }}
         empty="No bookings match."
         cols={[
           { key: "pnr", label: "Reference", render: (r) => <span className="font-mono font-bold">{r.pnr}</span> },
@@ -737,6 +739,7 @@ export function Refunds({ me }) {
       <Table
         loading={list.loading}
         rows={list.data?.data}
+        numbered={{ noun: ["refund request", "refund requests"], pagination: list.data?.pagination }}
         empty="Nothing in this list."
         cols={[
           { key: "createdAt", label: "Created", render: (r) => fmtDT(r.createdAt) },

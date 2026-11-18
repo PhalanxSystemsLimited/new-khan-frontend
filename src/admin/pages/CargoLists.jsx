@@ -227,6 +227,7 @@ export function CargoLists() {
       <Table
         loading={list.loading}
         rows={rows}
+        numbered={{ noun: ["cargo list", "cargo lists"], pagination: list.data?.pagination }}
         empty={applied ? `No cargo list found for "${applied}".` : "No cargo lists yet. Load cargo on a bus from the Counter screen."}
         cols={[
           {

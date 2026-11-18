@@ -429,6 +429,7 @@ export function Parcels({ me }) {
       <Table
         loading={list.loading}
         rows={rows}
+        numbered={{ noun: ["parcel", "parcels"], pagination: list.data?.pagination }}
         empty={applied ? `No parcel found for "${applied}".` : "No parcels yet."}
         cols={[
           { key: "parcelNo", label: "Parcel", render: (r) => <button type="button" className="font-mono font-bold underline" onClick={() => setOpenId(r.id)}>{r.parcelNo}</button> },

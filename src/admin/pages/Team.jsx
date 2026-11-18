@@ -153,6 +153,7 @@ function Team({ kind, me }) {
       <Table
         loading={list.loading}
         rows={list.data}
+        numbered={{ noun: kind === "hostess" ? ["hostess", "hostesses"] : ["cashier", "cashiers"] }}
         cols={cols}
         empty={status === "active" ? `No ${t.one} registered yet. Press "+ Add ${t.one}".` : "Nobody here."}
       />

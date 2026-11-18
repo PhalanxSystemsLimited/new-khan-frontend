@@ -71,6 +71,7 @@ export function Users({ me }) {
       <Table
         loading={list.loading}
         rows={list.data?.data}
+        numbered={{ noun: ["account", "accounts"], pagination: list.data?.pagination }}
         cols={[
           { key: "fullName", label: "Name", render: (r) => <b>{r.fullName || "–"}</b> },
           { key: "email", label: "Email" },

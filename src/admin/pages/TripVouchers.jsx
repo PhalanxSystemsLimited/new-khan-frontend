@@ -104,6 +104,7 @@ export function TripVouchers() {
         <Table
           loading={trips.loading}
           rows={trips.data?.data}
+          numbered={{ noun: ["trip", "trips"], pagination: trips.data?.pagination }}
           rowKey={(r) => r.tripId}
           empty="No trips with paid seats in these dates."
           cols={[
@@ -119,6 +120,7 @@ export function TripVouchers() {
         <Table
           loading={issued.loading}
           rows={issued.data?.data}
+          numbered={{ noun: ["voucher", "vouchers"], pagination: issued.data?.pagination }}
           empty="No vouchers generated in these dates."
           cols={[
             { key: "voucherNo", label: "Voucher no.", render: (v) => <Link to={`/admin/trip-vouchers/${v.tripId}?voucher=${v.voucherNo}`} className="font-mono font-bold">{v.voucherNo}</Link> },

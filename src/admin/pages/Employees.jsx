@@ -80,6 +80,7 @@ export function Employees({ me }) {
       <Table
         loading={list.loading}
         rows={list.data?.data}
+        numbered={{ noun: ["employee", "employees"], pagination: list.data?.pagination }}
         empty="No employees found."
         cols={[
           { key: "employeeCode", label: "Employee ID", render: (e) => <b className="font-mono">{e.employeeCode}</b> },

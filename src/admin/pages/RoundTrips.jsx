@@ -169,6 +169,7 @@ export function RoundTrips() {
       <Table
         loading={list.loading}
         rows={list.data?.data}
+        numbered={{ noun: ["report", "reports"], pagination: list.data?.pagination }}
         empty="No round trip reports yet."
         cols={[
           { key: "id", label: "Report ID", render: (r) => <Link to={`/admin/round-trips/${r.id}`} className="font-bold">{r.id}</Link> },

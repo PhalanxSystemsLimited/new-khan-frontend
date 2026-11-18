@@ -192,26 +192,49 @@ export function ErrorNote({ err, onRetry }) {
 /**
  * Table. cols: [{ key, label, render?(row), className? }]. Scrolls sideways on narrow screens.
  */
-export function Table({ cols, rows, empty = "Nothing here yet.", loading = false, rowKey = (r) => r.id }) {
+/**
+ * `numbered` adds a "#" column (row position, not an id) and a count line under the table:
+ *   numbered={{ noun: ["user", "users"], pagination }}  — pagination from the server ({ page, limit, total, totalPages })
+ *   makes the numbers carry on across pages (page 2 of 50 starts at 51). Without it, the rows shown are the whole list.
+ */
+export function Table({ cols, rows, empty = "Nothing here yet.", loading = false, rowKey = (r) => r.id, numbered = null }) {
   if (loading && !rows) return <p className="text-sm text-mute">Loading…</p>;
   if (!rows?.length) return <p className="rounded-xl border border-dashed border-neutral-400 p-4 text-sm text-mute">{empty}</p>;
+  const p = numbered?.pagination;
+  const first = p?.page && p?.limit ? (p.page - 1) * p.limit + 1 : 1;
+  const total = p?.total ?? rows.length;
+  const [one, many] = numbered?.noun ?? ["row", "rows"];
+  const n = (x) => Number(x).toLocaleString("en-US");
   return (
-    <div className="overflow-x-auto rounded-xl border border-neutral-300">
-      <table className="w-full min-w-[640px] text-left text-sm">
-        <thead className="bg-neutral-100 text-xs uppercase tracking-wide text-neutral-600">
-          <tr>{cols.map((c) => <th key={c.key} className={`px-3 py-2 font-bold ${c.className ?? ""}`}>{c.label}</th>)}</tr>
-        </thead>
-        <tbody className="divide-y divide-neutral-200">
-          {rows.map((r, i) => (
-            <tr key={rowKey(r) ?? i} className="align-top hover:bg-neutral-50">
-              {cols.map((c) => (
-                <td key={c.key} className={`px-3 py-2 ${c.className ?? ""}`}>{c.render ? c.render(r) : (r[c.key] ?? "–")}</td>
-              ))}
+    <>
+      <div className="overflow-x-auto rounded-xl border border-neutral-300">
+        <table className="w-full min-w-[640px] text-left text-sm">
+          <thead className="bg-neutral-100 text-xs uppercase tracking-wide text-neutral-600">
+            <tr>
+              {numbered && <th className="w-10 px-3 py-2 text-right font-bold" title="Row number">#</th>}
+              {cols.map((c) => <th key={c.key} className={`px-3 py-2 font-bold ${c.className ?? ""}`}>{c.label}</th>)}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-neutral-200">
+            {rows.map((r, i) => (
+              <tr key={rowKey(r) ?? i} className="align-top hover:bg-neutral-50">
+                {numbered && <td className="w-10 px-3 py-2 text-right tabular-nums text-neutral-400">{first + i}</td>}
+                {cols.map((c) => (
+                  <td key={c.key} className={`px-3 py-2 ${c.className ?? ""}`}>{c.render ? c.render(r) : (r[c.key] ?? "–")}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {numbered && (
+        <p className="mt-2 text-xs text-mute" data-table-count>
+          {p?.totalPages > 1
+            ? `Showing ${n(first)}–${n(first + rows.length - 1)} of ${n(total)} ${total === 1 ? one : many}`
+            : `${n(total)} ${total === 1 ? one : many}`}
+        </p>
+      )}
+    </>
   );
 }
 

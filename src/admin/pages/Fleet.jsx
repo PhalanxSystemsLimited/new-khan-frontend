@@ -53,6 +53,7 @@ export function Buses() {
       <Table
         loading={buses.loading}
         rows={buses.data}
+        numbered={{ noun: ["bus", "buses"] }}
         cols={[
           { key: "registrationNo", label: "Registration", render: (r) => <b>{r.registrationNo}</b> },
           { key: "fleetNo", label: "Fleet no." },
@@ -115,6 +116,7 @@ export function Drivers() {
       <Table
         loading={list.loading}
         rows={list.data}
+        numbered={{ noun: ["driver", "drivers"] }}
         cols={[
           { key: "fullName", label: "Name", render: (r) => <b>{r.fullName}</b> },
           { key: "phone", label: "Phone" },
@@ -174,6 +176,7 @@ export function Conductors() {
       <Table
         loading={list.loading}
         rows={list.data}
+        numbered={{ noun: ["conductor", "conductors"] }}
         empty="No conductors yet."
         cols={[
           { key: "fullName", label: "Name", render: (r) => <b>{r.fullName}</b> },
