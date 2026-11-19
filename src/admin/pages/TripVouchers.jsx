@@ -27,6 +27,8 @@ const CHANNEL = { web: "Website", mobile_app: "App", counter: "Counter", phone: 
 const V_STATUS = { generated: ["green", "Generated"], replaced: ["grey", "Replaced"], void: ["red", "Void"] };
 const VoucherBadge = ({ s }) => <Badge tone={V_STATUS[s]?.[0] ?? "grey"}>{V_STATUS[s]?.[1] ?? s}</Badge>;
 const int = (v) => (v === "" || v === null || v === undefined ? 0 : Math.max(0, Math.round(Number(v)) || 0));
+/** A trip's day in Pakistan, "YYYY-MM-DD" (opens Trips & boarding on that day). */
+const pkDay = (v) => new Date(v).toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" });
 
 /* ------------------------------------------------------------------ list */
 
@@ -279,7 +281,11 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
               )}
               <MoneyLines v={preview} />
               {t.canGenerate ? (
-                trip.hasConductor ? (
+                trip.busConfirmed === false ? (
+                  <p className="rounded-xl border border-amber-400 bg-amber-50 p-2 text-sm">
+                    This trip only has a planned bus. Confirm the bus that goes first (<Link className="font-bold underline" to={`/admin/trips?date=${pkDay(trip.departureAt)}`}>Trips & boarding → Bus & crew</Link>).
+                  </p>
+                ) : trip.hasConductor ? (
                   <Btn kind="primary" disabled={busy} onClick={generate}>{busy ? "Generating…" : `Generate voucher for ${t.city}`}</Btn>
                 ) : (
                   <p className="rounded-xl border border-amber-400 bg-amber-50 p-2 text-sm">Assign a conductor first (Trips & boarding → Bus & crew).</p>
@@ -342,7 +348,7 @@ export function TripVoucherDetail({ isManager }) {
   return (
     <Page
       title={voucherTitle(trip.routeName, trip.departureAt)}
-      intro={`Trip ${trip.id} · bus ${trip.fleetNo ? `${trip.fleetNo} · ` : ""}${trip.busNo} · driver ${trip.driverName ?? "–"} · conductor ${trip.conductorName ?? trip.standInConductorName ?? "not assigned"} · last booking change ${fmtDT(d.data.lastUpdate)}`}
+      intro={`Trip ${trip.id} · bus ${trip.fleetNo ? `${trip.fleetNo} · ` : ""}${trip.busNo}${trip.busConfirmed === false ? " (planned, to confirm)" : ""} · driver ${trip.driverName ?? "–"} · conductor ${trip.conductorName ?? trip.standInConductorName ?? "not assigned"} · last booking change ${fmtDT(d.data.lastUpdate)}`}
       actions={<><StatusBadge s={trip.status} /><Btn onClick={d.reload}>Refresh</Btn></>}
     >
       <Link to="/admin/trip-vouchers" className="text-sm">‹ All vouchers</Link>

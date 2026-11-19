@@ -53,6 +53,7 @@ async function validToken() {
 const PASS_THROUGH = [
   "EMAIL_NOT_CONFIRMED", "ACCOUNT_EXISTS", "CNIC_REQUIRED", "PHONE_NOT_VERIFIED", "CODE_WRONG", "CODE_EXPIRED",
   "TOO_MANY_CODES", "SMS_FAILED", "SMS_UNAVAILABLE", "MANAGER_APPROVAL_REQUIRED", "IDENTITY_MISMATCH",
+  "NEAR_DEPARTURE", // "Add extra departure": another departure on the route is close; asked before adding
 ];
 
 function toApiError(status, body) {

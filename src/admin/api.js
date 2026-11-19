@@ -24,7 +24,14 @@ export const adminApi = {
   /** The one-off form: { data: trip, returnTrip, warnings } (returnTrip when b.returnTrip was sent). */
   createOneOffTrip: (b) => send("POST", "/trips", b),
   tripStatus: (id, b) => send("PATCH", `/trips/${id}/status`, b),
-  tripAssign: (id, b) => send("PATCH", `/trips/${id}/assignment`, b).then((r) => r.data),
+  /** { data: trip, warnings }. Saving with a bus confirms it. */
+  tripAssign: (id, b) => send("PATCH", `/trips/${id}/assignment`, b),
+  /** Active buses with the trip's seat layout, each with busyTripId (the confirmed trip it is on then) or null. */
+  busOptions: (id) => get(`/trips/${id}/bus-options`).then((r) => r.data),
+  /** { routes, busTypes, buses, plannedAllowed } for "Add extra departure". */
+  extraOptions: (terminalId) => get(`/trips/extra-options${qs({ terminalId })}`).then((r) => r.data),
+  /** { data: trip, planned }. Throws code NEAR_DEPARTURE when another departure is close: send again with allowNear. */
+  createExtra: (b) => send("POST", "/trips/extra", b),
   manifest: (id) => get(`/trips/${id}/manifest`).then((r) => r.data),
   board: (ticketId) => send("POST", `/tickets/${ticketId}/board`),
   bookings: (q) => get(`/bookings${qs(q)}`),

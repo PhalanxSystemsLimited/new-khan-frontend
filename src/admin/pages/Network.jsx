@@ -262,7 +262,7 @@ export function Schedules() {
   const generate = (s) =>
     openForm({
       title: `Create trips · ${s.routeName} ${s.departureTime.slice(0, 5)}`,
-      note: "Creates a bookable trip for each running day in the range (up to 92 days). Days that already have this trip are skipped, so it is safe to run again. Days when the default bus is already on another trip are skipped and listed.",
+      note: "Creates a bookable trip for each running day in the range (up to 92 days). Days that already have this trip are skipped, so it is safe to run again. Tickets are sold on the departure: the default bus is only the planned bus (its seat type and class), and the bus that goes is confirmed at departure time in Trips & boarding → Bus & crew.",
       fields: [
         { name: "fromDate", label: "From", type: "date", required: true },
         { name: "toDate", label: "To", type: "date", required: true },
@@ -278,7 +278,8 @@ export function Schedules() {
         if (ok && r) {
           const parts = [`${r.created} new trip${r.created === 1 ? "" : "s"} created for ${s.routeName} at ${s.departureTime.slice(0, 5)}`];
           if (r.alreadyThere) parts.push(`${r.alreadyThere} day${r.alreadyThere === 1 ? " was" : "s were"} already there`);
-          setResult({ text: `${parts.join("; ")}.`, bus: r.bus, skipped: r.skipped ?? [] });
+          const tail = r.busToConfirm && r.created ? ` On sale now. Bus ${r.bus} is the planned bus: confirm the bus that goes at departure time (Bus & crew).` : "";
+          setResult({ text: `${parts.join("; ")}.${tail}`, bus: r.bus, skipped: r.skipped ?? [] });
         }
         return ok;
       },

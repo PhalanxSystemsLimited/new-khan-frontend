@@ -1,8 +1,10 @@
 /** Daily operations: dashboard, trips and boarding, bookings (search, cancel, cash), refunds queue. */
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { toast } from "../../components/Toast";
 import { adminApi } from "../api";
 import OneOffTripForm from "./OneOffTripForm";
+import ExtraDepartureForm from "./ExtraDepartureForm";
 import {
   act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, fmtT, Input, Label, Modal, Page, pkDate, rs, Section, Select,
   StatusBadge, Table, useConfirm, useForm, useLoad,
@@ -63,7 +65,7 @@ export function Dashboard() {
           cols={[
             { key: "t", label: "Departs", render: (r) => fmtT(r.departureAt) },
             { key: "routeName", label: "Route" },
-            { key: "registrationNo", label: "Bus" },
+            { key: "registrationNo", label: "Bus", render: (r) => (r.busConfirmed === false ? <><Badge tone="amber">to confirm</Badge> <span className="text-xs text-mute">planned {r.registrationNo}</span></> : r.registrationNo) },
             { key: "seatsTaken", label: "Seats taken" },
             {
             key: "status",
@@ -141,20 +143,26 @@ function ManifestModal({ trip, onClose }) {
 }
 
 export function Trips({ me, isAdmin, isManager }) {
-  const [date, setDate] = useState(pkDate());
+  const [params] = useSearchParams();
+  const [date, setDate] = useState(/^\d{4}-\d{2}-\d{2}$/.test(params.get("date") ?? "") ? params.get("date") : pkDate());
   const [status, setStatus] = useState("");
   const trips = useLoad(() => adminApi.trips(date, status || undefined), [date, status]);
   const [manifest, setManifest] = useState(null);
   const [openForm, form] = useForm();
+  // Counter staff set the bus and crew of departures leaving from their own terminal, before the bus leaves.
+  const isCounter = me?.role === "agent";
+  const canAssign = (t) =>
+    isManager ? t.status !== "cancelled" : isCounter && Boolean(me.terminalId) && me.terminalId === t.originTerminalId && ["scheduled", "delayed", "boarding"].includes(t.status);
   const opts = useLoad(
     () =>
-      isManager
+      isManager || isCounter
         ? Promise.all([
-            adminApi.buses(), adminApi.drivers(), isAdmin ? adminApi.routes() : Promise.resolve([]), adminApi.conductors(), adminApi.staffAccounts(),
+            adminApi.buses(), adminApi.drivers(), isAdmin ? adminApi.routes() : Promise.resolve([]), adminApi.conductors(),
+            isManager ? adminApi.staffAccounts() : Promise.resolve([]),
             adminApi.crew("hostess").catch(() => []),
           ])
         : Promise.resolve([[], [], [], [], [], []]),
-    [isManager, isAdmin],
+    [isManager, isAdmin, isCounter],
   );
   const [buses, drivers, routes, conductors, staffAccounts, hostesses] = opts.data ?? [[], [], [], [], [], []];
   /** Hostesses registered under Employees (the trip keeps the name, so an older typed name stays selectable). */
@@ -201,38 +209,84 @@ export function Trips({ me, isAdmin, isManager }) {
     name: "standInConductorId", label: "Stand-in conductor (staff)", type: "select", nullable: true, options: standInOpts,
     hint: "Only when the conductor could not go and a staff member went instead. Can be filled in after the trip.",
   };
-  const assign = (t) =>
-    done(t)
-      ? openForm({
-          title: `Stand-in conductor · ${t.routeName}, ${fmtT(t.departureAt)}`,
-          note: "The trip has left, so only the staff member who went as conductor can still be recorded.",
-          fields: [standInField],
-          initial: { standInConductorId: t.standInConductorId ?? "" },
-          onSubmit: (b) => act(() => adminApi.tripAssign(t.id, b), "Saved").then((ok) => (ok && trips.reload(), ok)),
-        })
-      : openForm({
-          title: `Bus and crew · ${t.routeName}, ${fmtT(t.departureAt)}`,
-          note: "A replacement bus must have the same seat layout. The bus cannot leave without a conductor.",
-          fields: [
-            { name: "busId", label: "Bus", type: "select", numeric: true, required: true, options: buses.filter((b) => b.isActive).map((b) => ({ value: b.id, label: `${b.registrationNo}${b.fleetNo ? ` (${b.fleetNo})` : ""} · ${b.layoutName}` })) },
-            { name: "driverId", label: "Driver", type: "select", numeric: true, nullable: true, options: drivers.filter((d) => d.isActive && !d.licenseExpired).map((d) => ({ value: d.id, label: d.fullName })) },
-            { name: "conductorId", label: "Conductor", type: "select", numeric: true, nullable: true, options: conductorOpts, hint: conductorOpts.length ? undefined : "No conductors yet: add them under Fleet & people → Conductors." },
-            standInField,
-            { name: "hostessName", label: "Hostess", type: "select", nullable: true, options: hostessOpts(t.hostessName), hint: hostessHint(t) },
-          ],
-          initial: { busId: t.busId, driverId: t.driverId ?? "", conductorId: t.conductorId ?? "", standInConductorId: t.standInConductorId ?? "", hostessName: t.hostessName ?? "" },
-          onSubmit: (b) => act(() => adminApi.tripAssign(t.id, b), "Crew saved").then((ok) => (ok && trips.reload(), ok)),
-        });
+  /** Saves Bus & crew; any warning from the server (a bus of another class) is shown after. */
+  const saveAssign = (t, b, okTitle) => {
+    let res;
+    return act(async () => { res = await adminApi.tripAssign(t.id, b); }, okTitle).then((ok) => {
+      for (const w of res?.warnings ?? []) toast("Check the fares", { body: w, kind: "info", duration: 9000 });
+      if (ok) trips.reload();
+      return ok;
+    });
+  };
+  const busLabel = (b) => `${b.registrationNo}${b.fleetNo ? ` (${b.fleetNo})` : ""}`;
+  const assign = async (t) => {
+    if (done(t)) {
+      openForm({
+        title: `Stand-in conductor · ${t.routeName}, ${fmtT(t.departureAt)}`,
+        note: "The trip has left, so only the staff member who went as conductor can still be recorded.",
+        fields: [standInField],
+        initial: { standInConductorId: t.standInConductorId ?? "" },
+        onSubmit: (b) => saveAssign(t, b, "Saved"),
+      });
+      return;
+    }
+    // Only free buses of the trip's seat type (passengers keep their seat numbers); the current bus is always listed.
+    let choices;
+    try {
+      choices = await adminApi.busOptions(t.id);
+    } catch (e) {
+      toast("Could not load the buses", { body: e.message, kind: "error", duration: 7000 });
+      return;
+    }
+    const busOpts = choices
+      .filter((b) => !b.busyTripId || b.id === t.busId)
+      .map((b) => ({
+        value: b.id,
+        label: `${busLabel(b)}${b.id === t.busId ? (t.busConfirmed === false ? " · planned" : " · current") : ""}${b.busyTripId ? ` · busy on trip ${b.busyTripId}` : ""}`,
+      }));
+    const busyCount = choices.filter((b) => b.busyTripId && b.id !== t.busId).length;
+    const planned = t.busConfirmed === false;
+    openForm({
+      title: `${planned ? "Confirm bus" : "Bus"} and crew · ${t.routeName}, ${fmtT(t.departureAt)}`,
+      note: planned
+        ? "This trip only has a planned bus. Choose the bus that goes and save: that confirms it. Only free buses with the same seat type are listed, so passengers keep their seat numbers. The bus cannot leave without a conductor."
+        : "Only free buses with the same seat type are listed, so passengers keep their seat numbers. The bus cannot leave without a conductor.",
+      fields: [
+        {
+          name: "busId", label: "Bus", type: "select", numeric: true, required: true, options: busOpts,
+          hint: busyCount ? `${busyCount} other bus${busyCount === 1 ? " is" : "es are"} on another trip at that time, so not listed.` : undefined,
+        },
+        { name: "driverId", label: "Driver", type: "select", numeric: true, nullable: true, options: drivers.filter((d) => d.isActive && !d.licenseExpired).map((d) => ({ value: d.id, label: d.fullName })) },
+        { name: "conductorId", label: "Conductor", type: "select", numeric: true, nullable: true, options: conductorOpts, hint: conductorOpts.length ? undefined : "No conductors yet: add them under Fleet & people → Conductors." },
+        ...(isManager ? [standInField] : []),
+        { name: "hostessName", label: "Hostess", type: "select", nullable: true, options: hostessOpts(t.hostessName), hint: hostessHint(t) },
+      ],
+      initial: {
+        busId: busOpts.some((o) => o.value === t.busId) ? t.busId : "",
+        driverId: t.driverId ?? "", conductorId: t.conductorId ?? "",
+        ...(isManager ? { standInConductorId: t.standInConductorId ?? "" } : {}),
+        hostessName: t.hostessName ?? "",
+      },
+      submitLabel: planned ? "Confirm bus and save" : "Save",
+      onSubmit: (b) => saveAssign(t, b, planned ? "Bus confirmed" : "Crew saved"),
+    });
+  };
 
   // One-off trip, optionally with the same bus's return trip (OneOffTripForm).
   const [addingTrip, setAddingTrip] = useState(false);
   const addTrip = () => setAddingTrip(true);
+  const [addingExtra, setAddingExtra] = useState(false);
 
   return (
     <Page
       title="Trips & boarding"
-      intro="Each departure on a day: change its status, see and board passengers, change bus or crew."
-      actions={isAdmin && <Btn kind="primary" onClick={addTrip}>+ One-off trip</Btn>}
+      intro="Each departure on a day: change its status, see and board passengers, confirm the bus and set the crew."
+      actions={
+        <>
+          {(isManager || isCounter) && <Btn onClick={() => setAddingExtra(true)}>+ Extra departure</Btn>}
+          {isAdmin && <Btn kind="primary" onClick={addTrip}>+ One-off trip</Btn>}
+        </>
+      }
     >
       <Filters>
         <div>
@@ -261,7 +315,15 @@ export function Trips({ me, isAdmin, isManager }) {
             label: "Bus / crew",
             render: (r) => (
               <>
-                {r.registrationNo}
+                {r.busConfirmed === false ? (
+                  <>
+                    <Badge tone="amber">bus to confirm</Badge>
+                    <br />
+                    <span className="text-xs text-mute">planned {r.registrationNo}</span>
+                  </>
+                ) : (
+                  r.registrationNo
+                )}
                 <br />
                 <span className="text-xs text-mute">Driver: {r.driverName ?? "–"}</span>
                 <br />
@@ -296,7 +358,11 @@ export function Trips({ me, isAdmin, isManager }) {
                   <Btn small kind="ok" onClick={() => applyStatus(r, { status: "arrived" })}>Arrived</Btn>
                 )}
                 {r.roundTripId && isAdmin && <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to={`/admin/round-trips/${r.roundTripId}`}>Report {r.roundTripId}</Link>}
-                {isManager && r.status !== "cancelled" && <Btn small onClick={() => assign(r)}>{done(r) ? "Stand-in" : "Bus & crew"}</Btn>}
+                {canAssign(r) && (
+                  <Btn small kind={!done(r) && r.busConfirmed === false ? "primary" : undefined} onClick={() => assign(r)}>
+                    {done(r) ? "Stand-in" : r.busConfirmed === false ? "Confirm bus & crew" : "Bus & crew"}
+                  </Btn>
+                )}
               </div>
             ),
           },
@@ -304,6 +370,7 @@ export function Trips({ me, isAdmin, isManager }) {
       />
       {manifest && <ManifestModal trip={manifest} onClose={() => setManifest(null)} />}
       {addingTrip && <OneOffTripForm routes={routes} buses={buses} drivers={drivers} onClose={() => setAddingTrip(false)} onCreated={trips.reload} />}
+      {addingExtra && <ExtraDepartureForm onClose={() => setAddingExtra(false)} onCreated={trips.reload} />}
       {form}
     </Page>
   );

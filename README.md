@@ -182,7 +182,8 @@ client refreshes the access token automatically and signs the user out if it is 
 | Menu | Who | What it does |
 |---|---|---|
 | Dashboard | admin | Today's bookings, seats, money taken, cancellations, departures, refunds waiting |
-| Trips & boarding | agent, admin | Departures by day; change status (boarding / delayed / departed / arrived / cancelled); passenger list with **Board** buttons and print; change bus and crew; add a one-off trip, optionally with the same bus's return trip (both saved together) |
+| Counter | agent, manager, admin | Buses **leaving** the terminal: today from now on (a bus past its time stays at the top as "late, not left yet" until its voucher is made; last night's late bus too), other days the whole day, past days view-only. Sell ticket, Generate voucher, Load cargo, Confirm bus & crew, **+ Extra departure**. Folded below: "Already left today" (voucher made, time passed) and "Arriving here" (buses ending at this terminal, with **Arrived**). Buses only dropping passengers here are not shown |
+| Trips & boarding | agent, admin | Departures by day (`?date=` opens a day); change status (boarding / delayed / departed / arrived / cancelled); passenger list with **Board** buttons and print; **Confirm bus & crew** for trips with a planned bus ("bus to confirm"): only free buses with the same seat type are offered (counter staff: departures leaving their own terminal); **+ Extra departure** for a busy day; admins also add a one-off trip, optionally with the same bus's return trip (both saved together) |
 | Bookings | agent, admin | Search by reference / phone / status; passengers and payments; **Cash received** for held bookings; cancel (shows the refund first) |
 | Book a parcel | agent, admin | Cargo: sender (CNIC required), receiver, destination, pieces, weight; charge from the cargo rates (lower needs a reason); "receiver pays on collection"; then the slip (80 / 58 mm, QR, rules) and one label per piece |
 | Parcels | agent, admin | Find a parcel by CG number (or a scanned slip QR), phone, CNIC or name; details and history; cancel one not on a bus yet |
@@ -192,7 +193,7 @@ client refreshes the access token automatically and signs the user out if it is 
 | Refunds | admin | Approve, send the money, then **Mark paid** (with reference); or reject |
 | Routes & stops | admin | Create routes, edit their ordered stops (only before they have bookings), rename, switch off |
 | Fares | admin | Fares per stop pair and bus class; lists stop pairs with **no fare** (not bookable) with one-click "set fare" |
-| Schedules & trips | admin | Regular departures (time, days, default bus) and **Create trips** for a date range (up to 92 days); days when the default bus is busy are skipped and listed |
+| Schedules & trips | admin | Regular departures (time, days, default bus) and **Create trips** for a date range (up to 92 days). The default bus is only the planned bus (seat type and class); the bus that goes is confirmed at departure time, so no day is skipped |
 | Buses, Drivers | admin | Fleet and drivers (expired licences can't be assigned); seat layouts shown read-only. "Add a bus" offers only layouts in use (NK 2+2 49-seater, NK 2+1 31-seater) |
 | Cities & terminals | admin | Places used by booking search and routes |
 | Promo codes, Refund rules | admin | Discount codes; refund % by hours before departure (with a plain-words preview) |
