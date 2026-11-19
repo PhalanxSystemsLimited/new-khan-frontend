@@ -151,6 +151,8 @@ export function Trips({ me, isAdmin, isManager }) {
   const [openForm, form] = useForm();
   // Counter staff set the bus and crew of departures leaving from their own terminal, before the bus leaves.
   const isCounter = me?.role === "agent";
+  // Counter staff get only the buses boarding at their terminal (the server filters the list).
+  const myCity = isCounter ? (me.terminalName ?? "").split(" · ")[0] || "your terminal" : null;
   const canAssign = (t) =>
     isManager ? t.status !== "cancelled" : isCounter && Boolean(me.terminalId) && me.terminalId === t.originTerminalId && ["scheduled", "delayed", "boarding"].includes(t.status);
   const opts = useLoad(
@@ -280,7 +282,9 @@ export function Trips({ me, isAdmin, isManager }) {
   return (
     <Page
       title="Trips & boarding"
-      intro="Each departure on a day: change its status, see and board passengers, confirm the bus and set the crew."
+      intro={isCounter
+        ? "The buses boarding at your terminal on a day: see and board passengers, vouchers, confirm the bus and set the crew."
+        : "Each departure on a day: change its status, see and board passengers, confirm the bus and set the crew."}
       actions={
         <>
           {(isManager || isCounter) && <Btn onClick={() => setAddingExtra(true)}>+ Extra departure</Btn>}
@@ -302,13 +306,30 @@ export function Trips({ me, isAdmin, isManager }) {
         <Btn onClick={trips.reload}>Refresh</Btn>
       </Filters>
       <ErrorNote err={trips.err} onRetry={trips.reload} />
+      {isCounter && (
+        <p className="mb-3 text-sm text-mute">
+          Showing buses boarding at <b className="text-black">{myCity}</b>. Buses ending here are on the <Link to="/admin/counter">Counter</Link> screen, under Arriving here.
+        </p>
+      )}
       <Table
         loading={trips.loading}
         rows={trips.data}
         numbered={{ noun: ["trip", "trips"] }}
-        empty="No trips on this day."
+        empty={isCounter ? `No buses board at ${myCity} on this day.` : "No trips on this day."}
         cols={[
-          { key: "d", label: "Departs", render: (r) => <><b>{fmtT(r.departureAt)}</b>{r.delayMinutes ? <><br /><Badge tone="amber">+{r.delayMinutes} min</Badge></> : null}</> },
+          {
+            key: "d",
+            label: "Departs",
+            render: (r) => (
+              <>
+                <b>{fmtT(r.departureAt)}</b>
+                {r.delayMinutes ? <><br /><Badge tone="amber">+{r.delayMinutes} min</Badge></> : null}
+                {isCounter && r.hereAt && r.originTerminalId !== me.terminalId && (
+                  <div className="mt-1 text-xs font-semibold">at {r.hereCity} {fmtT(r.hereAt)}</div>
+                )}
+              </>
+            ),
+          },
           { key: "routeName", label: "Route" },
           {
             key: "b",
@@ -354,9 +375,6 @@ export function Trips({ me, isAdmin, isManager }) {
                 <Btn small onClick={() => setManifest(r)}>Passengers</Btn>
                 <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to={`/admin/trip-vouchers/${r.id}`}>Vouchers{r.vouchersGenerated ? ` (${r.vouchersGenerated})` : ""}</Link>
                 {isManager && NEXT[r.status].length > 0 && <Btn small onClick={() => changeStatus(r)}>Status…</Btn>}
-                {!isManager && r.status === "departed" && me?.terminalId && me.terminalId === r.destinationTerminalId && (
-                  <Btn small kind="ok" onClick={() => applyStatus(r, { status: "arrived" })}>Arrived</Btn>
-                )}
                 {r.roundTripId && isAdmin && <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to={`/admin/round-trips/${r.roundTripId}`}>Report {r.roundTripId}</Link>}
                 {canAssign(r) && (
                   <Btn small kind={!done(r) && r.busConfirmed === false ? "primary" : undefined} onClick={() => assign(r)}>
