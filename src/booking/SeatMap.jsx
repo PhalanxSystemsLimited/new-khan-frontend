@@ -1,5 +1,16 @@
 import { useMemo, useRef, useState } from "react";
-import { aisleAfter, seatCols } from "./seatRules";
+import { aisleIndex, bySeatNumber, seatCols } from "./seatRules";
+
+/** Steering wheel: the driver's place on the seat maps (website, counter, conductor). Not a seat anyone can book. */
+export function SteeringIcon({ className = "h-6 w-6" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M3.5 10.5 9.6 11.4M20.5 10.5 14.4 11.4M12 14.5V21" />
+    </svg>
+  );
+}
 import { bt } from "./strings";
 
 /**
@@ -8,7 +19,8 @@ import { bt } from "./strings";
  *
  * Tapping a seat cycles it: free -> female (pink) -> male (blue) -> free. The page decides the next state (it
  * skips a gender the side-by-side rule does not allow) through onCycle. Seats other people booked show their
- * passenger's gender in a paler pink or blue; "blocked" seats (driver, door) leave a gap.
+ * passenger's gender in a paler pink or blue; the driver's seat shows a steering wheel, other "blocked" seats
+ * (door) leave a gap. The aisle is drawn from the layout (an empty column on the New Khan fleet layouts).
  */
 export function SeatMap({ seats, chosen, max, onCycle, notice, lang, legLabel }) {
   const refs = useRef({});
@@ -17,7 +29,7 @@ export function SeatMap({ seats, chosen, max, onCycle, notice, lang, legLabel })
     const map = new Map(seats.map((s) => [`${s.row}:${s.col}`, s]));
     return { rows: rowNums, cols: seatCols(seats), at: (r, c) => map.get(`${r}:${c}`) };
   }, [seats]);
-  const aisle = aisleAfter(cols);
+  const aisle = aisleIndex(seats);
 
   const usable = (s) => s && s.status !== "blocked" && (s.status === "available" || chosen.has(s.id));
   const firstFree = seats.find((s) => s.status === "available")?.id ?? seats[0]?.id;
@@ -89,10 +101,15 @@ export function SeatMap({ seats, chosen, max, onCycle, notice, lang, legLabel })
         <div className="space-y-2" dir="ltr">
           {rows.map((r) => (
             <div key={r} className="flex items-center gap-2">
-              <span aria-hidden className="w-5 text-center text-xs text-mute">{r}</span>
               {Array.from({ length: cols }, (_, c) => {
                 const s = at(r, c);
                 const gap = c === aisle + 1 ? "ms-6" : "";
+                if (s?.kind === "driver")
+                  return (
+                    <span key={c} role="img" aria-label={bt("driverSeat", lang)} title={bt("driverSeat", lang)} className={`flex h-11 w-11 items-center justify-center rounded-lg border-2 border-dashed border-neutral-400 text-neutral-500 ${gap}`}>
+                      <SteeringIcon />
+                    </span>
+                  );
                 if (!s || s.status === "blocked") return <span key={c} aria-hidden className={`h-11 w-11 ${gap}`} />;
                 const mine = chosen.get(s.id);
                 const disabled = s.status !== "available" && !mine;
@@ -132,6 +149,7 @@ export function SeatMap({ seats, chosen, max, onCycle, notice, lang, legLabel })
         <ul aria-hidden className="nk-picked md:hidden">
           {seats
             .filter((s) => chosen.has(s.id))
+            .sort((a, b) => bySeatNumber(a.label ?? a.id, b.label ?? b.id))
             .map((s) => (
               <li key={s.id} data-g={chosen.get(s.id)}>
                 {s.label ?? s.id} · {bt(chosen.get(s.id), lang)}

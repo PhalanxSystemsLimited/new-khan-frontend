@@ -213,6 +213,7 @@ export async function getSeats(id) {
     row: s.rowNo,
     col: s.colNo - 1,
     deck: s.deck,
+    kind: s.kind, // "driver": drawn as a steering wheel
     status: s.status === "available" ? "available" : s.status === "unavailable" ? "blocked" : "booked",
     gender: s.status === "booked" ? (s.occupantGender ?? null) : null, // colours the seat; never who it is
   }));

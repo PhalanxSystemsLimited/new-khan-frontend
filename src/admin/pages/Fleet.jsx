@@ -20,12 +20,16 @@ export function Buses() {
   const buses = useLoad(() => adminApi.buses(), []);
   const layouts = useLoad(() => adminApi.layouts(), []);
   const [openForm, form] = useForm();
-  const layoutOpts = (layouts.data ?? []).map((l) => ({ value: l.id, label: `${l.name} (${l.totalSeats ?? "?"} seats)` }));
+  // Only layouts in use are offered (the old test 40-seater is switched off); a bus keeps showing its own layout.
+  const layoutOpts = (keepId) =>
+    (layouts.data ?? [])
+      .filter((l) => l.isActive !== false || l.id === keepId)
+      .map((l) => ({ value: l.id, label: `${l.name} (${l.totalSeats ?? "?"} seats)${l.isActive === false ? " · not offered for new buses" : ""}` }));
 
-  const fields = [
+  const fields = (keepId) => [
     { name: "registrationNo", label: "Registration no.", type: "text", required: true, placeholder: "LES-1234" },
     { name: "fleetNo", label: "Fleet no.", type: "text", placeholder: "NK-07" },
-    { name: "layoutId", label: "Seat layout", type: "select", numeric: true, required: true, options: layoutOpts, hint: "Can't be changed while future trips on this bus have bookings." },
+    { name: "layoutId", label: "Seat layout", type: "select", numeric: true, required: true, options: layoutOpts(keepId), hint: "Can't be changed while future trips on this bus have bookings." },
     { name: "busClass", label: "Class", type: "select", required: true, options: BUS_CLASSES },
     { name: "make", label: "Make", type: "text", placeholder: "Higer" },
     { name: "model", label: "Model", type: "text" },
@@ -47,7 +51,7 @@ export function Buses() {
     <Page
       title="Buses"
       intro="Coaches in the fleet. A trip's seat map comes from its bus's seat layout."
-      actions={<Btn kind="primary" onClick={() => openForm({ title: "Add a bus", fields, initial: { busClass: "executive", isActive: true, amenities: ["ac"] }, onSubmit: save() })}>+ Add bus</Btn>}
+      actions={<Btn kind="primary" onClick={() => openForm({ title: "Add a bus", fields: fields(), initial: { busClass: "executive", isActive: true, amenities: ["ac"] }, onSubmit: save() })}>+ Add bus</Btn>}
     >
       <ErrorNote err={buses.err || layouts.err} onRetry={buses.reload} />
       <Table
@@ -66,7 +70,7 @@ export function Buses() {
             key: "a",
             label: "",
             render: (r) => (
-              <Btn small onClick={() => openForm({ title: `Edit ${r.registrationNo}`, fields, initial: { ...r, fleetNo: r.fleetNo ?? "", make: r.make ?? "", model: r.model ?? "", manufactureYear: r.manufactureYear ?? "", amenities: r.amenities ?? [] }, onSubmit: save(r.id, r) })}>
+              <Btn small onClick={() => openForm({ title: `Edit ${r.registrationNo}`, fields: fields(r.layoutId), initial: { ...r, fleetNo: r.fleetNo ?? "", make: r.make ?? "", model: r.model ?? "", manufactureYear: r.manufactureYear ?? "", amenities: r.amenities ?? [] }, onSubmit: save(r.id, r) })}>
                 Edit
               </Btn>
             ),
@@ -82,6 +86,7 @@ export function Buses() {
             { key: "name", label: "Name", render: (r) => <b>{r.name}</b> },
             { key: "totalSeats", label: "Seats" },
             { key: "g", label: "Grid", render: (r) => `${r.rowCount ?? "?"} rows × ${r.colCount ?? "?"} columns${r.decks > 1 ? `, ${r.decks} decks` : ""}` },
+            { key: "isActive", label: "New buses", render: (r) => (r.isActive === false ? <Badge tone="amber">not offered</Badge> : <Badge tone="green">offered</Badge>) },
           ]}
         />
       </Section>

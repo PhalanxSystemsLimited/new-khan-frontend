@@ -113,6 +113,7 @@ export const bk = {
   },
   pickSeatFirst: { en: "choose a seat above", ur: "اوپر سیٹ منتخب کریں" },
   seatWord: { en: "Seat {id}", ur: "سیٹ {id}" },
+  driverSeat: { en: "Driver", ur: "ڈرائیور" },
   passengerDetails: { en: "Passenger details", ur: "مسافروں کی تفصیل" },
   passengerN: { en: "Passenger {n}", ur: "مسافر {n}" },
   fullName: { en: "Full name", ur: "پورا نام" },

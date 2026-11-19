@@ -193,7 +193,7 @@ client refreshes the access token automatically and signs the user out if it is 
 | Routes & stops | admin | Create routes, edit their ordered stops (only before they have bookings), rename, switch off |
 | Fares | admin | Fares per stop pair and bus class; lists stop pairs with **no fare** (not bookable) with one-click "set fare" |
 | Schedules & trips | admin | Regular departures (time, days, default bus) and **Create trips** for a date range (up to 92 days); days when the default bus is busy are skipped and listed |
-| Buses, Drivers | admin | Fleet and drivers (expired licences can't be assigned); seat layouts shown read-only |
+| Buses, Drivers | admin | Fleet and drivers (expired licences can't be assigned); seat layouts shown read-only. "Add a bus" offers only layouts in use (NK 2+2 49-seater, NK 2+1 31-seater) |
 | Cities & terminals | admin | Places used by booking search and routes |
 | Promo codes, Refund rules | admin | Discount codes; refund % by hours before departure (with a plain-words preview) |
 | Users & staff | admin | Find accounts, change roles (admin roles: super admin only), block / unblock |

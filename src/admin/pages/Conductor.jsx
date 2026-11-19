@@ -13,6 +13,8 @@ import { useCallback, useEffect, useState } from "react";
 import { adminApi } from "../api";
 import { act, Badge, Btn, ErrorNote, Input, Label, Modal, Page, Section, Select, StatusBadge } from "../ui";
 import { departure, money } from "../../report/format";
+import { aisleIndex } from "../../booking/seatRules";
+import { SteeringIcon } from "../../booking/SeatMap";
 
 const KEY = "nk-conductor-voucher";
 const remembered = () => {
@@ -36,7 +38,9 @@ function SeatMap({ seats, onSeat }) {
   return decks.map((deck) => {
     const list = seats.filter((s) => s.deck === deck);
     const maxCol = Math.max(...list.map((s) => s.colNo));
-    const aisle = maxCol === 4 ? 2 : maxCol === 3 ? 1 : maxCol >= 5 ? Math.floor(maxCol / 2) : 0;
+    // The same aisle rule as the website seat map (an empty column on the fleet layouts: nothing extra to draw).
+    const a = aisleIndex(list.map((s) => ({ row: s.rowNo, col: s.colNo - 1, deck: s.deck })));
+    const aisle = a >= 0 ? a + 1 : 0;
     const rows = [...new Set(list.map((s) => s.rowNo))].sort((a, b) => a - b);
     return (
       <div key={deck} className="mx-auto w-fit">
@@ -49,6 +53,8 @@ function SeatMap({ seats, onSeat }) {
                 const s = list.find((x) => x.rowNo === r && x.colNo === c);
                 const gap = aisle && c === aisle + 1 ? <span key={`g${c}`} className="w-4" aria-hidden /> : null;
                 if (!s) return [gap, <span key={c} className="h-14 w-14" aria-hidden />];
+                if (s.kind === "driver")
+                  return [gap, <span key={c} role="img" aria-label="Driver" title="Driver" className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-dashed border-neutral-400 text-neutral-500"><SteeringIcon className="h-7 w-7" /></span>];
                 const p = s.passenger;
                 const cls = !s.bookable
                   ? "border-neutral-300 bg-neutral-200 text-neutral-400"

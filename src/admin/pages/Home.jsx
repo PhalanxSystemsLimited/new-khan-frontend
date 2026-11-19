@@ -12,6 +12,8 @@ import { Link, useParams } from "react-router-dom";
 import { adminApi } from "../api";
 import { act, Badge, Btn, ErrorNote, Filters, Input, Label, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useLoad } from "../ui";
 import { CargoLoadWindow } from "./CargoLists";
+import { aisleIndex } from "../../booking/seatRules";
+import { SteeringIcon } from "../../booking/SeatMap";
 
 const TZ = "Asia/Karachi";
 const time = (v) => (v ? new Date(v).toLocaleTimeString("en-GB", { timeZone: TZ, hour: "numeric", minute: "2-digit", hour12: true }).toLowerCase() : "–");
@@ -144,7 +146,9 @@ function QuickSale({ trip, onClose, onSold }) {
     const list = seats.data ?? [];
     const rows = [...new Set(list.map((s) => s.rowNo))].sort((a, b) => a - b);
     const maxCol = Math.max(0, ...list.map((s) => s.colNo));
-    return { list, rows, maxCol, aisle: maxCol === 4 ? 2 : maxCol === 3 ? 1 : maxCol >= 5 ? Math.floor(maxCol / 2) : 0 };
+    // The same aisle rule as the website seat map (an empty column on the fleet layouts: nothing extra to draw).
+    const a = aisleIndex(list.map((s) => ({ row: s.rowNo, col: s.colNo - 1, deck: s.deck })));
+    return { list, rows, maxCol, aisle: a >= 0 ? a + 1 : 0 };
   }, [seats.data]);
 
   const toggle = (s) => {
@@ -214,6 +218,8 @@ function QuickSale({ trip, onClose, onSold }) {
                   const s = grid.list.find((x) => x.rowNo === r && x.colNo === c);
                   const gap = grid.aisle && c === grid.aisle + 1 ? <span key={`g${c}`} className="w-3" aria-hidden /> : null;
                   if (!s) return [gap, <span key={c} className="h-11 w-11" aria-hidden />];
+                  if (s.kind === "driver")
+                    return [gap, <span key={c} role="img" aria-label="Driver" title="Driver" className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-dashed border-neutral-400 text-neutral-500"><SteeringIcon /></span>];
                   const on = picked.includes(s.seatId);
                   const cls = on
                     ? "border-black bg-black text-white"
