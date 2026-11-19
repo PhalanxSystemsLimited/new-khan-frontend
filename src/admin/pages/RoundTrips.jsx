@@ -13,8 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { adminApi } from "../api";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtDT, Input, Label, Modal, Page, pkLocalToIso, Section, Select, Table,
-  useConfirm, useForm, useLoad, usePageTitle,
+  act, Badge, Btn, ErrorNote, Filters, fmtDT, Input, Label, Modal, Page, pkLocalToIso, Section, Select, SkeletonDetails, SkeletonTable, Table, useConfirm, useForm, useLoad, usePageTitle,
 } from "../ui";
 import { Pager } from "./Operations";
 import { BUS_CLASSES } from "./Network";
@@ -291,7 +290,7 @@ export function RoundTripEditor() {
   const run = (fn, ok) => act(async () => { const d = await fn(); if (d?.trip) rt.setData(d); else await rt.reload(); }, ok);
 
   if (rt.err) return <Page title="Round trip report"><ErrorNote err={rt.err} onRetry={rt.reload} /></Page>;
-  if (!r) return <Page title="Round trip report"><p className="text-sm text-mute">Loading…</p></Page>;
+  if (!r) return <Page title="Round trip report"><SkeletonDetails lines={8} /></Page>;
   const { trip, edit, summary } = r;
 
   const editDetails = () =>
@@ -1085,7 +1084,7 @@ export function TerminalDeductions() {
     >
       <ErrorNote err={data.err} onRetry={data.reload} />
       {!d ? (
-        <p className="text-sm text-mute">Loading…</p>
+        <SkeletonTable rows={5} />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-neutral-300 bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">

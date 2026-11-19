@@ -11,8 +11,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../../components/PatternFields";
 import { adminApi } from "../api";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtDT, FormError, formError, inFormSave, Input, Label, lastActError, Modal, Page, rs,
-  Section, Select, Table, useForm, useLoad,
+  act, Badge, Btn, ErrorNote, Filters, fmtDT, formError, FormError, inFormSave, Input, Label, lastActError, Modal, Page, rs, Section, Select, SkeletonDetails, SkeletonTable, Table, useForm, useLoad,
 } from "../ui";
 import { Pager } from "./Operations";
 import { PaymentBadge, phoneText } from "./cargoShared";
@@ -159,7 +158,7 @@ export function BookParcel({ me }) {
   const text = (name, props = {}) => <Input id={`p-${name}`} value={v[name]} onChange={(e) => set(name, e.target.value)} {...props} />;
 
   if (setup.err) return <Page title="Book a parcel"><ErrorNote err={setup.err} onRetry={setup.reload} /></Page>;
-  if (!s) return <Page title="Book a parcel"><p className="text-sm text-mute">Loading…</p></Page>;
+  if (!s) return <Page title="Book a parcel"><SkeletonDetails lines={8} /></Page>;
   if (!s.canChooseTerminal && !s.myTerminalId) {
     return (
       <Page title="Book a parcel">
@@ -290,7 +289,7 @@ function ParcelDetail({ id, me, onClose, onChanged }) {
   return (
     <Modal wide title={x ? `Parcel ${x.parcelNo}` : "Parcel"} onClose={onClose}>
       <ErrorNote err={p.err} onRetry={p.reload} />
-      {!x ? <p className="text-sm text-mute">Loading…</p> : (
+      {!x ? <SkeletonDetails /> : (
         <div className="grid gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <ParcelStatus s={x.status} listed={Boolean(x.listId)} /> <PaymentBadge p={x} />
@@ -522,7 +521,7 @@ export function CargoSettings() {
   return (
     <Page title="Cargo settings" intro="The rates the booking form uses, and the rules printed on every parcel slip.">
       <ErrorNote err={setup.err} onRetry={setup.reload} />
-      {!s ? <p className="text-sm text-mute">Loading…</p> : (
+      {!s ? <SkeletonTable cols={["Rate", "", ""]} rows={4} /> : (
         <>
           <Section title="Rates" actions={<Btn kind="primary" small onClick={() => rateForm(null)}>+ Add rate</Btn>}>
             <Table

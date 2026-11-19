@@ -211,6 +211,16 @@ caching). "Reset to built-in" goes back to the text in `src/data/`. How it works
 before the app loads, and `applySiteContent()` / `applyLegalContent()` replace the built-in values. It waits at most 2.5 s, then
 falls back to the copy this browser saved last time, then to the built-in text.
 
+**Loading and speed:** every screen loads its data with `useLoad` (`src/admin/ui.jsx`). While a screen loads for the first
+time it shows grey skeletons shaped like its content (`SkeletonTable`, `SkeletonCards`, `SkeletonDetails`, `SkeletonBar`;
+`Table` shows its own skeleton rows with the real column titles). A screen opened again shows the data it had last time at
+once, with **Updating…** in the top bar while the fresh copy loads (`src/lib/loadCache.js`, memory only, never on disk).
+Safety: any change sent to the server (save, sell, board, cancel…) forgets every saved screen; another person signing in
+forgets them too; saved data older than 5 minutes is not shown; seats for sale, the counter-cancel cash quote, the
+Passengers (boarding) window and bus cargo loading always load fresh (`useLoad(fn, deps, { fresh: true })`). The checked
+account is kept for the browser tab (`sessionStorage`, name/role/terminal only), so reloading the page opens the screens
+at once while the account is checked again in the background.
+
 ---
 
 ## 7. Languages (English / Urdu)

@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { legalBuiltIn } from "../../data/legal";
 import { siteBuiltIn } from "../../data/site";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, fmtDT, Page, useConfirm, useLoad } from "../ui";
+import { act, Badge, Btn, ErrorNote, fmtDT, Page, SkeletonDetails, useConfirm, useLoad } from "../ui";
 
 const SECTIONS = [
   { key: "company", title: "Contact details", about: "Helpline, WhatsApp, email, head office address and hours, social links. Used in the header, footer, buttons and policies.", builtIn: siteBuiltIn.company },
@@ -242,7 +242,7 @@ export function Content() {
           </div>
           <div className="mt-4" key={`${key}-${ver}`}>
             {saved.loading && !saved.data ? (
-              <p className="text-sm text-mute">Loading…</p>
+              <SkeletonDetails lines={3} />
             ) : (
               <ValueEditor name={key} value={current} onChange={(v) => setDrafts((d) => ({ ...d, [key]: v }))} />
             )}

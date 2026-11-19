@@ -4,6 +4,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "../components/Toast";
+import { getSession } from "../booking/auth";
+import { getCached, loadCacheGeneration, refreshStarted, setCached } from "../lib/loadCache";
 import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../components/PatternFields";
 
 /* ------------------------------------------------------------------ browser tab title */
@@ -41,31 +43,66 @@ export const rs = (n) => (n === null || n === undefined || n === "" ? "–" : `R
 
 /* ------------------------------------------------------------------ data */
 
-/** Runs `fn` on mount and whenever `deps` change. Returns { data, err, loading, reload, setData }. */
-export function useLoad(fn, deps = []) {
-  const [data, setData] = useState(null);
+/** The saved-data key of a screen's load: who, which page, which call, with which values. null = do not save. */
+function loadKey(fn, deps) {
+  try {
+    return [getSession()?.user?.id ?? "", window.location.pathname, String(fn), JSON.stringify(deps)].join("");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Runs `fn` on mount and whenever `deps` change. Returns { data, err, loading, stale, reload, setData }.
+ * A screen opened again shows the data it had last time at once (`stale` = true) while the fresh copy loads,
+ * see lib/loadCache.js. `{ fresh: true }` never shows saved data: for seats on sale, cash quotes, boarding.
+ */
+export function useLoad(fn, deps = [], { fresh = false } = {}) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const key = fresh ? null : loadKey(fn, deps);
+  const [data, setData] = useState(() => (key ? getCached(key) ?? null : null));
+  const [stale, setStale] = useState(() => Boolean(key && getCached(key) !== undefined));
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const seq = useRef(0);
+  const shownKey = useRef(key);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const reload = useCallback(async () => {
     const n = ++seq.current;
+    const gen = loadCacheGeneration();
+    // New values (another date, another page of a list): show what was saved for them, if anything.
+    if (key && key !== shownKey.current) {
+      shownKey.current = key;
+      const saved = getCached(key);
+      if (saved !== undefined) {
+        setData(saved);
+        setStale(true);
+      }
+    }
     setLoading(true);
     try {
       const d = await fn();
       if (n === seq.current) {
         setData(d);
+        setStale(false);
         setErr("");
+        if (key) setCached(key, d, gen);
       }
     } catch (e) {
-      if (n === seq.current) setErr(e.message || "Could not load");
+      if (n === seq.current) {
+        setErr(e.message || "Could not load");
+        setStale(false);
+      }
     }
     if (n === seq.current) setLoading(false);
   }, deps);
   useEffect(() => {
     reload();
   }, [reload]);
-  return { data, err, loading, reload, setData };
+  // "Updating…" in the corner while saved data is on the screen.
+  const showingSaved = stale && loading;
+  useEffect(() => (showingSaved ? refreshStarted() : undefined), [showingSaved]);
+  return { data, err, loading, stale: showingSaved, reload, setData };
 }
 
 /** Runs an action, shows a toast for success or failure, and returns true when it worked. */
@@ -113,6 +150,84 @@ export function FormError({ err }) {
     <p role="alert" className="rounded-xl border-2 border-red-600 bg-red-50 p-3 text-sm font-semibold text-red-900">
       Not saved: {err.message}
     </p>
+  );
+}
+
+/* ------------------------------------------------------------------ loading skeletons */
+
+/** One grey pulsing bar. Screen readers hear "Loading" once, from the skeleton's container. */
+export const SkeletonBar = ({ className = "h-4 w-full" }) => <span aria-hidden className={`block animate-pulse rounded-md bg-neutral-200 ${className}`} />;
+
+const BAR_WIDTHS = ["w-3/4", "w-1/2", "w-2/3", "w-5/6", "w-1/3"];
+
+/** A table's shape (the real column titles, grey rows) while its rows load. */
+export function SkeletonTable({ cols = [], rows = 6, numbered = false }) {
+  const n = Math.max(cols.length, 3);
+  return (
+    <div role="status" aria-label="Loading" data-skeleton className="overflow-x-auto rounded-xl border border-neutral-300">
+      <table className="w-full min-w-[640px] text-left text-sm">
+        <thead className="bg-neutral-100 text-xs uppercase tracking-wide text-neutral-600">
+          <tr>
+            {numbered && <th className="w-10 px-3 py-2 text-right font-bold">#</th>}
+            {(cols.length ? cols : Array.from({ length: n }, () => "")).map((c, i) => <th key={i} className="px-3 py-2 font-bold">{c}</th>)}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-neutral-200">
+          {Array.from({ length: rows }, (_, r) => (
+            <tr key={r}>
+              {numbered && <td className="w-10 px-3 py-3"><SkeletonBar className="ms-auto h-3 w-4" /></td>}
+              {Array.from({ length: n }, (_, i) => (
+                <td key={i} className="px-3 py-3"><SkeletonBar className={`h-3 ${BAR_WIDTHS[(r + i) % BAR_WIDTHS.length]}`} /></td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Cards in a grid (the counter's departures, the board, summaries) while they load. */
+export function SkeletonCards({ count = 4, className = "grid gap-3 sm:grid-cols-2 xl:grid-cols-3" }) {
+  return (
+    <div role="status" aria-label="Loading" data-skeleton className={className}>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="rounded-2xl border-2 border-neutral-200 bg-white p-4">
+          <SkeletonBar className="h-5 w-1/2" />
+          <SkeletonBar className="mt-3 h-3 w-3/4" />
+          <SkeletonBar className="mt-2 h-3 w-2/3" />
+          <div className="mt-4 flex gap-2">
+            <SkeletonBar className="h-8 w-24 rounded-xl" />
+            <SkeletonBar className="h-8 w-20 rounded-xl" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A details panel or form (label + value lines) while it loads. */
+export function SkeletonDetails({ lines = 6 }) {
+  return (
+    <div role="status" aria-label="Loading" data-skeleton className="grid gap-3">
+      {Array.from({ length: lines }, (_, i) => (
+        <div key={i} className="grid gap-1.5">
+          <SkeletonBar className="h-3 w-24" />
+          <SkeletonBar className={`h-4 ${BAR_WIDTHS[i % BAR_WIDTHS.length]}`} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A full screen (title + table) while it loads: used before a screen knows anything about itself. */
+export function SkeletonPage({ title }) {
+  return (
+    <div>
+      {title ? <h1 className="text-2xl font-extrabold text-black">{title}</h1> : <SkeletonBar className="h-7 w-56" />}
+      <SkeletonBar className="mt-2 h-3 w-80 max-w-full" />
+      <div className="mt-5"><SkeletonTable rows={5} /></div>
+    </div>
   );
 }
 
@@ -198,7 +313,7 @@ export function ErrorNote({ err, onRetry }) {
  *   makes the numbers carry on across pages (page 2 of 50 starts at 51). Without it, the rows shown are the whole list.
  */
 export function Table({ cols, rows, empty = "Nothing here yet.", loading = false, rowKey = (r) => r.id, numbered = null }) {
-  if (loading && !rows) return <p className="text-sm text-mute">Loading…</p>;
+  if (loading && !rows) return <SkeletonTable cols={cols.map((c) => c.label)} numbered={Boolean(numbered)} />;
   if (!rows?.length) return <p className="rounded-xl border border-dashed border-neutral-400 p-4 text-sm text-mute">{empty}</p>;
   const p = numbered?.pagination;
   const first = p?.page && p?.limit ? (p.page - 1) * p.limit + 1 : 1;

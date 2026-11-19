@@ -1,7 +1,7 @@
 /** People and reports: user accounts and staff roles, revenue reports, activity (audit) log. */
 import { useState } from "react";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, Input, Label, Page, pkDate, rs, Section, Select, StatusBadge, Table, useConfirm, useForm, useLoad } from "../ui";
+import { act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, Input, Label, Page, pkDate, rs, Section, Select, SkeletonBar, StatusBadge, Table, useConfirm, useForm, useLoad } from "../ui";
 import { Pager } from "./Operations";
 
 const ROLES = [
@@ -148,7 +148,7 @@ export function Reports() {
         ].map(([k, v]) => (
           <div key={k} className="rounded-2xl border-2 border-black bg-white p-4">
             <p className="text-xs font-bold uppercase text-neutral-500">{k}</p>
-            <p className="mt-1 text-2xl font-extrabold">{v ?? "…"}</p>
+            <p className="mt-1 text-2xl font-extrabold">{v ?? <SkeletonBar className="mt-1 h-7 w-20" />}</p>
           </div>
         ))}
       </div>

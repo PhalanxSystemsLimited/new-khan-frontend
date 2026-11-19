@@ -8,6 +8,7 @@
 import { cities as siteCities, lahore, multan } from "../../data/site";
 import { ApiError } from "../errors";
 import { clearSession, getSession, setSession } from "../auth";
+import { clearLoadCache } from "../../lib/loadCache";
 
 const BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:4000/api/v1").replace(/\/$/, "");
 
@@ -78,7 +79,19 @@ function makeApiError(status, body) {
   return new ApiError("INVALID_STATE", message);
 }
 
-async function request(path, { method = "GET", body, auth = false, headers = {} } = {}, retried = false) {
+async function request(path, opts = {}, retried = false) {
+  // A change on the server: the admin panel's saved screens are out of date (before AND after, so a screen
+  // that loads while the change is being made is not kept either).
+  if ((opts.method ?? "GET") === "GET") return send(path, opts, retried);
+  clearLoadCache();
+  try {
+    return await send(path, opts, retried);
+  } finally {
+    clearLoadCache();
+  }
+}
+
+async function send(path, { method = "GET", body, auth = false, headers = {} } = {}, retried = false) {
   let token = null;
   if (auth) {
     token = await validToken();
@@ -99,7 +112,7 @@ async function request(path, { method = "GET", body, auth = false, headers = {} 
     throw new ApiError("INVALID_STATE", "Could not reach the booking server. Check your connection and try again.");
   }
   const data = await res.json().catch(() => null);
-  if (res.status === 401 && auth && !retried && (await refreshToken())) return request(path, { method, body, auth, headers }, true);
+  if (res.status === 401 && auth && !retried && (await refreshToken())) return send(path, { method, body, auth, headers }, true);
   if (res.status === 401 && auth) clearSession();
   if (!res.ok) throw toApiError(res.status, data);
   return data;

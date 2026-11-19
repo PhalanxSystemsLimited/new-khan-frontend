@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, Filters, fmtDT, inFormSave, Input, Label, lastActError, Modal, Page, rs, Select, Table, useLoad } from "../ui";
+import { act, Badge, Btn, ErrorNote, Filters, fmtDT, inFormSave, Input, Label, lastActError, Modal, Page, rs, Select, SkeletonDetails, Table, useLoad } from "../ui";
 import { Pager } from "./Operations";
 import { PaymentBadge, phoneText } from "./cargoShared";
 
@@ -36,7 +36,7 @@ export function ListTotals({ t }) {
 }
 
 export function CargoLoadWindow({ tripId, stopId, onClose, onChanged }) {
-  const view = useLoad(() => adminApi.cargoLoading(tripId, stopId), [tripId, stopId]);
+  const view = useLoad(() => adminApi.cargoLoading(tripId, stopId), [tripId, stopId], { fresh: true }); // loading a bus: never older data
   const [no, setNo] = useState("");
   const [msg, setMsg] = useState(null); // { ok, text }
   const [busy, setBusy] = useState(false);
@@ -85,7 +85,7 @@ export function CargoLoadWindow({ tripId, stopId, onClose, onChanged }) {
   return (
     <Modal wide title={v ? `Cargo · bus ${v.trip.busNo} · ${v.stop.city}` : "Cargo"} onClose={onClose}>
       <ErrorNote err={view.err} onRetry={view.reload} />
-      {!v ? <p className="text-sm text-mute">Loading…</p> : (
+      {!v ? <SkeletonDetails /> : (
         // minmax(0, 1fr): the wide tables scroll inside their own box instead of widening the window on a phone.
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
           <div className="flex flex-wrap items-center gap-2 text-sm">

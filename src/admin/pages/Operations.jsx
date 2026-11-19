@@ -6,8 +6,7 @@ import { adminApi } from "../api";
 import OneOffTripForm from "./OneOffTripForm";
 import ExtraDepartureForm from "./ExtraDepartureForm";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, fmtT, Input, Label, Modal, Page, pkDate, rs, Section, Select,
-  StatusBadge, Table, useConfirm, useForm, useLoad,
+  act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, fmtT, Input, Label, Modal, Page, pkDate, rs, Section, Select, SkeletonBar, SkeletonDetails, StatusBadge, Table, useConfirm, useForm, useLoad,
 } from "../ui";
 
 /* ------------------------------------------------------------------ helpers */
@@ -27,7 +26,7 @@ const Stat = ({ label, value, to }) => {
   const body = (
     <>
       <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className="mt-1 text-2xl font-extrabold text-black">{value ?? "…"}</p>
+      <p className="mt-1 text-2xl font-extrabold text-black">{value ?? <SkeletonBar className="mt-1 h-7 w-16" />}</p>
     </>
   );
   return to ? (
@@ -104,12 +103,12 @@ const STATUS_HELP = {
 };
 
 function ManifestModal({ trip, onClose }) {
-  const m = useLoad(() => adminApi.manifest(trip.id), [trip.id]);
+  const m = useLoad(() => adminApi.manifest(trip.id), [trip.id], { fresh: true }); // boarding: never older data
   const boarded = (m.data ?? []).filter((r) => r.status === "boarded").length;
   return (
     <Modal wide title={`Passengers · ${trip.routeName} · ${fmtDT(trip.departureAt)}`} onClose={onClose}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span>{m.data ? `${m.data.length} passengers, ${boarded} boarded` : "Loading…"}</span>
+        <span>{m.data ? `${m.data.length} passengers, ${boarded} boarded` : "Loading passengers…"}</span>
         <div className="flex gap-2">
           <Btn small onClick={m.reload}>Refresh</Btn>
           <Btn small onClick={() => window.print()}>Print</Btn>
@@ -406,7 +405,7 @@ const METHOD_NAME = { cash: "cash", card: "card", jazzcash: "JazzCash", easypais
  * admin for approval and back to the card or wallet.
  */
 function CounterRefundModal({ id, onClose, onDone }) {
-  const q = useLoad(() => adminApi.counterQuote(id), [id]);
+  const q = useLoad(() => adminApi.counterQuote(id), [id], { fresh: true }); // cash to hand back: never older data
   const d = q.data;
   const [cnic, setCnic] = useState("");
   const [code, setCode] = useState("");
@@ -465,7 +464,7 @@ function CounterRefundModal({ id, onClose, onDone }) {
   return (
     <Modal title={d ? `Cancel at counter · ${d.pnr}` : "Cancel at counter"} onClose={onClose}>
       <ErrorNote err={q.err} onRetry={q.reload} />
-      {!d && !q.err && <p className="text-sm text-mute">Loading…</p>}
+      {!d && !q.err && <SkeletonDetails lines={4} />}
 
       {done && (
         <div className="grid gap-3">
@@ -606,7 +605,7 @@ function BookingModal({ id, onClose, onChanged, isAdmin }) {
     <Modal wide title={d ? `Booking ${d.pnr}` : "Booking"} onClose={onClose}>
       <ErrorNote err={b.err} onRetry={b.reload} />
       {!d ? (
-        <p className="text-sm text-mute">Loading…</p>
+        <SkeletonDetails />
       ) : (
         <div className="grid gap-4">
           <div className="flex flex-wrap items-center gap-2">

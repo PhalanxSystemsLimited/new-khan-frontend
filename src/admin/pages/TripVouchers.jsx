@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { adminApi } from "../api";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtDT, Input, Label, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useLoad, usePageTitle,
+  act, Badge, Btn, ErrorNote, Filters, fmtDT, Input, Label, Modal, Page, pkDate, Section, Select, SkeletonDetails, StatusBadge, Table, useLoad, usePageTitle,
 } from "../ui";
 import { Pager } from "./Operations";
 import { departure, money, stamp } from "../../report/format";
@@ -229,7 +229,7 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
       <div className={highlight ? "rounded-xl ring-4 ring-amber-300" : ""}>
         {t.voucher ? (
           !v ? (
-            <p className="text-sm text-mute">{voucher.err || "Loading…"}</p>
+            voucher.err ? <p className="text-sm text-mute">{voucher.err}</p> : <SkeletonDetails lines={4} />
           ) : (
             <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
               <div>
@@ -341,7 +341,7 @@ export function TripVoucherDetail({ isManager }) {
   usePageTitle(`Vouchers · Trip ${id}`);
 
   if (d.err) return <Page title="Vouchers"><Link to="/admin/trip-vouchers" className="text-sm">‹ All vouchers</Link><ErrorNote err={d.err} onRetry={d.reload} /></Page>;
-  if (!d.data) return <Page title="Vouchers"><p className="text-sm text-mute">Loading…</p></Page>;
+  if (!d.data) return <Page title="Vouchers"><SkeletonDetails lines={8} /></Page>;
   const { trip, terminals, passengers } = d.data;
   const shown = onlyStop ? passengers.filter((p) => String(p.boardingStopId) === onlyStop) : passengers;
 

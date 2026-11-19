@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { clearLoadCache } from "../lib/loadCache";
 
 /**
  * Session store for the live backend (Supabase tokens issued through the backend's /auth endpoints).
@@ -24,6 +25,8 @@ export function getSession() {
 }
 
 export function setSession(s) {
+  // Another person (or nobody): forget the admin screens the last one saw. A token refresh keeps them.
+  if ((s?.user?.id ?? null) !== (session?.user?.id ?? null) || !s?.accessToken) clearLoadCache();
   session = s?.accessToken ? { accessToken: s.accessToken, refreshToken: s.refreshToken, expiresAt: s.expiresAt, user: s.user ?? null } : null;
   try {
     if (session) localStorage.setItem(KEY, JSON.stringify(session));

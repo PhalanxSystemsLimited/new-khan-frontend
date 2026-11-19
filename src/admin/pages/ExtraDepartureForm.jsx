@@ -9,7 +9,7 @@
 import { useState } from "react";
 import { toast } from "../../components/Toast";
 import { adminApi } from "../api";
-import { act, Btn, ErrorNote, formError, FormError, inFormSave, Input, Label, lastActError, Modal, pkLocalToIso, Select, useLoad } from "../ui";
+import { act, Btn, ErrorNote, FormError, formError, inFormSave, Input, Label, lastActError, Modal, pkLocalToIso, Select, SkeletonDetails, useLoad } from "../ui";
 
 const when = (ms) =>
   new Date(ms).toLocaleString("en-GB", { timeZone: "Asia/Karachi", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true });
@@ -108,7 +108,7 @@ export default function ExtraDepartureForm({ terminalId, onClose, onCreated }) {
   return (
     <Modal title="Add extra departure" onClose={onClose}>
       <ErrorNote err={o.err} onRetry={o.reload} />
-      {!d && !o.err && <p className="text-sm text-mute">Loading…</p>}
+      {!d && !o.err && <SkeletonDetails lines={4} />}
       {d && (
         <form onSubmit={(e) => { e.preventDefault(); save(false); }} noValidate className="grid gap-4">
           <p className="rounded-xl bg-neutral-100 p-3 text-sm text-neutral-800">

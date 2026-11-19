@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, Filters, Input, Label, Page, pkDate, Section, Select, StatusBadge, Table, useConfirm, useLoad } from "../ui";
+import { act, Badge, Btn, ErrorNote, Filters, Input, Label, Page, pkDate, Section, Select, SkeletonTable, StatusBadge, Table, useConfirm, useLoad } from "../ui";
 
 import { addDays, byTerminal, downloadBlob, longDate, makeCsv, makePdf, stamp, stopsText, time } from "../dayPlanFiles";
 
@@ -167,7 +167,7 @@ export function DayPlan() {
         <Btn onClick={plan.reload}>Refresh</Btn>
       </Filters>
       <ErrorNote err={plan.err} onRetry={plan.reload} />
-      {plan.loading && !plan.data && <p className="text-sm text-mute">Loading…</p>}
+      {plan.loading && !plan.data && <SkeletonTable rows={5} />}
 
       {days.map((d) => (
         <Section

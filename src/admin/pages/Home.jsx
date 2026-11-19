@@ -11,7 +11,7 @@ import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../../lib/cnic";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, Filters, Input, Label, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useLoad } from "../ui";
+import { act, Badge, Btn, ErrorNote, Filters, Input, Label, Modal, Page, pkDate, Section, Select, SkeletonBar, SkeletonCards, StatusBadge, Table, useLoad } from "../ui";
 import { CargoLoadWindow } from "./CargoLists";
 import ExtraDepartureForm from "./ExtraDepartureForm";
 import { aisleIndex } from "../../booking/seatRules";
@@ -118,6 +118,7 @@ export function CounterScreen({ me }) {
             : `No departures from ${d.terminal.city} on this day.`}
         </p>
       )}
+      {!d && deps.loading && (me.role === "agent" || terminalId) && <SkeletonCards count={3} className="grid gap-3" />}
       <div className="grid gap-3">{main.map(card)}</div>
       {left.length > 0 && (
         <details className="mt-4 rounded-2xl border-2 border-neutral-300 bg-white p-3">
@@ -193,7 +194,7 @@ function DepartureCard({ t, date, onSell, onCargo, onArrived }) {
 
 /** Quick counter sale: choose seats and destination, type the passengers, take the cash, print. */
 function QuickSale({ trip, onClose, onSold }) {
-  const seats = useLoad(() => adminApi.tripSeats(trip.tripId), [trip.tripId]);
+  const seats = useLoad(() => adminApi.tripSeats(trip.tripId), [trip.tripId], { fresh: true }); // seats for sale: never older data
   const [picked, setPicked] = useState([]); // seat ids in click order
   const [dest, setDest] = useState(trip.destinations.at(-1)?.stopId ?? "");
   const [contact, setContact] = useState({ name: "", phone: "", cnic: "" });
@@ -415,6 +416,7 @@ export function MyTrips() {
   return (
     <Page title="My trips" intro="The trips you are assigned to, from two days ago to a week ahead. Ask the terminal manager about any change.">
       <ErrorNote err={trips.err} onRetry={trips.reload} />
+      {!trips.data && trips.loading && <SkeletonCards count={3} className="mt-6 grid gap-3" />}
       {trips.data && trips.data.length === 0 && <p className="rounded-xl border border-dashed border-neutral-400 p-4 text-sm text-mute">You have no trips in these days.</p>}
       {byDay.map(([day, list]) => (
         <Section key={day} title={<>{dayName(list[0].departureAt)} {day === todayKey && <Badge tone="green">today</Badge>}</>}>
@@ -452,7 +454,7 @@ export function Board({ isAdmin }) {
   const Stat = ({ label, value, tone }) => (
     <div className={`rounded-2xl border-2 bg-white p-3 ${tone === "red" && value > 0 ? "border-red-600" : "border-black"}`}>
       <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className={`mt-1 text-2xl font-extrabold ${tone === "red" && value > 0 ? "text-red-700" : ""}`}>{value ?? "…"}</p>
+      <p className={`mt-1 text-2xl font-extrabold ${tone === "red" && value > 0 ? "text-red-700" : ""}`}>{value ?? <SkeletonBar className="mt-1 h-7 w-12" />}</p>
     </div>
   );
   return (

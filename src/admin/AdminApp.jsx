@@ -12,6 +12,7 @@ import { AuthDialog } from "../booking/AuthDialog";
 import { Toaster } from "../components/Toast";
 import { adminApi } from "./api";
 import { ADMIN_TITLE, Btn, usePageTitle } from "./ui";
+import { useRefreshing } from "../lib/loadCache";
 import { Bookings, Dashboard, Refunds, Trips } from "./pages/Operations";
 import { Fares, RoutesPage, Schedules } from "./pages/Network";
 import { Buses, Conductors, Drivers, Locations } from "./pages/Fleet";
@@ -107,9 +108,36 @@ const MENU = [
   ["Website", [["content", "Website content", "admin", Content]]],
 ];
 
+/* The checked account, for this browser tab only (sessionStorage): a reload opens the screens at once. */
+const ME_KEY = "nk-admin-me";
+function savedMe(userId) {
+  if (!userId) return undefined;
+  try {
+    const m = JSON.parse(sessionStorage.getItem(ME_KEY) ?? "null");
+    return m?.id === userId ? m : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function saveMe(m) {
+  try {
+    // Only what the screens use (no CNIC, date of birth…).
+    if (m?.id) sessionStorage.setItem(ME_KEY, JSON.stringify({ id: m.id, role: m.role, fullName: m.fullName, email: m.email, phone: m.phone, terminalId: m.terminalId, terminalName: m.terminalName }));
+    else sessionStorage.removeItem(ME_KEY);
+  } catch {
+    // storage blocked: the account is checked on every load, as before
+  }
+}
+
 function Gate({ children }) {
   const session = useSession();
-  const [me, setMe] = useState(undefined); // undefined = loading, null = failed
+  // undefined = loading, null = failed. Opens with the account this tab checked last time (same person), so
+  // the screens start loading at once; the check below still runs and replaces it (role changed, deactivated…).
+  const [me, setMeState] = useState(() => savedMe(session?.user?.id));
+  const setMe = (m) => {
+    setMeState(m);
+    saveMe(m);
+  };
   const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
@@ -119,7 +147,8 @@ function Gate({ children }) {
 
   useEffect(() => {
     if (!session) return setMe(null);
-    setMe(undefined);
+    // A token refresh (same person) keeps the screen open while the account is checked again.
+    setMeState((m) => (m && m.id === session.user?.id ? m : savedMe(session.user?.id)));
     adminApi.me().then(setMe, () => setMe(null));
   }, [session?.accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -162,6 +191,18 @@ function Gate({ children }) {
 function Titled({ title, children }) {
   usePageTitle(title);
   return children;
+}
+
+/** "Updating…" while a screen shows the data it had last time and the fresh copy is loading. */
+function Updating() {
+  const on = useRefreshing();
+  if (!on) return null;
+  return (
+    <span role="status" data-updating className="inline-flex items-center gap-1.5 rounded-full border border-neutral-300 bg-neutral-50 px-2.5 py-0.5 text-xs font-semibold text-neutral-600">
+      <span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+      Updating…
+    </span>
+  );
 }
 
 function Shell({ me }) {
@@ -209,6 +250,7 @@ function Shell({ me }) {
             </Link>
           </div>
           <div className="flex items-center gap-2 text-sm">
+            <Updating />
             <span className="hidden text-neutral-700 sm:inline">
               {me.fullName || me.email} · <b>{ROLE_NAME[me.role] ?? me.role}</b>
               {me.terminalName ? ` · ${me.terminalName}` : ""}
