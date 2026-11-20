@@ -43,6 +43,7 @@ const T = {
   cnic: { en: "CNIC", ur: "شناختی کارڈ" },
   bus: { en: "Bus", ur: "بس" },
   paid: { en: "Paid", ur: "ادائیگی" },
+  extraLoad: { en: "Extra load paid", ur: "اضافی سامان کی ادائیگی" },
   boarded: { en: "boarded", ur: "سوار" },
   notBoarded: { en: "not boarded yet", ur: "ابھی سوار نہیں" },
   openAdmin: { en: "Open the ticket in admin", ur: "ایڈمن میں ٹکٹ کھولیں" },
@@ -189,6 +190,13 @@ export default function TicketCheck() {
             {x.holderCnicMasked && row(t("cnic"), <span className="ltr font-mono">{x.holderCnicMasked}</span>)}
             {row(t("bus"), <span className="ltr">{x.bus}</span>)}
             {row(t("paid"), <span className="ltr">{pkr(x.paidAmount)} / {pkr(x.totalAmount)}{x.paidBy?.length ? ` · ${x.paidBy.join(", ")}` : ""}</span>)}
+            {x.loadSlips?.length > 0 &&
+              row(
+                t("extraLoad"),
+                <span className="ltr">
+                  {x.loadSlips.map((s) => `${s.slipNo} · ${pkr(s.amount)}${s.pieces ? ` · ${s.pieces} bag${s.pieces === 1 ? "" : "s"}` : ""}${s.weightKg ? ` · ${s.weightKg} kg` : ""}`).join(" | ")}
+                </span>,
+              )}
           </dl>
           <Link to={`/admin/ticket/${x.bookingId}`} className="mt-3 inline-block text-sm font-semibold text-sky-900 underline">{t("openAdmin")}</Link>
         </section>

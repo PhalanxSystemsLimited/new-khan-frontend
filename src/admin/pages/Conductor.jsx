@@ -5,6 +5,7 @@
  *   3. Tap an empty seat to book a road passenger (fare collected, or free). The seat is then taken for every
  *      later terminal, so it cannot be sold twice.
  *   4. Tap a passenger who did not travel to mark it with a note.
+ *   5. Tap a passenger to add extra load paid on the bus (an LD slip on their booking; the cash stays with him).
  * Only the trip's conductor (or its stand-in) can open it; managers and admins can open any trip.
  */
 import { CnicInput, PhoneInput, phoneMessage } from "../../components/PatternFields";
@@ -15,6 +16,7 @@ import { act, Badge, Btn, ErrorNote, Input, Label, Modal, Page, Section, Select,
 import { departure, money } from "../../report/format";
 import { aisleIndex } from "../../booking/seatRules";
 import { SteeringIcon } from "../../booking/SeatMap";
+import { LoadForm, LoadSlipList, useCanCancelSlip } from "./LoadSlips";
 
 const KEY = "nk-conductor-voucher";
 const remembered = () => {
@@ -206,14 +208,17 @@ export function ConductorScreen() {
       )}
 
       {seat && data && (
-        <SeatDialog seat={seat} data={data} onClose={() => setSeat(null)} onDone={() => { setSeat(null); load(openNo); }} />
+        <SeatDialog seat={seat} data={data} onClose={() => setSeat(null)} onDone={() => { setSeat(null); load(openNo); }} onRefresh={() => load(openNo)} />
       )}
     </Page>
   );
 }
 
-function SeatDialog({ seat, data, onClose, onDone }) {
+function SeatDialog({ seat, data, onClose, onDone, onRefresh }) {
   const p = seat.passenger;
+  const [slips, setSlips] = useState(p?.loadSlips ?? []); // this booking's extra load slips
+  const [savedSlip, setSavedSlip] = useState(null);
+  const canCancel = useCanCancelSlip();
   const road = data.roadBooking;
   const [f, setF] = useState({ name: "", gender: "male", phone: "", cnic: "", destinationStopId: road?.destinations.at(-1)?.id ?? "", fare: "", free: false });
   const [note, setNote] = useState("Did not travel");
@@ -264,6 +269,30 @@ function SeatDialog({ seat, data, onClose, onDone }) {
             <Input id="ns-note" required minLength={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
             <Btn kind="danger" type="submit" disabled={busy}>Mark as did not travel</Btn>
           </form>
+        )}
+        {(p.canAddLoad || slips.length > 0) && (
+          <div className="mt-4 grid gap-3">
+            <h3 className="font-bold">Extra load · booking {p.pnr}</h3>
+            {savedSlip && (
+              <p className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-green-600 bg-green-50 p-3 text-sm text-green-900" role="status">
+                <span>Saved <b className="font-mono">{savedSlip.slipNo}</b>: Rs {money(savedSlip.amount)}.</span>
+                <a className="btn btn-gold !min-h-9 !px-3 !py-1 text-sm" href={`/admin/load-slip/${savedSlip.id}`} target="_blank" rel="noreferrer">Print slip</a>
+              </p>
+            )}
+            <LoadSlipList slips={slips} canCancel={canCancel} onChanged={onDone} empty="No extra load on this booking yet." />
+            {p.canAddLoad && (
+              <LoadForm
+                idPrefix="cl"
+                submitLabel="Save slip"
+                onSave={async (body) => {
+                  const s = await adminApi.conductorAddLoad(p.ticketId, body);
+                  setSlips((x) => [...x, s]);
+                  setSavedSlip(s);
+                  onRefresh?.();
+                }}
+              />
+            )}
+          </div>
         )}
       </Modal>
     );

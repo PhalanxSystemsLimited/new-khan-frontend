@@ -30,6 +30,7 @@ import { BookParcel, CargoSettings, Parcels } from "./pages/Cargo";
 import { CargoListPrint, ParcelLabels, ParcelReceipt, ParcelSlip } from "./pages/CargoPrint";
 import { CargoLists } from "./pages/CargoLists";
 import { CargoArrivals } from "./pages/CargoArrivals";
+import { LoadSlipPrint } from "./pages/LoadSlips";
 
 /** Everyone who works for New Khan and may open the panel. */
 export const EMPLOYEE = ["agent", "cargo", "driver", "conductor", "manager", "admin", "super_admin"];
@@ -300,6 +301,7 @@ export default function AdminApp() {
           <Route path="parcel-receipt/:id" element={CARGO_DESK.includes(me.role) ? <ParcelReceipt /> : <Navigate to="/admin" replace />} />
           <Route path="cargo-list/:id" element={!["driver", "conductor"].includes(me.role) ? <CargoListPrint /> : <Navigate to="/admin" replace />} />
           <Route path="parcel-labels/:id" element={CARGO_DESK.includes(me.role) ? <ParcelLabels /> : <Navigate to="/admin" replace />} />
+          <Route path="load-slip/:id" element={!["driver", "cargo", "customer"].includes(me.role) ? <LoadSlipPrint /> : <Navigate to="/admin" replace />} />
           <Route path="ticket/:id" element={!["driver", "conductor", "cargo"].includes(me.role) ? <TicketPrint /> : <Navigate to="/admin" replace />} />
           <Route path="*" element={<Shell me={me} />} />
         </Routes>

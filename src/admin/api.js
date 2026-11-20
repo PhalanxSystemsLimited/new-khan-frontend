@@ -45,6 +45,15 @@ export const adminApi = {
   refunds: (q) => get(`/admin/refunds${qs(q)}`),
   updateRefund: (id, b) => send("PATCH", `/admin/refunds/${id}`, b).then((r) => r.data),
 
+  // extra load slips (LD-…): a passenger's extra luggage, tied to their booking
+  /** { bookingId, pnr, status, routeName, busNo, boardingAt, boardingCity, droppingCity, passengers, slips, canAdd, whyNot } */
+  findLoadBooking: (q) => get(`/load-slips/find${qs({ q })}`).then((r) => r.data),
+  addLoadSlip: (b) => send("POST", "/load-slips", b).then((r) => r.data),
+  loadSlip: (id) => get(`/load-slips/${id}`).then((r) => r.data),
+  cancelLoadSlip: (id, reason) => send("POST", `/load-slips/${id}/cancel`, { reason }).then((r) => r.data),
+  /** The conductor, on the bus: a slip on a passenger's booking (the cash stays with him). */
+  conductorAddLoad: (ticketId, b) => send("POST", `/conductor/tickets/${ticketId}/load-slips`, b).then((r) => r.data),
+
   // cargo (parcels)
   cargoSetup: () => get("/cargo/setup").then((r) => r.data),
   cargoSaveSettings: (b) => send("PUT", "/cargo/settings", b).then((r) => r.data),

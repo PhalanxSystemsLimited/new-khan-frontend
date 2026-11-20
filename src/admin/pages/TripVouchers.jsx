@@ -18,6 +18,7 @@ import { Pager } from "./Operations";
 import { departure, money, stamp } from "../../report/format";
 import { CargoLoadWindow } from "./CargoLists";
 import { useMe } from "../../booking/useRole";
+import { LoadSlipList, useCanCancelSlip } from "./LoadSlips";
 
 /** "Voucher – Lahore → DI Khan (via …) · 02-11-2026 6:00 pm" */
 export const voucherTitle = (routeName, departureAt, terminal) =>
@@ -191,12 +192,17 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
   // With parcels on this terminal's cargo list, the voucher's Cargo is the list's paid total (the server uses it too).
   const fromList = !t.voucher && t.cargo?.parcelCount > 0;
   const cargoValue = fromList ? t.cargo.paidTotal : int(cargo);
-  const preview = t.preview ? { ...t.preview, loadAmount: int(load), cargoAmount: cargoValue, cashToConductor: t.preview.terminalCash + int(load) + cargoValue - t.preview.deductionsTotal } : null;
+  // Load = this terminal's extra load slips (locked; the server uses the same total). Typed only before load slips are set up.
+  const slipLoad = t.load; // null: not set up yet
+  const [showSlips, setShowSlips] = useState(false);
+  const canCancelSlip = useCanCancelSlip();
+  const loadValue = slipLoad ? slipLoad.total : int(load);
+  const preview = t.preview ? { ...t.preview, loadAmount: loadValue, cargoAmount: cargoValue, cashToConductor: t.preview.terminalCash + loadValue + cargoValue - t.preview.deductionsTotal } : null;
 
   async function generate() {
     setBusy(true);
     const ok = await act(
-      () => adminApi.generateVoucher(trip.id, { boardingStopId: t.stopId, loadAmount: int(load), cargoAmount: cargoValue }),
+      () => adminApi.generateVoucher(trip.id, { boardingStopId: t.stopId, loadAmount: loadValue, cargoAmount: cargoValue }),
       "Voucher generated",
       `Booking from ${t.city} is now closed.${fromList ? ` Cargo list ${t.cargo.listNo} closed: its parcels are on the bus.` : ""}`,
     );
@@ -262,7 +268,11 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label htmlFor={`ld-${t.stopId}`}>Load (Rs)</Label>
-                    <Input id={`ld-${t.stopId}`} type="number" min="0" step="1" value={load} onChange={(e) => setLoad(e.target.value)} placeholder="0" />
+                    {slipLoad ? (
+                      <Input id={`ld-${t.stopId}`} readOnly value={slipLoad.total} className="!bg-neutral-100" title="From the extra load slips" />
+                    ) : (
+                      <Input id={`ld-${t.stopId}`} type="number" min="0" step="1" value={load} onChange={(e) => setLoad(e.target.value)} placeholder="0" />
+                    )}
                   </div>
                   <div>
                     <Label htmlFor={`cg-${t.stopId}`}>Cargo (Rs)</Label>
@@ -272,6 +282,17 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
                       <Input id={`cg-${t.stopId}`} type="number" min="0" step="1" value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="0" />
                     )}
                   </div>
+                </div>
+              )}
+              {slipLoad && (
+                <div className="text-xs" data-load-line>
+                  {slipLoad.count > 0 ? (
+                    <>Load from <b>{slipLoad.count} slip{slipLoad.count === 1 ? "" : "s"}</b>: <b>Rs {money(slipLoad.total)}</b>. </>
+                  ) : (
+                    <span className="text-mute">No extra load slips for {t.city} yet: Load is Rs 0 (add load on a passenger&apos;s ticket: Counter → + Add load). </span>
+                  )}
+                  {slipLoad.count > 0 && <button type="button" className="font-bold underline" onClick={() => setShowSlips((x) => !x)}>{showSlips ? "Hide slips" : "Show slips"}</button>}
+                  {showSlips && <div className="mt-2"><LoadSlipList slips={slipLoad.slips} showBooking canCancel={canCancelSlip} onChanged={onChanged} /></div>}
                 </div>
               )}
               {t.cargo && (
@@ -297,6 +318,13 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
                 <p className="text-xs text-mute">Only {t.city} counter staff, managers and admins can generate this voucher.</p>
               )}
             </div>
+          </div>
+        )}
+        {t.voucher && slipLoad?.count > 0 && (
+          <div className="mt-3 text-sm" data-load-line>
+            Extra load on this voucher: <b>{slipLoad.count} slip{slipLoad.count === 1 ? "" : "s"}</b>, Rs {money(slipLoad.total)}.{" "}
+            <button type="button" className="font-bold underline" onClick={() => setShowSlips((x) => !x)}>{showSlips ? "Hide" : "Show"}</button>
+            {showSlips && <div className="mt-2"><LoadSlipList slips={slipLoad.slips} showBooking canCancel={canCancelSlip} onChanged={onChanged} /></div>}
           </div>
         )}
         {t.voucher && t.cargo?.listId && (

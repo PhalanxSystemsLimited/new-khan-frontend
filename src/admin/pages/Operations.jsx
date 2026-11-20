@@ -8,6 +8,7 @@ import ExtraDepartureForm from "./ExtraDepartureForm";
 import {
   act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, fmtT, Input, Label, Modal, Page, pkDate, rs, Section, Select, SkeletonBar, SkeletonDetails, StatusBadge, Table, useConfirm, useForm, useLoad,
 } from "../ui";
+import { AddLoadWindow, LoadSlipList, useCanCancelSlip } from "./LoadSlips";
 
 /* ------------------------------------------------------------------ helpers */
 
@@ -485,6 +486,12 @@ function CounterRefundModal({ id, onClose, onDone }) {
 
       {d && !done && (
         <form onSubmit={submit} className="grid gap-4">
+          {d.loadSlips?.length > 0 && (
+            <p role="alert" className="rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-sm text-amber-900">
+              This booking also has extra load: {d.loadSlips.map((s) => `${s.slipNo} Rs ${Number(s.amount).toLocaleString("en-US")}`).join(", ")}.
+              Cancelling the ticket does not cancel the load. If you give that money back too, cancel the slip as well (Bookings → this booking → Extra load){d.loadSlips.some((s) => s.onVoucher) ? "; a slip already on the voucher needs a manager" : ""}.
+            </p>
+          )}
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-xl bg-neutral-100 p-3 text-sm">
             <div><dt className="text-xs font-bold uppercase text-neutral-500">Paid</dt><dd>{rs(d.paid)} by {METHOD_NAME[d.paidBy] ?? d.paidBy}</dd></div>
             <div><dt className="text-xs font-bold uppercase text-neutral-500">Before departure</dt><dd>{d.hoursBeforeDeparture} hours</dd></div>
@@ -565,6 +572,8 @@ function BookingModal({ id, onClose, onChanged, isAdmin }) {
   const [ask, confirmNode] = useConfirm();
   const [openForm, form] = useForm();
   const [counter, setCounter] = useState(false);
+  const [addingLoad, setAddingLoad] = useState(false); // extra luggage on this booking (LD slip)
+  const canCancelSlip = useCanCancelSlip();
   const d = b.data;
 
   async function cancel() {
@@ -659,6 +668,15 @@ function BookingModal({ id, onClose, onChanged, isAdmin }) {
               ]}
             />
           </div>
+          {(d.loadSlips?.length > 0 || d.status === "confirmed") && (
+            <div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-bold">Extra load</h3>
+                {d.status === "confirmed" && <Btn small onClick={() => setAddingLoad(true)}>+ Add load</Btn>}
+              </div>
+              <LoadSlipList slips={d.loadSlips} canCancel={canCancelSlip} onChanged={() => { b.reload(); onChanged(); }} />
+            </div>
+          )}
           {d.refunds?.length > 0 && (
             <div>
               <h3 className="mb-2 font-bold">Refunds</h3>
@@ -689,6 +707,7 @@ function BookingModal({ id, onClose, onChanged, isAdmin }) {
           </div>
         </div>
       )}
+      {addingLoad && d && <AddLoadWindow initial={d.pnr} onClose={() => { setAddingLoad(false); b.reload(); onChanged(); }} />}
       {counter && (
         <CounterRefundModal
           id={id}

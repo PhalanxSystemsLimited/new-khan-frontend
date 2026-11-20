@@ -18,6 +18,7 @@ import { CargoLoadWindow } from "./CargoLists";
 import ExtraDepartureForm from "./ExtraDepartureForm";
 import { aisleIndex } from "../../booking/seatRules";
 import { SteeringIcon } from "../../booking/SeatMap";
+import { AddLoadWindow } from "./LoadSlips";
 
 const TZ = "Asia/Karachi";
 const time = (v) => (v ? new Date(v).toLocaleTimeString("en-GB", { timeZone: TZ, hour: "numeric", minute: "2-digit", hour12: true }).toLowerCase() : "–");
@@ -46,6 +47,7 @@ export function CounterScreen({ me }) {
   useEvery(deps.reload, 60_000);
   const [selling, setSelling] = useState(null);
   const [addingExtra, setAddingExtra] = useState(false);
+  const [addingLoad, setAddingLoad] = useState(false); // extra luggage on a ticket (LD slip)
   const d = deps.data;
 
   const arrived = async (t) => {
@@ -70,7 +72,12 @@ export function CounterScreen({ me }) {
     <Page
       title={d ? `Counter · ${d.terminal.city}` : "Counter"}
       intro="Buses leaving your terminal, from now on. Sell tickets until the voucher is generated, then print the voucher for the conductor. Buses ending here are under Arriving here."
-      actions={(me.role === "agent" || terminalId) && <Btn onClick={() => setAddingExtra(true)}>+ Extra departure</Btn>}
+      actions={
+        <>
+          <Btn onClick={() => setAddingLoad(true)}>+ Add load</Btn>
+          {(me.role === "agent" || terminalId) && <Btn onClick={() => setAddingExtra(true)}>+ Extra departure</Btn>}
+        </>
+      }
     >
       <Filters>
         {me.role !== "agent" && (
@@ -121,6 +128,7 @@ export function CounterScreen({ me }) {
         </details>
       )}
       {selling && <QuickSale trip={selling} onClose={() => setSelling(null)} onSold={() => { setSelling(null); deps.reload(); }} />}
+      {addingLoad && <AddLoadWindow onClose={() => setAddingLoad(false)} />}
       {addingExtra && <ExtraDepartureForm terminalId={me.role === "agent" ? undefined : terminalId} onClose={() => setAddingExtra(false)} onCreated={deps.reload} />}
     </Page>
   );

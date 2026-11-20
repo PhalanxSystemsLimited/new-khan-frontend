@@ -20,7 +20,7 @@ const maskCnic = (v) => (v ? String(v).replace(/^(\d{5})-?\d{7}-?(\d)$/, "$1-***
 const kg = (v) => `${Number(v).toLocaleString("en-US", { maximumFractionDigits: 2 })} kg`;
 
 /** Paper width chooser + the page size for printing. */
-function usePaper(title) {
+export function usePaper(title) {
   const [width, setWidth] = useState(80);
   useEffect(() => {
     const s = document.createElement("style");
@@ -36,7 +36,7 @@ function usePaper(title) {
   return { width, chooser };
 }
 
-const paperStyle = (width) => ({ width: `${width - 6}mm`, fontSize: width === 58 ? "8.5pt" : "10pt", lineHeight: 1.35 });
+export const paperStyle = (width) => ({ width: `${width - 6}mm`, fontSize: width === 58 ? "8.5pt" : "10pt", lineHeight: 1.35 });
 
 export function ParcelSlip() {
   const { id } = useParams();
