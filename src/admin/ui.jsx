@@ -241,7 +241,7 @@ export function Page({ title, intro, actions, children }) {
           <h1 className="text-2xl font-extrabold text-black">{title}</h1>
           {intro && <p className="mt-1 max-w-3xl text-sm text-mute">{intro}</p>}
         </div>
-        {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
       <div className="mt-5">{children}</div>
     </div>
@@ -254,7 +254,7 @@ export function Section({ title, actions, children }) {
       {(title || actions) && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           {title && <h2 className="text-lg font-bold text-black">{title}</h2>}
-          {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </div>
       )}
       {children}
@@ -286,7 +286,7 @@ const TONE = {
   blue: "border-sky-500 bg-sky-100 text-sky-900",
 };
 export const Badge = ({ tone = "grey", children }) => (
-  <span className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-bold ${TONE[tone]}`}>{children}</span>
+  <span className={`inline-flex items-center justify-center self-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-bold leading-4 ${TONE[tone]}`}>{children}</span>
 );
 const STATUS_TONE = {
   confirmed: "green", completed: "green", succeeded: "green", processed: "green", arrived: "green", active: "green",
