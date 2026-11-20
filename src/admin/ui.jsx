@@ -353,8 +353,8 @@ export function Table({ cols, rows, empty = "Nothing here yet.", loading = false
   );
 }
 
-/** Centred dialog (native <dialog>: focus trap and Escape for free). Rendered only while open. */
-export function Modal({ title, onClose, children, wide = false }) {
+/** Centred dialog (native <dialog>: focus trap and Escape for free). Rendered only while open. `wide`, or size="xl" (the counter sale). */
+export function Modal({ title, onClose, children, wide = false, size }) {
   const ref = useRef(null);
   useEffect(() => {
     const d = ref.current;
@@ -367,7 +367,7 @@ export function Modal({ title, onClose, children, wide = false }) {
         e.preventDefault();
         onClose();
       }}
-      className={`m-auto max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-black p-0 backdrop:bg-black/60 ${wide ? "w-[min(96vw,64rem)]" : "w-[min(94vw,34rem)]"}`}
+      className={`m-auto max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-black p-0 backdrop:bg-black/60 ${size === "xl" ? "w-[min(96vw,72rem)]" : wide ? "w-[min(96vw,64rem)]" : "w-[min(94vw,34rem)]"}`}
     >
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-neutral-200 bg-white px-5 py-3">
         <h2 className="text-lg font-bold text-black">{title}</h2>

@@ -315,80 +315,113 @@ function QuickSale({ trip, onClose, onSold }) {
     );
 
   const seatOf = (id) => grid.list.find((s) => s.seatId === id);
+  const fieldCls = "w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black";
+  const heading = (t) => <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500">{t}</h3>;
+  const chip = (cls, label) => (
+    <span className="inline-flex items-center gap-1.5"><span aria-hidden className={`inline-block h-3.5 w-3.5 rounded border-2 ${cls}`} />{label}</span>
+  );
   return (
-    <Modal title={`Sell ticket · ${time(trip.hereAt)} ${trip.routeName}`} onClose={onClose} wide>
-      <form onSubmit={sell} className="grid gap-4 lg:grid-cols-[auto_1fr]">
-        <div>
-          <p className="mb-2 text-sm font-bold">Choose seats</p>
+    <Modal title={`Sell ticket · ${time(trip.hereAt)} ${trip.routeName}`} onClose={onClose} size="xl">
+      <form onSubmit={sell} className="grid gap-6 lg:grid-cols-[auto_minmax(0,1fr)]">
+        {/* Seat map: only as wide as the seats. */}
+        <div className="lg:border-e lg:border-neutral-200 lg:pe-6">
+          <div className="flex items-baseline justify-between gap-3">
+            {heading("Choose seats")}
+            {picked.length > 0 && <span className="text-xs font-semibold text-neutral-600">{picked.length} selected</span>}
+          </div>
           <ErrorNote err={seats.err} onRetry={seats.reload} />
-          {gone && <p role="alert" className="mb-2 max-w-xs rounded-xl border-2 border-amber-500 bg-amber-50 p-2 text-sm text-amber-900">{gone}</p>}
-          <p className="mb-2 text-center text-xs font-bold tracking-widest text-neutral-500">▲ FRONT</p>
-          <div className="mx-auto grid w-fit gap-1.5">
-            {grid.rows.map((r) => (
-              <div key={r} className="flex gap-1.5">
-                {Array.from({ length: grid.maxCol }, (_, i) => i + 1).map((c) => {
-                  const s = grid.list.find((x) => x.rowNo === r && x.colNo === c);
-                  const gap = grid.aisle && c === grid.aisle + 1 ? <span key={`g${c}`} className="w-3" aria-hidden /> : null;
-                  if (!s) return [gap, <span key={c} className="h-11 w-11" aria-hidden />];
-                  if (s.kind === "driver")
-                    return [gap, <span key={c} role="img" aria-label="Driver" title="Driver" className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-dashed border-neutral-400 text-neutral-500"><SteeringIcon /></span>];
-                  const on = picked.includes(s.seatId);
-                  const cls = on
-                    ? "border-black bg-black text-white"
-                    : s.status === "available"
-                      ? "border-black bg-white"
-                      : s.occupantGender === "female" ? "border-pink-300 bg-pink-100 text-pink-800" : s.occupantGender === "male" ? "border-sky-300 bg-sky-100 text-sky-800" : "border-neutral-300 bg-neutral-200 text-neutral-400";
-                  return [
-                    gap,
-                    <button key={c} type="button" disabled={s.status !== "available"} onClick={() => toggle(s)} aria-pressed={on}
-                      aria-label={`Seat ${s.seatNumber}${s.status !== "available" ? " (taken)" : ""}`}
-                      className={`h-11 w-11 rounded-lg border-2 text-xs font-bold ${cls}`}>{s.seatNumber}</button>,
-                  ];
-                })}
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-mute">Pink / blue = taken by a woman / man. The system refuses a man and a woman from different bookings side by side.</p>
-        </div>
-        <div className="grid content-start gap-3">
-          <div>
-            <Label htmlFor="qs-to">Going to *</Label>
-            <Select id="qs-to" required value={dest} onChange={(e) => setDest(e.target.value)} options={trip.destinations.map((x) => ({ value: x.stopId, label: `${x.city} · Rs ${money(x.fare)}` }))} />
-          </div>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div>
-              <Label htmlFor="qs-n">Customer name *</Label>
-              <Input id="qs-n" required minLength={2} value={contact.name} onChange={(e) => setContact({ ...contact, name: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="qs-p">Mobile number *</Label>
-              <PhoneInput id="qs-p" required className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={contact.phone} onChange={(x) => setContact({ ...contact, phone: x })} showErrors={triedSale} />
-            </div>
-            <div>
-              <Label htmlFor="qs-c">Customer&apos;s CNIC *</Label>
-              <CnicInput id="qs-c" required className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={contact.cnic} onChange={(x) => setContact({ ...contact, cnic: x })} showErrors={triedSale} />
-            </div>
-          </div>
-          {picked.length > 0 && (
-            <div className="grid gap-2">
-              <p className="text-sm font-bold">Passengers</p>
-              {picked.map((id, i) => (
-                <div key={id} className="flex flex-wrap items-end gap-2">
-                  <b className="w-10">{seatOf(id)?.seatNumber}</b>
-                  <Input aria-label="Passenger name" className="!w-auto grow" required={i > 0} minLength={2} placeholder={i === 0 ? `${contact.name || "Customer"} (same as customer)` : "Name"}
-                    value={pax[id]?.name ?? ""} onChange={(e) => setPax({ ...pax, [id]: { ...pax[id], name: e.target.value } })} />
-                  <Select aria-label="Gender" className="!w-auto" value={pax[id]?.gender ?? "male"} onChange={(e) => setPax({ ...pax, [id]: { ...pax[id], gender: e.target.value } })}
-                    options={[{ value: "male", label: "Male" }, { value: "female", label: "Female" }]} />
+          {gone && <p role="alert" className="mx-auto mt-2 max-w-xs rounded-xl border-2 border-amber-500 bg-amber-50 p-2 text-sm text-amber-900">{gone}</p>}
+          <div className="mx-auto mt-3 w-fit rounded-2xl border border-neutral-200 bg-neutral-50 p-3">
+            <p className="mb-2 text-center text-[10px] font-bold tracking-widest text-neutral-500">▲ FRONT</p>
+            <div className="grid gap-1.5">
+              {grid.rows.map((r) => (
+                <div key={r} className="flex gap-1.5">
+                  {Array.from({ length: grid.maxCol }, (_, i) => i + 1).map((c) => {
+                    const s = grid.list.find((x) => x.rowNo === r && x.colNo === c);
+                    const gap = grid.aisle && c === grid.aisle + 1 ? <span key={`g${c}`} className="w-3" aria-hidden /> : null;
+                    if (!s) return [gap, <span key={c} className="h-11 w-11" aria-hidden />];
+                    if (s.kind === "driver")
+                      return [gap, <span key={c} role="img" aria-label="Driver" title="Driver" className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-dashed border-neutral-400 text-neutral-500"><SteeringIcon /></span>];
+                    const on = picked.includes(s.seatId);
+                    const cls = on
+                      ? "border-black bg-black text-white"
+                      : s.status === "available"
+                        ? "border-black bg-white hover:bg-neutral-100"
+                        : s.occupantGender === "female" ? "border-pink-300 bg-pink-100 text-pink-800" : s.occupantGender === "male" ? "border-sky-300 bg-sky-100 text-sky-800" : "border-neutral-300 bg-neutral-200 text-neutral-400";
+                    return [
+                      gap,
+                      <button key={c} type="button" disabled={s.status !== "available"} onClick={() => toggle(s)} aria-pressed={on}
+                        aria-label={`Seat ${s.seatNumber}${s.status !== "available" ? " (taken)" : ""}`}
+                        className={`h-11 w-11 rounded-lg border-2 text-xs font-bold ${cls}`}>{s.seatNumber}</button>,
+                    ];
+                  })}
                 </div>
               ))}
             </div>
-          )}
-          <p className="rounded-xl bg-neutral-100 p-3 text-lg">
-            {picked.length} × Rs {money(fare)} = <b>Rs {money(picked.length * fare)}</b> <span className="text-sm text-mute">cash</span>
-          </p>
-          <div className="flex gap-2">
-            <Btn kind="primary" type="submit" disabled={busy || !picked.length}>{busy ? "Selling…" : "Cash received · sell"}</Btn>
-            <Btn onClick={onClose}>Cancel</Btn>
+          </div>
+          <div className="mx-auto mt-3 grid w-fit grid-cols-2 gap-x-5 gap-y-1.5 text-xs text-neutral-700">
+            {chip("border-black bg-white", "Available")}
+            {chip("border-black bg-black", "Selected")}
+            {chip("border-pink-300 bg-pink-100", "Taken · woman")}
+            {chip("border-sky-300 bg-sky-100", "Taken · man")}
+          </div>
+          <p className="mx-auto mt-2 max-w-xs text-center text-xs text-mute">A man and a woman from different bookings cannot sit side by side.</p>
+        </div>
+
+        {/* The sale. */}
+        <div className="grid content-start gap-5">
+          <div>
+            <Label htmlFor="qs-to">Going to *</Label>
+            <Select id="qs-to" required value={dest} onChange={(e) => setDest(e.target.value)} options={trip.destinations.map((x) => ({ value: x.stopId, label: `${x.city} · Rs ${money(x.fare)} per seat` }))} />
+          </div>
+
+          <section className="grid gap-3">
+            {heading("Customer")}
+            <div>
+              <Label htmlFor="qs-n">Customer name *</Label>
+              <Input id="qs-n" required minLength={2} autoComplete="off" value={contact.name} onChange={(e) => setContact({ ...contact, name: e.target.value })} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="qs-p">Mobile number *</Label>
+                <PhoneInput id="qs-p" required className={fieldCls} value={contact.phone} onChange={(x) => setContact({ ...contact, phone: x })} showErrors={triedSale} />
+              </div>
+              <div>
+                <Label htmlFor="qs-c">CNIC *</Label>
+                <CnicInput id="qs-c" required className={fieldCls} value={contact.cnic} onChange={(x) => setContact({ ...contact, cnic: x })} showErrors={triedSale} />
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-2">
+            {heading(`Passengers${picked.length ? ` (${picked.length})` : ""}`)}
+            {picked.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-neutral-400 p-3 text-sm text-mute">Choose seats on the map. Each seat adds a passenger here.</p>
+            ) : (
+              picked.map((id, i) => (
+                <div key={id} className="flex items-center gap-2">
+                  <span className="flex h-10 min-w-12 shrink-0 items-center justify-center rounded-lg bg-black px-2 text-sm font-bold text-white">{seatOf(id)?.seatNumber}</span>
+                  <Input aria-label="Passenger name" className="min-w-0 flex-1" required={i > 0} minLength={2} placeholder={i === 0 ? `${contact.name || "Customer"} (same as customer)` : "Passenger name"}
+                    value={pax[id]?.name ?? ""} onChange={(e) => setPax({ ...pax, [id]: { ...pax[id], name: e.target.value } })} />
+                  <Select aria-label="Gender" className="!w-28 shrink-0" value={pax[id]?.gender ?? "male"} onChange={(e) => setPax({ ...pax, [id]: { ...pax[id], gender: e.target.value } })}
+                    options={[{ value: "male", label: "Male" }, { value: "female", label: "Female" }]} />
+                </div>
+              ))
+            )}
+          </section>
+
+          {/* Stays in view at the bottom of the window when the passenger list is long. */}
+          <div className="sticky bottom-0 grid gap-3 rounded-2xl border-2 border-black bg-white p-4 shadow-[0_-8px_16px_-12px_rgba(0,0,0,0.25)]">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <p className="text-sm text-neutral-700">
+                {picked.length} × Rs {money(fare)} <span className="text-mute">({picked.length === 1 ? "1 seat" : `${picked.length} seats`})</span>
+              </p>
+              <p className="text-2xl font-extrabold">Rs {money(picked.length * fare)} <span className="text-sm font-semibold text-mute">cash</span></p>
+            </div>
+            <div className="flex gap-2">
+              <Btn kind="primary" type="submit" className="flex-1" disabled={busy || !picked.length}>{busy ? "Selling…" : "Cash received · sell"}</Btn>
+              <Btn onClick={onClose}>Cancel</Btn>
+            </div>
           </div>
         </div>
       </form>
