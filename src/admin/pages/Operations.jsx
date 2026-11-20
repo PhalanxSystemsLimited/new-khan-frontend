@@ -724,15 +724,27 @@ function BookingModal({ id, onClose, onChanged, isAdmin }) {
   );
 }
 
-export function Bookings({ isAdmin }) {
-  const [q, setQ] = useState({ pnr: "", phone: "", status: "", page: 1 });
+export function Bookings({ me, isAdmin, isManager }) {
+  // Counter staff browse the bookings boarding at their terminal; a search by reference or phone finds any booking
+  // (a Lahore ticket can be cancelled at the Islamabad counter). Managers and admins see all, or pick a terminal.
+  const counter = me?.role === "agent";
+  const [q, setQ] = useState({ pnr: "", phone: "", status: "", terminalId: "", page: 1 });
   const [applied, setApplied] = useState({ page: 1 });
   const list = useLoad(() => adminApi.bookings({ ...applied, limit: 25 }), [JSON.stringify(applied)]);
+  const locs = useLoad(() => (isManager ? adminApi.locations() : Promise.resolve(null)), [isManager]);
   const [open, setOpen] = useState(null);
+  const scope = list.data?.scope;
+  const searching = Boolean(applied.pnr || applied.phone);
 
   const search = (e) => {
     e?.preventDefault();
-    setApplied({ pnr: q.pnr.trim().toUpperCase() || undefined, phone: q.phone.trim() || undefined, status: q.status || undefined, page: 1 });
+    setApplied({
+      pnr: q.pnr.trim().toUpperCase() || undefined,
+      phone: q.phone.trim() || undefined,
+      status: q.status || undefined,
+      terminalId: !counter && q.terminalId ? Number(q.terminalId) : undefined,
+      page: 1,
+    });
   };
 
   return (
@@ -751,26 +763,49 @@ export function Bookings({ isAdmin }) {
             <Label htmlFor="b-ph">Phone</Label>
             <Input id="b-ph" placeholder="+923001234567" value={q.phone} onChange={(e) => setQ({ ...q, phone: e.target.value })} />
           </div>
+          {isManager && (
+            <div>
+              <Label htmlFor="b-t">Boards at</Label>
+              <Select id="b-t" value={q.terminalId} onChange={(e) => setQ({ ...q, terminalId: e.target.value })}
+                options={[{ value: "", label: "All terminals" }, ...(locs.data?.terminals ?? []).filter((t) => t.isActive).map((t) => ({ value: t.id, label: `${t.cityName} · ${t.name}` }))]} />
+            </div>
+          )}
           <div>
             <Label htmlFor="b-st">Status</Label>
             <Select id="b-st" value={q.status} onChange={(e) => setQ({ ...q, status: e.target.value })} options={[{ value: "", label: "All" }, ...["pending", "confirmed", "completed", "cancelled", "expired", "refunded"].map((s) => ({ value: s, label: s }))]} />
           </div>
           <Btn kind="primary" type="submit">Search</Btn>
-          <Btn onClick={() => { setQ({ pnr: "", phone: "", status: "", page: 1 }); setApplied({ page: 1 }); }}>Clear</Btn>
+          <Btn onClick={() => { setQ({ pnr: "", phone: "", status: "", terminalId: "", page: 1 }); setApplied({ page: 1 }); }}>Clear</Btn>
         </Filters>
       </form>
+      {counter && (
+        <p className="mb-2 rounded-xl border border-neutral-300 bg-white p-3 text-sm" data-scope>
+          {searching
+            ? <>Searching <b>all terminals</b>: a booking made anywhere can be opened here (cancel, refund, extra load at its own terminal).</>
+            : <>Showing bookings boarding at <b>{me.terminalName ?? "your terminal"}</b>. A search by reference or phone finds a booking from <b>any</b> terminal.</>}
+        </p>
+      )}
+      {!counter && scope && !scope.allTerminals && <p className="mb-2 text-sm text-mute" data-scope>Showing bookings boarding at the chosen terminal.</p>}
       <p className="mb-2 text-xs text-mute">Phone numbers are stored as +92…; 03001234567 is also accepted.</p>
       <ErrorNote err={list.err} onRetry={list.reload} />
       <Table
         loading={list.loading}
         rows={list.data?.data}
         numbered={{ noun: ["booking", "bookings"], pagination: list.data?.pagination }}
-        empty="No bookings match."
+        empty={counter && !searching ? `No bookings boarding at ${me.terminalName ?? "your terminal"} match. Search by reference or phone to find one from another terminal.` : "No bookings match."}
         cols={[
           { key: "pnr", label: "Reference", render: (r) => <span className="font-mono font-bold">{r.pnr}</span> },
           { key: "createdAt", label: "Made", render: (r) => fmtDT(r.createdAt) },
-          { key: "routeName", label: "Route" },
-          { key: "departureAt", label: "Trip departs", render: (r) => fmtDT(r.departureAt) },
+          {
+            key: "journey",
+            label: "Journey",
+            render: (r) => (
+              <>
+                <b>{r.boardingCity} → {r.droppingCity}</b>
+                <div className="text-xs text-mute">boards {fmtDT(r.boardingAt)} · {r.routeName}</div>
+              </>
+            ),
+          },
           { key: "c", label: "Contact", render: (r) => <>{r.contactName}<br /><span className="text-xs text-mute">{r.contactPhone}</span></> },
           { key: "channel", label: "Channel" },
           { key: "totalAmount", label: "Total", render: (r) => rs(r.totalAmount) },
