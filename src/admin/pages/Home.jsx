@@ -2,6 +2,8 @@
  * Home screens for each role:
  *   CounterScreen  /admin/counter        counter officer: buses leaving their terminal from now on (quick sale,
  *                                        voucher, extra departure); folded: already left, and arriving here (Arrived)
+ *   CargoScreen    /admin/cargo-desk     cargo staff: the same buses, each with Load cargo; Book a parcel; parcels
+ *                                        arriving here (Arrivals & collection)
  *   TicketPrint    /admin/ticket/:id     printed ticket (80 / 58 mm) after a counter sale
  *   MyTrips        /admin/my-trips       driver / conductor: their own trips
  *   Board          /admin/board          manager: the whole day at a glance, refreshing every minute
@@ -43,7 +45,6 @@ export function CounterScreen({ me }) {
   );
   useEvery(deps.reload, 60_000);
   const [selling, setSelling] = useState(null);
-  const [loading, setLoading] = useState(null); // the bus whose cargo is being loaded
   const [addingExtra, setAddingExtra] = useState(false);
   const d = deps.data;
 
@@ -62,19 +63,14 @@ export function CounterScreen({ me }) {
   const left = past ? [] : all.filter((t) => t.section === "left");
   const arriving = all.filter((t) => t.section === "arriving");
   const card = (t) => (
-    <DepartureCard key={`${t.tripId}-${t.stopId}`} t={t} date={d.date} onSell={setSelling} onCargo={setLoading} onArrived={arrived} />
+    <DepartureCard key={`${t.tripId}-${t.stopId}`} t={t} date={d.date} onSell={setSelling} onArrived={arrived} />
   );
 
   return (
     <Page
       title={d ? `Counter · ${d.terminal.city}` : "Counter"}
       intro="Buses leaving your terminal, from now on. Sell tickets until the voucher is generated, then print the voucher for the conductor. Buses ending here are under Arriving here."
-      actions={
-        <>
-          {(me.role === "agent" || terminalId) && <Btn onClick={() => setAddingExtra(true)}>+ Extra departure</Btn>}
-          <Link to="/admin/book-parcel" className="btn btn-gold !min-h-10 !px-4 !py-1 text-sm">Book a parcel</Link>
-        </>
-      }
+      actions={(me.role === "agent" || terminalId) && <Btn onClick={() => setAddingExtra(true)}>+ Extra departure</Btn>}
     >
       <Filters>
         {me.role !== "agent" && (
@@ -94,18 +90,6 @@ export function CounterScreen({ me }) {
       </Filters>
       <ErrorNote err={deps.err} onRetry={deps.reload} />
       {me.role !== "agent" && !terminalId && <p className="text-sm text-mute">Choose a terminal.</p>}
-      {(d?.cargoArrivals?.waiting > 0 || d?.cargoArrivals?.onTheWay > 0) && (
-        <p className="mb-3 rounded-xl border-2 border-sky-600 bg-sky-50 p-3 text-sm text-sky-900">
-          Cargo for {d.terminal.city}: <b>{d.cargoArrivals.onTheWay}</b> on the way, <b>{d.cargoArrivals.waiting}</b> waiting for collection
-          {d.cargoArrivals.overdue > 0 ? <> (<b className="text-red-700">{d.cargoArrivals.overdue} overdue</b>)</> : null}.{" "}
-          <Link to="/admin/cargo-arrivals" className="font-bold underline">Arrivals & collection</Link>
-        </p>
-      )}
-      {d?.cargoWaiting > 0 && (
-        <p className="mb-3 rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-sm text-amber-900">
-          <b>{d.cargoWaiting} parcel{d.cargoWaiting === 1 ? "" : "s"}</b> booked at {d.terminal.city} {d.cargoWaiting === 1 ? "is" : "are"} waiting for a bus. Use <b>Load cargo</b> on the bus going there.
-        </p>
-      )}
       {past && (
         <p className="mb-3 rounded-xl border-2 border-neutral-400 bg-neutral-100 p-3 text-sm text-neutral-800">
           This day has passed: shown for reference. Tickets can no longer be sold on these buses.
@@ -136,7 +120,6 @@ export function CounterScreen({ me }) {
           <div className="mt-3 grid gap-3">{arriving.map(card)}</div>
         </details>
       )}
-      {loading && <CargoLoadWindow tripId={loading.tripId} stopId={loading.stopId} onClose={() => { setLoading(null); deps.reload(); }} />}
       {selling && <QuickSale trip={selling} onClose={() => setSelling(null)} onSold={() => { setSelling(null); deps.reload(); }} />}
       {addingExtra && <ExtraDepartureForm terminalId={me.role === "agent" ? undefined : terminalId} onClose={() => setAddingExtra(false)} onCreated={deps.reload} />}
     </Page>
@@ -144,7 +127,7 @@ export function CounterScreen({ me }) {
 }
 
 /** One bus on the counter screen. */
-function DepartureCard({ t, date, onSell, onCargo, onArrived }) {
+function DepartureCard({ t, date, onSell, onArrived }) {
   const late = t.section === "late";
   return (
     <div className={`rounded-2xl border-2 bg-white p-4 ${late && t.canSell ? "border-red-600" : t.canSell ? "border-black" : "border-neutral-300"}`}>
@@ -178,13 +161,143 @@ function DepartureCard({ t, date, onSell, onCargo, onArrived }) {
             {t.busConfirmed === false && t.startsHere && ["scheduled", "delayed", "boarding"].includes(t.status) && (
               <Link className="btn btn-ghost !min-h-10 !px-4 !py-1 text-sm" to={`/admin/trips?date=${dayKey(t.hereAt)}`}>Confirm bus & crew</Link>
             )}
-            {t.cargo && (
-              <Btn onClick={() => onCargo(t)}>
-                {t.cargo.status === "closed" ? `Cargo list ${t.cargo.listNo} (${t.cargo.parcelCount})` : t.cargo.parcelCount > 0 ? `Load cargo (${t.cargo.parcelCount})` : "Load cargo"}
-              </Btn>
-            )}
             {t.boardsHere && <Link className="btn btn-ghost !min-h-10 !px-4 !py-1 text-sm" to={`/admin/trip-vouchers/${t.tripId}`}>{t.voucher ? "Voucher & passengers" : "Generate voucher"}</Link>}
             {t.endsHere && t.status === "departed" && <Btn kind="ok" onClick={() => onArrived(t)}>Arrived</Btn>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ cargo staff */
+
+/**
+ * The cargo staff's screen: the buses leaving their terminal (the same list as the counter), each with Load cargo
+ * until that terminal's voucher is generated (then the list is closed: View cargo list). Book a parcel, and the
+ * parcels coming here / waiting for collection (Arrivals & collection). Managers and admins choose the terminal.
+ */
+export function CargoScreen({ me }) {
+  const own = me.role === "cargo";
+  const [date, setDate] = useState(pkDate());
+  const locs = useLoad(() => (own ? Promise.resolve(null) : adminApi.locations()), [own]);
+  const [terminalId, setTerminalId] = useState(me.terminalId ?? "");
+  const deps = useLoad(
+    () => (own || terminalId ? adminApi.counterDepartures(date, own ? undefined : terminalId) : Promise.resolve(null)),
+    [date, terminalId],
+  );
+  useEvery(deps.reload, 60_000);
+  const [loading, setLoading] = useState(null); // the bus whose cargo is open
+  const d = deps.data;
+  const past = d ? d.date < d.today : false;
+  // Only buses that can take cargo from here (a boarding point that is not the bus's last stop).
+  const all = (d?.departures ?? []).filter((t) => t.cargo);
+  const main = all.filter((t) => t.section === "upcoming" || t.section === "late" || (past && t.section === "left"));
+  const left = past ? [] : all.filter((t) => t.section === "left");
+  const card = (t) => <CargoCard key={`${t.tripId}-${t.stopId}`} t={t} date={d.date} onOpen={setLoading} />;
+
+  return (
+    <Page
+      title={d ? `Cargo · ${d.terminal.city}` : "Cargo"}
+      intro="Buses leaving your terminal, from now on. Load parcels onto a bus until its voucher is generated here; then its cargo list is closed and printed for the conductor."
+      actions={
+        <>
+          <Link to="/admin/cargo-arrivals" className="btn btn-ghost !min-h-10 !px-4 !py-1 text-sm">Arrivals & collection</Link>
+          <Link to="/admin/book-parcel" className="btn btn-gold !min-h-10 !px-4 !py-1 text-sm">Book a parcel</Link>
+        </>
+      }
+    >
+      <Filters>
+        {!own && (
+          <div>
+            <Label htmlFor="cg-t">Terminal</Label>
+            <Select id="cg-t" value={terminalId} onChange={(e) => setTerminalId(e.target.value)}
+              options={[{ value: "", label: "— choose —" }, ...(locs.data?.terminals ?? []).filter((t) => t.isActive).map((t) => ({ value: t.id, label: `${t.cityName} · ${t.name}` }))]} />
+          </div>
+        )}
+        <div>
+          <Label htmlFor="cg-d">Date</Label>
+          <Input id="cg-d" type="date" value={date} onChange={(e) => setDate(e.target.value || pkDate())} />
+        </div>
+        <Btn onClick={() => setDate(pkDate())}>Today</Btn>
+        <Btn onClick={() => setDate(pkDate(1))}>Tomorrow</Btn>
+        <Btn onClick={deps.reload}>Refresh</Btn>
+      </Filters>
+      <ErrorNote err={deps.err} onRetry={deps.reload} />
+      {!own && !terminalId && <p className="text-sm text-mute">Choose a terminal.</p>}
+      {(d?.cargoArrivals?.waiting > 0 || d?.cargoArrivals?.onTheWay > 0) && (
+        <p className="mb-3 rounded-xl border-2 border-sky-600 bg-sky-50 p-3 text-sm text-sky-900">
+          Cargo for {d.terminal.city}: <b>{d.cargoArrivals.onTheWay}</b> on the way, <b>{d.cargoArrivals.waiting}</b> waiting for collection
+          {d.cargoArrivals.overdue > 0 ? <> (<b className="text-red-700">{d.cargoArrivals.overdue} overdue</b>)</> : null}.{" "}
+          <Link to="/admin/cargo-arrivals" className="font-bold underline">Arrivals & collection</Link>
+        </p>
+      )}
+      {d?.cargoWaiting > 0 && (
+        <p className="mb-3 rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-sm text-amber-900">
+          <b>{d.cargoWaiting} parcel{d.cargoWaiting === 1 ? "" : "s"}</b> booked at {d.terminal.city} {d.cargoWaiting === 1 ? "is" : "are"} waiting for a bus. Use <b>Load cargo</b> on the bus going there.
+        </p>
+      )}
+      {past && (
+        <p className="mb-3 rounded-xl border-2 border-neutral-400 bg-neutral-100 p-3 text-sm text-neutral-800">
+          This day has passed: shown for reference. Cargo can no longer be loaded on these buses.
+        </p>
+      )}
+      {d && main.length === 0 && (
+        <p className="rounded-xl border border-dashed border-neutral-400 p-4 text-sm text-mute">
+          {d.date === d.today
+            ? <>No more buses taking cargo from {d.terminal.city} today.{" "}<button type="button" className="font-bold underline" onClick={() => setDate(pkDate(1))}>See tomorrow</button></>
+            : `No buses taking cargo from ${d.terminal.city} on this day.`}
+        </p>
+      )}
+      {!d && deps.loading && (own || terminalId) && <SkeletonCards count={3} className="grid gap-3" />}
+      <div className="grid gap-3">{main.map(card)}</div>
+      {left.length > 0 && (
+        <details className="mt-4 rounded-2xl border-2 border-neutral-300 bg-white p-3">
+          <summary className="cursor-pointer font-bold">Already left today ({left.length})</summary>
+          <p className="mt-1 text-sm text-mute">Voucher generated and the time has passed: their cargo lists are closed. Open one to see or print it.</p>
+          <div className="mt-3 grid gap-3">{left.map(card)}</div>
+        </details>
+      )}
+      {loading && <CargoLoadWindow tripId={loading.tripId} stopId={loading.stopId} onClose={() => { setLoading(null); deps.reload(); }} />}
+    </Page>
+  );
+}
+
+/** One bus on the cargo screen. */
+function CargoCard({ t, date, onOpen }) {
+  const late = t.section === "late";
+  const closed = t.cargo.status === "closed";
+  const n = t.cargo.parcelCount;
+  return (
+    <div className={`rounded-2xl border-2 bg-white p-4 ${closed ? "border-neutral-300" : late ? "border-red-600" : "border-black"}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-2xl font-extrabold">
+            {time(t.hereAt)} {t.delayMinutes > 0 && <Badge tone="amber">+{t.delayMinutes} min</Badge>}
+            {dayKey(t.hereAt) !== date && <span className="ms-1 text-sm font-semibold text-mute">{dayName(t.hereAt)}</span>}
+          </p>
+          <p className="font-bold">{t.routeName}</p>
+          <p className="text-sm text-mute">
+            {t.busConfirmed === false ? <><b className="text-amber-800">Bus to confirm</b> (planned {t.busNo})</> : <>Bus {t.busNo}{t.fleetNo ? ` (${t.fleetNo})` : ""}</>}
+            {" "}· conductor {t.conductorName ?? "–"}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1">
+            <StatusBadge s={t.status} />
+            {late && !closed && <Badge tone="red">late · not left yet</Badge>}
+            {closed ? <Badge tone="green">voucher generated · cargo list closed</Badge> : <Badge tone="amber">loading open</Badge>}
+          </div>
+        </div>
+        <div className="text-end">
+          <p className="text-3xl font-extrabold">{n}<span className="text-base font-semibold text-mute"> parcel{n === 1 ? "" : "s"} on the bus</span></p>
+          <div className="mt-2 flex flex-wrap justify-end gap-2">
+            {closed ? (
+              <>
+                <Btn onClick={() => onOpen(t)}>View cargo list{t.cargo.listNo ? ` ${t.cargo.listNo}` : ""}</Btn>
+                {t.cargo.listId && <a className="btn btn-gold !min-h-10 !px-4 !py-1 text-sm" href={`/admin/cargo-list/${t.cargo.listId}`} target="_blank" rel="noreferrer">Print list</a>}
+              </>
+            ) : (
+              <Btn kind="primary" onClick={() => onOpen(t)}>{n > 0 ? `Load cargo (${n})` : "Load cargo"}</Btn>
+            )}
           </div>
         </div>
       </div>

@@ -17,6 +17,7 @@ import {
 import { Pager } from "./Operations";
 import { departure, money, stamp } from "../../report/format";
 import { CargoLoadWindow } from "./CargoLists";
+import { useMe } from "../../booking/useRole";
 
 /** "Voucher – Lahore → DI Khan (via …) · 02-11-2026 6:00 pm" */
 export const voucherTitle = (routeName, departureAt, terminal) =>
@@ -183,6 +184,8 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
   const [replacing, setReplacing] = useState(false);
   const [reason, setReason] = useState("");
   const [loadingCargo, setLoadingCargo] = useState(false);
+  // Cargo staff, managers and admins load cargo; counter staff only view the bus's cargo list.
+  const loadsCargo = ["cargo", "manager", "admin", "super_admin"].includes(useMe()?.role);
   const voucher = useLoad(() => (t.voucher ? adminApi.issuedVoucher(t.voucher.id) : Promise.resolve(null)), [t.voucher?.id]);
   const v = voucher.data;
   // With parcels on this terminal's cargo list, the voucher's Cargo is the list's paid total (the server uses it too).
@@ -275,8 +278,8 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
                 <p className="text-xs">
                   {fromList
                     ? <>Cargo from list <b>{t.cargo.listNo}</b>: {t.cargo.parcelCount} parcel{t.cargo.parcelCount === 1 ? "" : "s"}, paid {`Rs ${money(t.cargo.paidTotal)}`}{t.cargo.toPayTotal ? ` (+ Rs ${money(t.cargo.toPayTotal)} paid by receivers)` : ""}. </>
-                    : <span className="text-mute">No parcels on this bus's cargo list{t.canGenerate ? ": type cargo by hand, or load the parcels" : ""}. </span>}
-                  <button type="button" className="font-bold underline" onClick={() => setLoadingCargo(true)}>{t.canGenerate ? "Load cargo" : "View cargo"}</button>
+                    : <span className="text-mute">No parcels on this bus's cargo list{t.canGenerate ? (loadsCargo ? ": type cargo by hand, or load the parcels" : " yet (cargo staff load them)") : ""}. </span>}
+                  <button type="button" className="font-bold underline" onClick={() => setLoadingCargo(true)}>{t.canGenerate && loadsCargo ? "Load cargo" : "View cargo"}</button>
                 </p>
               )}
               <MoneyLines v={preview} />

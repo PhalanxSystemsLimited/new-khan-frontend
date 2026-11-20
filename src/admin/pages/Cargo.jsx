@@ -73,7 +73,7 @@ export function BookParcel({ me }) {
     setV((p) => ({ ...p, [k]: x }));
   };
 
-  // Counter staff: their own terminal. Managers and admins choose (their own terminal first, if they have one).
+  // Cargo staff: their own terminal. Managers and admins choose (their own terminal first, if they have one).
   useEffect(() => {
     if (s && !v.fromTerminalId && s.myTerminalId) set("fromTerminalId", String(s.myTerminalId));
   }, [s]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -488,7 +488,7 @@ function SettingsForm({ settings, onSaved }) {
         </div>
         <label className="flex items-center gap-2 self-center text-sm font-semibold">
           <input type="checkbox" checked={v.staffCanChangeCharge} onChange={(e) => set("staffCanChangeCharge", e.target.checked)} className="h-5 w-5 accent-black" />
-          Counter staff may change the charge (a lower charge always needs a reason)
+          Cargo staff may change the charge (a lower charge always needs a reason)
         </label>
       </div>
       <div><Btn kind="primary" type="submit" disabled={busy}>{busy ? "Saving…" : "Save settings"}</Btn></div>

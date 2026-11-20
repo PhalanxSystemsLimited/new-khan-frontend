@@ -18,7 +18,7 @@ import { Pager } from "./Operations";
 
 const MARITAL = [["single", "Single"], ["married", "Married"], ["widowed", "Widowed"], ["divorced", "Divorced"]];
 const BLOOD = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-export const ROLE_LABEL = { agent: "Counter staff", driver: "Driver", conductor: "Conductor", manager: "Manager", admin: "Admin" };
+export const ROLE_LABEL = { agent: "Counter staff", cargo: "Cargo staff", driver: "Driver", conductor: "Conductor", manager: "Manager", admin: "Admin" };
 
 /** "CNIC missing": every employee needs a CNIC (older records without one are asked for it on their next edit). */
 export const CnicMissing = () => <Badge tone="red">CNIC missing</Badge>;
@@ -403,9 +403,9 @@ export function LoginModal({ employee, me, onClose, onSaved }) {
             <Label htmlFor="lg-r">Role</Label>
             <Select id="lg-r" value={role} onChange={(e) => setRole(e.target.value)} options={roles.map(([value, label]) => ({ value, label }))} />
           </div>
-          {["agent", "manager"].includes(role) && (
+          {["agent", "cargo", "manager"].includes(role) && (
             <div>
-              <Label htmlFor="lg-t">Terminal{role === "agent" ? " *" : ""}</Label>
+              <Label htmlFor="lg-t">Terminal{["agent", "cargo"].includes(role) ? " *" : ""}</Label>
               <Select id="lg-t" value={terminalId} onChange={(e) => setTerminalId(e.target.value)}
                 options={[{ value: "", label: "—" }, ...(locs.data?.terminals ?? []).filter((t) => t.isActive).map((t) => ({ value: t.id, label: `${t.cityName} · ${t.name}` }))]} />
             </div>

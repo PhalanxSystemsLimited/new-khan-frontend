@@ -8,7 +8,7 @@ import { WhatsappIcon, xt } from "./parts";
 import { IS_LIVE } from "../booking/api";
 import { signOut, useSession } from "../booking/auth";
 import { AuthDialog } from "../booking/AuthDialog";
-import { isStaffRole, useMe } from "../booking/useRole";
+import { hasAdminPanel, useMe } from "../booking/useRole";
 
 /* Navigation, as in the Pakka build: [path, English, Urdu]. */
 const MAIN = [
@@ -124,7 +124,7 @@ function AccountButton({ lang }) {
           <Link to={href(lang, "/book/my-bookings")} role="menuitem">
             <b>{xt(lang, "My bookings", "میری بکنگز")}</b>
           </Link>
-          {isStaffRole(role) && (
+          {hasAdminPanel(role) && (
             <Link to="/admin" role="menuitem">
               <b>{xt(lang, "Admin panel", "ایڈمن پینل")}</b>
             </Link>

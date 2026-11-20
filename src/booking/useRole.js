@@ -32,3 +32,5 @@ export function useRole() {
 
 /** Everyone who works for New Khan and has the admin panel (counter staff, driver, conductor, manager, admins). */
 export const isStaffRole = (role) => ["agent", "driver", "conductor", "manager", "admin", "super_admin"].includes(role);
+/** Who gets the Admin button (the panel): the staff above and cargo staff (who do not sell tickets). */
+export const hasAdminPanel = (role) => isStaffRole(role) || role === "cargo";

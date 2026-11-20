@@ -25,27 +25,32 @@ import { ConductorScreen } from "./pages/Conductor";
 import { EmployeeLists, EmployeePrint, Employees } from "./pages/Employees";
 import { Cashiers, Hostesses } from "./pages/Team";
 import { DayPlan } from "./pages/DayPlan";
-import { Board, CounterScreen, MyTrips, TicketPrint } from "./pages/Home";
+import { Board, CargoScreen, CounterScreen, MyTrips, TicketPrint } from "./pages/Home";
 import { BookParcel, CargoSettings, Parcels } from "./pages/Cargo";
 import { CargoListPrint, ParcelLabels, ParcelReceipt, ParcelSlip } from "./pages/CargoPrint";
 import { CargoLists } from "./pages/CargoLists";
 import { CargoArrivals } from "./pages/CargoArrivals";
 
 /** Everyone who works for New Khan and may open the panel. */
-export const EMPLOYEE = ["agent", "driver", "conductor", "manager", "admin", "super_admin"];
+export const EMPLOYEE = ["agent", "cargo", "driver", "conductor", "manager", "admin", "super_admin"];
 export const MANAGER = ["manager", "admin", "super_admin"];
 export const ADMIN = ["admin", "super_admin"];
-export const ROLE_NAME = { customer: "customer", agent: "counter staff", driver: "driver", conductor: "conductor", manager: "manager", admin: "admin", super_admin: "super admin" };
+/** Who books, loads and hands over parcels (counter staff only view a bus's cargo list, from the voucher page). */
+export const CARGO_DESK = ["cargo", "manager", "admin", "super_admin"];
+export const ROLE_NAME = { customer: "customer", agent: "counter staff", cargo: "cargo staff", driver: "driver", conductor: "conductor", manager: "manager", admin: "admin", super_admin: "super admin" };
 
 /**
  * Who may open a menu item:
  *   "mytrips" drivers and conductors · "conductor" the conductor screen: conductors and staff (not drivers) ·
- *   "staff" counter staff and up · "manager" managers and up · "admin" admins and super admins.
- * Drivers see only My trips; conductors only the conductor screen and My trips.
+ *   "staff" counter staff and up · "cargo" cargo staff, managers and up (not counter staff) ·
+ *   "manager" managers and up · "admin" admins and super admins.
+ * Drivers see only My trips; conductors only the conductor screen and My trips; cargo staff only the cargo pages.
  */
 const allowed = (level, role) => {
   if (level === "mytrips") return role === "driver" || role === "conductor";
   if (role === "driver") return false;
+  if (role === "cargo") return level === "cargo";
+  if (level === "cargo") return MANAGER.includes(role);
   if (level === "conductor") return true;
   if (role === "conductor") return false;
   if (level === "staff") return true;
@@ -68,10 +73,11 @@ const MENU = [
     ["refunds", "Refunds", "manager", Refunds],
   ]],
   ["Cargo", [
-    ["book-parcel", "Book a parcel", "staff", BookParcel],
-    ["parcels", "Parcels", "staff", Parcels],
-    ["cargo-lists", "Cargo lists", "staff", CargoLists],
-    ["cargo-arrivals", "Arrivals & collection", "staff", CargoArrivals],
+    ["cargo-desk", "Cargo screen", "cargo", CargoScreen],
+    ["book-parcel", "Book a parcel", "cargo", BookParcel],
+    ["parcels", "Parcels", "cargo", Parcels],
+    ["cargo-lists", "Cargo lists", "cargo", CargoLists],
+    ["cargo-arrivals", "Arrivals & collection", "cargo", CargoArrivals],
     ["cargo-settings", "Cargo settings", "admin", CargoSettings],
   ]],
   ["Round trip reports", [
@@ -82,7 +88,8 @@ const MENU = [
     ["report-lists", "On-route & platforms", "admin", ReportLists],
   ]],
   ["Network", [
-    ["routes", "Routes & stops", "admin", RoutesPage],
+    // Not "routes" / "cargo": the website has /:lang/routes and /:lang/cargo, which the router prefers to /admin/*.
+    ["routes-stops", "Routes & stops", "admin", RoutesPage],
     ["fares", "Fares", "admin", Fares],
     ["schedules", "Schedules & trips", "admin", Schedules],
   ]],
@@ -214,7 +221,7 @@ function Shell({ me }) {
 
   const groups = MENU.map(([g, items]) => [g, items.filter((i) => allowed(i[2], me.role))]).filter(([, items]) => items.length);
   // Each role opens on its own screen.
-  const home = { agent: "counter", driver: "my-trips", conductor: "conductor", manager: "board" }[me.role] ?? "";
+  const home = { agent: "counter", cargo: "cargo-desk", driver: "my-trips", conductor: "conductor", manager: "board" }[me.role] ?? "";
 
   const nav = (
     <nav aria-label="Admin" className="grid gap-4">
@@ -270,7 +277,7 @@ function Shell({ me }) {
               <Route key={p} path={p || "/"} element={<Titled title={label}><El me={me} isAdmin={isAdmin} isManager={isManager} /></Titled>} />
             ))}
             {isAdmin && <Route path="round-trips/:id" element={<RoundTripEditor />} />}
-            {me.role !== "conductor" && <Route path="trip-vouchers/:id" element={<TripVoucherDetail me={me} isManager={isManager} />} />}
+            {!["conductor", "cargo"].includes(me.role) && <Route path="trip-vouchers/:id" element={<TripVoucherDetail me={me} isManager={isManager} />} />}
             <Route path="*" element={<Navigate to={`/admin${home ? `/${home}` : ""}`} replace />} />
           </Routes>
         </main>
@@ -287,13 +294,13 @@ export default function AdminApp() {
         <Routes>
           {/* Printable slips: full page, no admin menu. */}
           <Route path="slip/:id" element={ADMIN.includes(me.role) ? <VoucherSlip /> : <Navigate to="/admin" replace />} />
-          <Route path="voucher-slip/:id" element={me.role !== "conductor" ? <TripVoucherSlip /> : <Navigate to="/admin" replace />} />
+          <Route path="voucher-slip/:id" element={!["conductor", "cargo"].includes(me.role) ? <TripVoucherSlip /> : <Navigate to="/admin" replace />} />
           <Route path="employee-print/:id" element={ADMIN.includes(me.role) ? <EmployeePrint /> : <Navigate to="/admin" replace />} />
-          <Route path="parcel-slip/:id" element={!["driver", "conductor"].includes(me.role) ? <ParcelSlip /> : <Navigate to="/admin" replace />} />
-          <Route path="parcel-receipt/:id" element={!["driver", "conductor"].includes(me.role) ? <ParcelReceipt /> : <Navigate to="/admin" replace />} />
+          <Route path="parcel-slip/:id" element={CARGO_DESK.includes(me.role) ? <ParcelSlip /> : <Navigate to="/admin" replace />} />
+          <Route path="parcel-receipt/:id" element={CARGO_DESK.includes(me.role) ? <ParcelReceipt /> : <Navigate to="/admin" replace />} />
           <Route path="cargo-list/:id" element={!["driver", "conductor"].includes(me.role) ? <CargoListPrint /> : <Navigate to="/admin" replace />} />
-          <Route path="parcel-labels/:id" element={!["driver", "conductor"].includes(me.role) ? <ParcelLabels /> : <Navigate to="/admin" replace />} />
-          <Route path="ticket/:id" element={!["driver", "conductor"].includes(me.role) ? <TicketPrint /> : <Navigate to="/admin" replace />} />
+          <Route path="parcel-labels/:id" element={CARGO_DESK.includes(me.role) ? <ParcelLabels /> : <Navigate to="/admin" replace />} />
+          <Route path="ticket/:id" element={!["driver", "conductor", "cargo"].includes(me.role) ? <TicketPrint /> : <Navigate to="/admin" replace />} />
           <Route path="*" element={<Shell me={me} />} />
         </Routes>
       )}

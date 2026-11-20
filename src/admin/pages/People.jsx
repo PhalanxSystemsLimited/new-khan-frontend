@@ -7,6 +7,7 @@ import { Pager } from "./Operations";
 const ROLES = [
   { value: "customer", label: "Customer" },
   { value: "agent", label: "Counter staff (sells tickets, makes vouchers at their terminal)" },
+  { value: "cargo", label: "Cargo staff (books parcels, loads cargo, hands over parcels at their terminal)" },
   { value: "driver", label: "Driver (sees their own trips)" },
   { value: "conductor", label: "Conductor (conductor screen for their own trips)" },
   { value: "manager", label: "Manager (operations, crew, replacement vouchers, reports)" },
@@ -14,8 +15,8 @@ const ROLES = [
   { value: "super_admin", label: "Super admin" },
 ];
 /** Roles an admin (not super admin) may give: the rest are for super admins only. */
-const ADMIN_GIVES = ["customer", "agent", "driver", "conductor"];
-const ROLE_SHORT = { customer: "customer", agent: "counter staff", driver: "driver", conductor: "conductor", manager: "manager", admin: "admin", super_admin: "super admin" };
+const ADMIN_GIVES = ["customer", "agent", "cargo", "driver", "conductor"];
+const ROLE_SHORT = { customer: "customer", agent: "counter staff", cargo: "cargo staff", driver: "driver", conductor: "conductor", manager: "manager", admin: "admin", super_admin: "super admin" };
 
 /* ------------------------------------------------------------------ users */
 
@@ -33,11 +34,11 @@ export function Users({ me }) {
     openForm({
       title: `Role · ${u.fullName || u.email || u.phone}`,
       note: superAdmin
-        ? "Counter staff must have a terminal: they sell tickets and make vouchers there only. Managers may also have one. A conductor still needs to be linked on the Conductors page. Only super admins give manager and admin roles."
-        : "Counter staff must have a terminal. Only a super admin can give or change manager and admin roles.",
+        ? "Counter staff and cargo staff must have a terminal: they work there only (tickets and vouchers / parcels and cargo). Managers may also have one. A conductor still needs to be linked on the Conductors page. Only super admins give manager and admin roles."
+        : "Counter staff and cargo staff must have a terminal. Only a super admin can give or change manager and admin roles.",
       fields: [
         { name: "role", label: "Role", type: "select", required: true, options: superAdmin ? ROLES : ROLES.filter((r) => ADMIN_GIVES.includes(r.value)) },
-        { name: "terminalId", label: "Terminal (counter staff and managers)", type: "select", numeric: true, nullable: true, options: terminalOpts, hint: "Required for counter staff. Ignored for other roles." },
+        { name: "terminalId", label: "Terminal (counter staff, cargo staff and managers)", type: "select", numeric: true, nullable: true, options: terminalOpts, hint: "Required for counter staff and cargo staff. Ignored for other roles." },
       ],
       initial: { role: u.role, terminalId: u.terminalId ?? "" },
       onSubmit: (b) => act(() => adminApi.setRole(u.id, { role: b.role, terminalId: b.terminalId ?? null }), "Role changed").then((ok) => (ok && list.reload(), ok)),

@@ -101,7 +101,7 @@ export function CargoLoadWindow({ tripId, stopId, onClose, onChanged }) {
           {!v.list && v.voucher && <p className="rounded-xl border border-neutral-300 p-3 text-sm">The {v.stop.city} voucher is generated without cargo for this bus.</p>}
           {!v.canEdit && !v.voucher && v.list?.status !== "closed" && (
             <p className="rounded-xl border border-amber-500 bg-amber-50 p-3 text-sm text-amber-900">
-              {v.canLoadHere ? `This trip is ${v.trip.status}: no cargo can be loaded.` : `Only ${v.stop.city} counter staff (or a manager) can load cargo here.`}
+              {v.canLoadHere ? `This trip is ${v.trip.status}: no cargo can be loaded.` : `Only ${v.stop.city} cargo staff (or a manager) can load cargo here.`}
             </p>
           )}
 

@@ -15,7 +15,7 @@ import { signOut, useSession } from "../booking/auth";
 import { PasswordChecklist, PasswordInput, passwordOk } from "../components/PasswordField";
 import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../components/PatternFields";
 import { apiRequest } from "../booking/live/liveApi";
-import { isStaffRole, refreshMe } from "../booking/useRole";
+import { hasAdminPanel, refreshMe } from "../booking/useRole";
 import { href } from "../lib/links";
 import { useLang } from "../lib/useLang";
 
@@ -216,7 +216,7 @@ export default function Account() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to={href(lang, "/book/my-bookings")} className="btn btn-ghost">{t("myBookings")}</Link>
-          {isStaffRole(me.role) && <Link to="/admin" className="btn btn-ghost">{t("admin")}</Link>}
+          {hasAdminPanel(me.role) && <Link to="/admin" className="btn btn-ghost">{t("admin")}</Link>}
         </div>
       </div>
 
