@@ -8,7 +8,7 @@
  */
 import { CnicInput, PhoneInput, phoneMessage } from "../../components/PatternFields";
 import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../../lib/cnic";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi } from "../api";
 import { act, Badge, Btn, ErrorNote, Filters, Input, Label, Modal, Page, pkDate, Section, Select, SkeletonBar, SkeletonCards, StatusBadge, Table, useLoad } from "../ui";
@@ -203,6 +203,48 @@ function QuickSale({ trip, onClose, onSold }) {
   const [busy, setBusy] = useState(false);
   const [sold, setSold] = useState(null);
   const fare = trip.destinations.find((x) => String(x.stopId) === String(dest))?.fare ?? 0;
+  const [gone, setGone] = useState(""); // "Seat 12 was just sold…" after a refresh unpicked it
+
+  // Keeps the seats current while the window is open: every 30 seconds and when staff come back to the tab, quietly
+  // (a failed refresh keeps the map as it is). Not while a sale is being saved or after it is done.
+  const busyRef = useRef(false);
+  busyRef.current = busy || Boolean(sold);
+  const lastRefresh = useRef(Date.now());
+  const refreshSeats = useCallback(async () => {
+    if (busyRef.current || document.visibilityState === "hidden") return;
+    if (Date.now() - lastRefresh.current < 5_000) return; // "tab visible" and "window focus" often come together
+    lastRefresh.current = Date.now();
+    let d;
+    try {
+      d = await adminApi.tripSeats(trip.tripId);
+    } catch {
+      return;
+    }
+    if (!busyRef.current) seats.setData(d);
+  }, [trip.tripId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const t = setInterval(refreshSeats, 30_000);
+    const onBack = () => {
+      if (document.visibilityState === "visible") refreshSeats();
+    };
+    document.addEventListener("visibilitychange", onBack);
+    window.addEventListener("focus", onBack);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onBack);
+      window.removeEventListener("focus", onBack);
+    };
+  }, [refreshSeats]);
+  // A picked seat that is no longer free (sold by someone else meanwhile) is unpicked, with a note.
+  useEffect(() => {
+    const list = seats.data;
+    if (!list || !picked.length) return;
+    const lost = picked.filter((id) => list.find((s) => s.seatId === id)?.status !== "available");
+    if (!lost.length) return;
+    setPicked((p) => p.filter((id) => !lost.includes(id)));
+    const names = lost.map((id) => list.find((s) => s.seatId === id)?.seatNumber ?? id).join(", ");
+    setGone(`Seat${lost.length === 1 ? "" : "s"} ${names} ${lost.length === 1 ? "was" : "were"} just sold by someone else. Please choose another seat.`);
+  }, [seats.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const grid = useMemo(() => {
     const list = seats.data ?? [];
@@ -215,6 +257,7 @@ function QuickSale({ trip, onClose, onSold }) {
 
   const toggle = (s) => {
     if (s.status !== "available") return;
+    setGone("");
     setPicked((p) => (p.includes(s.seatId) ? p.filter((x) => x !== s.seatId) : [...p, s.seatId]));
     setPax((p) => ({ ...p, [s.seatId]: p[s.seatId] ?? { name: "", gender: "male" } }));
   };
@@ -250,6 +293,12 @@ function QuickSale({ trip, onClose, onSold }) {
     }, "Ticket sold", "Cash recorded.");
     setBusy(false);
     if (ok) setSold(booking);
+    else {
+      // Not sold (often: a seat was just taken): show the seats as they are now.
+      busyRef.current = false;
+      lastRefresh.current = 0;
+      refreshSeats();
+    }
   }
 
   if (sold)
@@ -272,6 +321,7 @@ function QuickSale({ trip, onClose, onSold }) {
         <div>
           <p className="mb-2 text-sm font-bold">Choose seats</p>
           <ErrorNote err={seats.err} onRetry={seats.reload} />
+          {gone && <p role="alert" className="mb-2 max-w-xs rounded-xl border-2 border-amber-500 bg-amber-50 p-2 text-sm text-amber-900">{gone}</p>}
           <p className="mb-2 text-center text-xs font-bold tracking-widest text-neutral-500">▲ FRONT</p>
           <div className="mx-auto grid w-fit gap-1.5">
             {grid.rows.map((r) => (

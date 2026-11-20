@@ -98,6 +98,10 @@ export const bk = {
     en: "Seat {seat} is next to a female passenger. A male passenger cannot sit beside her, so only a female passenger can sit here.",
     ur: "سیٹ {seat} ایک خاتون مسافر کے ساتھ ہے۔ مرد مسافر ان کے ساتھ نہیں بیٹھ سکتا، اس لیے یہاں صرف خاتون مسافر بیٹھ سکتی ہیں۔",
   },
+  seatJustGone: {
+    en: "Seat {seat} is no longer available: someone else just booked it or the seat beside it. Please choose another seat.",
+    ur: "سیٹ {seat} اب دستیاب نہیں: ابھی ابھی کسی اور نے یہ سیٹ یا اس کے ساتھ والی سیٹ بک کر لی ہے۔ براہِ کرم دوسری سیٹ منتخب کریں۔",
+  },
   seatBlockedMixed: { en: "Seat {seat} is between a male and a female passenger, so it cannot be chosen.", ur: "سیٹ {seat} ایک مرد اور ایک خاتون مسافر کے درمیان ہے، اس لیے اسے منتخب نہیں کیا جا سکتا۔" },
   seatLimit: {
     en: "You have already chosen {n} seat(s). To change one, tap it until it is free, then pick another.",

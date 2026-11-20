@@ -151,6 +151,9 @@ Defined at the top of [`src/components/Chrome.jsx`](src/components/Chrome.jsx) (
 1. **Search** (from, to, date, passengers) → **Results** → pick a bus.
 2. **Seats**: tap a seat once for a female passenger (pink), twice for male (blue), a third time to free it. Booked seats
    show their passenger's gender; a male and a female from different bookings cannot sit side by side. Then enter passengers (name, phone…).
+   The map refreshes itself every 30 seconds and when the customer comes back to the tab: seats others just booked turn
+   grey, and a seat the customer had picked that is gone is unpicked with a note ("Seat 12 is no longer available…").
+   The counter's **Sell ticket** window does the same, and also refreshes at once when a sale is refused.
 3. **Reserve** (live: must be signed in). Seats are held for **20 minutes**; the page shows a countdown and **Pay now**.
 4. **Pay**: choose JazzCash / Easypaisa / Card → redirected to Safepay → back to the **Confirmed** page with the ticket (print button).
 5. **My bookings** (`/book/my-bookings`):

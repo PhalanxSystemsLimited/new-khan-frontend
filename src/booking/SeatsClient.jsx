@@ -95,6 +95,71 @@ export function SeatsClient({ lang }) {
     load();
   }, [load]);
 
+  // Keeps the map current while the customer chooses: every 30 seconds, and when they come back to the tab, the seats
+  // are fetched again quietly. Seats others just took turn grey; a seat this customer had picked that is gone is
+  // unpicked with a note. Not while a booking is being sent; a failed refresh just keeps the map as it is.
+  const busyRef = useRef(false);
+  busyRef.current = busy;
+  const legsRef = useRef(null);
+  legsRef.current = legs;
+  const refreshSeq = useRef(0);
+  const lastRefresh = useRef(Date.now());
+  const refreshSeats = useCallback(async () => {
+    if (busyRef.current || document.visibilityState === "hidden") return;
+    if (Date.now() - lastRefresh.current < 5_000) return; // "tab visible" and "window focus" often come together
+    lastRefresh.current = Date.now();
+    const ids = [...outKey.split(","), ...retKey.split(",")].filter(Boolean);
+    if (!ids.length) return;
+    const n = ++refreshSeq.current;
+    let fresh;
+    try {
+      fresh = await Promise.all(ids.map((id) => getSeats(id)));
+    } catch {
+      return;
+    }
+    if (n !== refreshSeq.current || busyRef.current) return; // a newer refresh, or a booking started meanwhile
+    // Picks still free (and allowed beside the new neighbours) stay; the others are unpicked and named in `gone`.
+    const apply = (ls, gone) =>
+      ls.map((l, i) => {
+        const seats = fresh[i];
+        const picked = l.picked.map((p) => {
+          const s = p && seats.find((x) => x.id === p.id);
+          if (!p || (s?.status === "available" && allowedGenders(s, seats).includes(p.gender))) return p;
+          if (gone) (gone[i] ??= []).push(l.seats.find((x) => x.id === p.id)?.label ?? p.id);
+          return null;
+        });
+        return { ...l, seats, picked };
+      });
+    const base = legsRef.current;
+    if (!base || base.length !== fresh.length) return;
+    const gone = {}; // leg -> seat names unpicked
+    const next = apply(base, gone);
+    // A tap that is not on screen yet is kept: it is checked against the fresh seats the same way.
+    setLegs((prev) => (prev === base ? next : prev && prev.length === fresh.length ? apply(prev, null) : prev));
+    const legsGone = Object.keys(gone);
+    if (legsGone.length) {
+      setNotices((old) => {
+        const out = { ...old };
+        for (const i of legsGone) out[i] = gone[i].map((seat) => bt("seatJustGone", lang, { seat })).join(" ");
+        return out;
+      });
+    }
+  }, [outKey, retKey, lang]);
+  useEffect(() => {
+    if (!legs) return undefined;
+    const t = setInterval(refreshSeats, 30_000);
+    const onBack = () => {
+      if (document.visibilityState === "visible") refreshSeats();
+    };
+    document.addEventListener("visibilitychange", onBack);
+    window.addEventListener("focus", onBack);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onBack);
+      window.removeEventListener("focus", onBack);
+    };
+  }, [Boolean(legs), refreshSeats]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /** One tap on a seat: free -> female -> male -> free, skipping a gender the side-by-side rule does not allow. */
   function cycle(leg, id) {
     const l = legs[leg];
