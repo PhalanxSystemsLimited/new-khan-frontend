@@ -20,6 +20,9 @@ const MARITAL = [["single", "Single"], ["married", "Married"], ["widowed", "Wido
 const BLOOD = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 export const ROLE_LABEL = { agent: "Counter staff", driver: "Driver", conductor: "Conductor", manager: "Manager", admin: "Admin" };
 
+/** "CNIC missing": every employee needs a CNIC (older records without one are asked for it on their next edit). */
+export const CnicMissing = () => <Badge tone="red">CNIC missing</Badge>;
+
 /** Expiry badge: red when passed, amber within 30 days. */
 function ExpiryBadge({ date, expired, soon, what }) {
   if (!date) return <span className="text-mute">–</span>;
@@ -51,9 +54,15 @@ export function Employees({ me }) {
       intro="Every member of staff, registered by IT/HR when they are hired. Drivers and conductors registered here appear in Bus & crew; hostesses and cashiers in their dropdowns."
       actions={<Btn kind="primary" onClick={() => setEditing({})} disabled={!lists.data}>+ Register employee</Btn>}
     >
-      {(w?.licences > 0 || w?.cnics > 0) && (
+      {(w?.licences > 0 || w?.cnics > 0 || w?.cnicsMissing > 0) && (
         <button type="button" onClick={() => setF({ ...f, expiring: true, page: 1 })} className="mb-4 block w-full rounded-xl border border-amber-400 bg-amber-50 p-3 text-start text-sm text-amber-950">
-          <b>Expiring within 30 days (or already expired):</b> {w.licences} licence{w.licences === 1 ? "" : "s"}, {w.cnics} CNIC{w.cnics === 1 ? "" : "s"}. Click to see them.
+          <b>Needs attention:</b>{" "}
+          {[
+            w.licences > 0 && `${w.licences} licence${w.licences === 1 ? "" : "s"} expiring or expired`,
+            w.cnics > 0 && `${w.cnics} CNIC${w.cnics === 1 ? "" : "s"} expiring or expired`,
+            w.cnicsMissing > 0 && `${w.cnicsMissing} CNIC${w.cnicsMissing === 1 ? "" : "s"} missing`,
+          ].filter(Boolean).join(", ")}
+          {" "}(expiring = within 30 days). Click to see them.
         </button>
       )}
       <Filters>
@@ -86,7 +95,7 @@ export function Employees({ me }) {
           { key: "employeeCode", label: "Employee ID", render: (e) => <b className="font-mono">{e.employeeCode}</b> },
           { key: "fullName", label: "Name", render: (e) => <><b>{e.fullName}</b>{e.phone && <div className="text-xs text-mute">{e.phone}</div>}</> },
           { key: "designation", label: "Designation", render: (e) => <>{e.designation ?? <Badge tone="amber">not set</Badge>}{e.department && <div className="text-xs text-mute">{e.department}</div>}</> },
-          { key: "cnic", label: "CNIC", render: (e) => <><span className="font-mono text-xs">{e.cnic ?? "–"}</span>{e.cnicExpiry && <div className="text-xs"><ExpiryBadge date={e.cnicExpiry} soon={e.cnicExpiring} what="CNIC" /></div>}</> },
+          { key: "cnic", label: "CNIC", render: (e) => (e.cnic ? <><span className="font-mono text-xs">{e.cnic}</span>{e.cnicExpiry && <div className="text-xs"><ExpiryBadge date={e.cnicExpiry} soon={e.cnicExpiring} what="CNIC" /></div>}</> : <CnicMissing />) },
           { key: "licence", label: "Licence", render: (e) => (e.licenceNo ? <><span className="font-mono text-xs">{e.licenceNo}</span><div className="text-xs"><ExpiryBadge date={e.licenceExpiry} expired={e.licenceExpired} soon={e.licenceExpiring} what="licence" /></div></> : <span className="text-mute">–</span>) },
           { key: "login", label: "Login", render: (e) => (e.userId ? <><Badge tone="blue">{ROLE_LABEL[e.loginRole] ?? e.loginRole}</Badge><div className="text-xs text-mute">{e.loginEmail}</div></> : <span className="text-mute">no login</span>) },
           { key: "isActive", label: "Status", render: (e) => <StatusBadge s={e.isActive ? "active" : "inactive"} /> },
@@ -146,7 +155,7 @@ export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignat
     setTried(true);
     // Wrong or incomplete CNIC / contact no. / licence no.: say so under the field, do not send.
     const firstBad = [
-      ["cnic", cnicMessage(v.cnic)],
+      ["cnic", cnicMessage(v.cnic, { required: true })],
       ["phone", phoneMessage(v.phone, { required: phoneRequired })],
       ["licenceNo", licenceMessage(v.licenceNo)],
     ].find(([, m]) => m);
@@ -266,9 +275,10 @@ export function EmployeeForm({ employee, lists, onClose, onSaved, presetDesignat
         <fieldset className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <legend className="mb-2 text-sm font-extrabold uppercase tracking-wide">Personal</legend>
           <div>
-            <Label htmlFor="ef-cnic">CNIC</Label>
-            <CnicInput id="ef-cnic" className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={v.cnic} onChange={(x) => set("cnic", x)} showErrors={tried} />
+            <Label htmlFor="ef-cnic">CNIC *</Label>
+            <CnicInput id="ef-cnic" required className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={v.cnic} onChange={(x) => set("cnic", x)} showErrors={tried} />
             {serverMsg("cnic")}
+            {employee && !employee.cnic && !v.cnic && <p className="mt-1 text-xs font-semibold text-red-800">This employee has no CNIC yet. Add it to save any change.</p>}
           </div>
           {field("cnicExpiry", "CNIC expiry", { type: "date" })}
           {select("maritalStatus", "Status", MARITAL.map(([value, label]) => ({ value, label })))}
@@ -509,7 +519,7 @@ export function EmployeePrint() {
             {row("Joining date", x.joiningDate && fmtD(x.joiningDate))}
           </div>
           <div>
-            {row("CNIC", x.cnic)}
+            {row("CNIC", x.cnic || <CnicMissing />)}
             {row("CNIC Expiry", x.cnicExpiry && fmtD(x.cnicExpiry))}
             {row("Status", MARITAL.find(([k]) => k === x.maritalStatus)?.[1])}
             {row("City", x.city)}

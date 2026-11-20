@@ -4,6 +4,7 @@ import { adminApi } from "../api";
 import { act, Badge, Btn, ErrorNote, fmtD, Page, Section, StatusBadge, Table, useForm, useLoad } from "../ui";
 import { BUS_CLASSES } from "./Network";
 import { useEmployeeEditor } from "./employeeEditor";
+import { CnicMissing } from "./Employees";
 
 /** Shown when no active designation is used for the driver / conductor dropdown, so the Add button cannot work. */
 const NoDesignation = ({ what }) => (
@@ -125,7 +126,7 @@ export function Drivers() {
         cols={[
           { key: "fullName", label: "Name", render: (r) => <b>{r.fullName}</b> },
           { key: "phone", label: "Phone" },
-          { key: "cnic", label: "CNIC" },
+          { key: "cnic", label: "CNIC", render: (r) => r.cnic || <CnicMissing /> },
           { key: "licenseNo", label: "Licence" },
           { key: "licenseExpiry", label: "Expires", render: (r) => <>{fmtD(r.licenseExpiry)} {r.licenseExpired && <Badge tone="red">expired</Badge>}</> },
           { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
@@ -186,7 +187,7 @@ export function Conductors() {
         cols={[
           { key: "fullName", label: "Name", render: (r) => <b>{r.fullName}</b> },
           { key: "phone", label: "Phone" },
-          { key: "cnic", label: "CNIC", render: (r) => r.cnic ?? "–" },
+          { key: "cnic", label: "CNIC", render: (r) => r.cnic || <CnicMissing /> },
           { key: "login", label: "Login", render: (r) => (r.userId ? r.loginEmail ?? r.loginName ?? "linked" : <Badge tone="amber">no login</Badge>) },
           { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
           {
