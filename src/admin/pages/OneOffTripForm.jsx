@@ -8,6 +8,7 @@ import { useState } from "react";
 import { toast } from "../../components/Toast";
 import { adminApi } from "../api";
 import { act, Btn, formError, FormError, inFormSave, Input, Label, lastActError, Modal, pkLocalToIso, Select } from "../ui";
+import RoutePicker, { describeRoute, emptyRouteChoice, useRouteBuilder } from "./RoutePicker";
 
 /** A return leaving sooner than this after the bus arrives gets a warning (the server says the same). */
 const SHORT_TURNAROUND_MINUTES = 30;
@@ -30,15 +31,18 @@ export function returnRouteChoices(routes, out) {
 }
 
 export default function OneOffTripForm({ routes, buses, drivers, onClose, onCreated }) {
-  const [v, setV] = useState({ routeId: "", busId: "", driverId: "", departureAt: "", withReturn: false, returnRouteId: "", returnDepartureAt: "", returnDriverId: "" });
+  const [v, setV] = useState({ busId: "", driverId: "", departureAt: "", withReturn: false, returnRouteId: "", returnDepartureAt: "", returnDriverId: "" });
+  // The outbound route: a saved one, or locations chosen one by one (RoutePicker).
+  const [choice, setChoice] = useState(emptyRouteChoice);
+  const builder = useRouteBuilder();
   const [returnDriverTouched, setReturnDriverTouched] = useState(false);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
-  const activeRoutes = routes.filter((r) => r.isActive);
   const routeById = (id) => routes.find((r) => String(r.id) === String(id));
-  const out = routeById(v.routeId);
+  const picked = describeRoute(choice, builder, routes);
+  const out = picked.route; // null until the route is complete; id is null for a route that will be created
   const back = routeById(v.returnRouteId);
   const choices = returnRouteChoices(routes, out);
   const driverOpts = drivers.filter((d) => d.isActive && !d.licenseExpired).map((d) => ({ value: d.id, label: d.fullName }));
@@ -52,10 +56,15 @@ export default function OneOffTripForm({ routes, buses, drivers, onClose, onCrea
   const set = (k, x) =>
     setV((p) => {
       const n = { ...p, [k]: x };
-      if (k === "routeId" || (k === "withReturn" && x)) n.returnRouteId = fitReturn(routeById(n.routeId), p.returnRouteId);
+      if (k === "withReturn" && x) n.returnRouteId = fitReturn(out, p.returnRouteId);
       if (k === "driverId" && !returnDriverTouched) n.returnDriverId = x;
       return n;
     });
+  /** The outbound route changed: keep the return route only if it still starts where the bus now arrives. */
+  const changeRoute = (next) => {
+    setChoice(next);
+    setV((p) => ({ ...p, returnRouteId: fitReturn(describeRoute(next, builder, routes).route, p.returnRouteId) }));
+  };
 
   const leaves = msOf(v.departureAt);
   const arrives = out?.estDurationMinutes && leaves !== null ? leaves + out.estDurationMinutes * 60_000 : null;
@@ -66,7 +75,7 @@ export default function OneOffTripForm({ routes, buses, drivers, onClose, onCrea
   // Messages shown inside the form (red ones stop the save).
   const need = (x) => (tried && !x ? "Required." : null);
   const problems = {
-    routeId: need(v.routeId),
+    routeId: tried ? picked.problem : null, // shown by the RoutePicker itself
     busId: need(v.busId),
     departureAt: need(v.departureAt) ?? (tried && leaves !== null && leaves <= Date.now() ? "Must be in the future." : null),
     returnRouteId: v.withReturn
@@ -83,9 +92,10 @@ export default function OneOffTripForm({ routes, buses, drivers, onClose, onCrea
   async function submit(e) {
     e.preventDefault();
     setTried(true);
-    const missing = !v.routeId || !v.busId || !v.departureAt || (v.withReturn && (!v.returnRouteId || !v.returnDepartureAt));
+    const missing = Boolean(picked.problem) || !v.busId || !v.departureAt || (v.withReturn && (!v.returnRouteId || !v.returnDepartureAt));
     if (missing || blocked || (leaves !== null && leaves <= Date.now())) return;
-    const body = { routeId: Number(v.routeId), busId: Number(v.busId), departureAt: pkLocalToIso(v.departureAt) };
+    // picked.body: { routeId } for a saved route, { customRoute } for chosen locations that are not a saved route.
+    const body = { ...picked.body, busId: Number(v.busId), departureAt: pkLocalToIso(v.departureAt) };
     if (v.driverId) body.driverId = Number(v.driverId);
     if (v.withReturn) {
       body.returnTrip = { routeId: Number(v.returnRouteId), departureAt: pkLocalToIso(v.returnDepartureAt) };
@@ -115,6 +125,14 @@ export default function OneOffTripForm({ routes, buses, drivers, onClose, onCrea
       duration: 5000,
     });
     for (const w of res?.warnings ?? []) toast("Check the return time", { body: w, kind: "info", duration: 9000 });
+    // Locations were chosen and the route has no fares yet (always so for a route just created).
+    if (res?.route && !res.route.hasFares) {
+      toast(res.route.created ? "New route created" : "This route has no fares", {
+        body: `${res.route.name} (${res.route.code}) cannot be booked until its fares are set on the Fares page.`,
+        kind: "info",
+        duration: 12000,
+      });
+    }
     onCreated?.();
     onClose();
   }
@@ -134,10 +152,14 @@ export default function OneOffTripForm({ routes, buses, drivers, onClose, onCrea
     <Modal title="Add a one-off trip" onClose={onClose}>
       <form onSubmit={submit} noValidate className="grid gap-4">
         <p className="rounded-xl bg-neutral-100 p-3 text-sm text-neutral-800">For regular departures use Schedules & trips instead. Times are Pakistan time.</p>
-        {field("routeId", "Route",
-          <Select id="f-routeId" value={v.routeId} onChange={(e) => set("routeId", e.target.value)} options={opts(activeRoutes.map((r) => ({ value: r.id, label: r.name })), true)} />,
-          { required: true, error: problems.routeId })}
-        {field("busId", "Bus",
+        <RoutePicker
+          choice={choice}
+          onChange={changeRoute}
+          builder={builder}
+          routes={routes}
+          showProblems={tried}
+          serverError={serverMsg("routeId") ?? serverMsg("customRoute") ?? null}
+        />        {field("busId", "Bus",
           <Select id="f-busId" value={v.busId} onChange={(e) => set("busId", e.target.value)} options={opts(buses.filter((b) => b.isActive).map((b) => ({ value: b.id, label: `${b.registrationNo} · ${b.layoutName}` })), true)} />,
           { required: true, error: problems.busId })}
         {field("driverId", "Driver",

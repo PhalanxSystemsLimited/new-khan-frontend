@@ -421,6 +421,9 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  * Types: text, textarea, number, select, checkbox, date, time, datetime (Pakistan time), days (1-7 checkboxes), multi (checkbox list),
  *        cnic (35202-1234567-1, stops at 13 digits), phone (Pakistani mobile 0300 1234567, stops at 11 digits).
  * Blank optional fields are left out (or sent as null when nullable). Numbers are sent as numbers.
+ * A field of type "custom" draws itself: render(value, setValue, { tried, error }) and may stop the save with
+ * problem(value) → a message or null. Its value is handed to onSubmit as it is. errorFields: the server field names
+ * whose message belongs to it.
  */
 export function FormModal({ title, fields, initial = {}, submitLabel = "Save", onSubmit, onClose, note }) {
   const [v, setV] = useState(() => {
@@ -444,11 +447,14 @@ export function FormModal({ title, fields, initial = {}, submitLabel = "Save", o
       document.getElementById(`f-${bad.name}`)?.focus();
       return;
     }
+    // A custom field that is not complete shows its own message (it is told `tried`).
+    if (fields.some((f) => f.type === "custom" && f.problem?.(v[f.name]))) return;
     const out = {};
     for (const f of fields) {
       let x = v[f.name];
       if (f.readOnly) continue;
-      if (f.type === "checkbox") out[f.name] = Boolean(x);
+      if (f.type === "custom") out[f.name] = x;
+      else if (f.type === "checkbox") out[f.name] = Boolean(x);
       else if (f.type === "days" || f.type === "multi") out[f.name] = x;
       else if (x === "" || x === null || x === undefined) {
         if (f.nullable) out[f.name] = null;
@@ -470,6 +476,10 @@ export function FormModal({ title, fields, initial = {}, submitLabel = "Save", o
       <form onSubmit={submit} className="grid gap-4">
         {note && <p className="rounded-xl bg-neutral-100 p-3 text-sm text-neutral-800">{note}</p>}
         {fields.map((f) => {
+          if (f.type === "custom") {
+            const error = [f.name, ...(f.errorFields ?? [])].map((n) => err?.byField[n]).find(Boolean) ?? null;
+            return <div key={f.name}>{f.render(v[f.name], (x) => set(f.name, x), { tried, error })}</div>;
+          }
           const id = `f-${f.name}`;
           const common = { id, disabled: f.readOnly, required: f.required };
           let input;

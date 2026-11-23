@@ -1,6 +1,8 @@
 /** Network: routes and their stops, fares between stops, schedules and trip generation. */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { adminApi } from "../api";
+import RoutePicker, { describeRoute, emptyRouteChoice, useRouteBuilder } from "./RoutePicker";
 import {
   act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, Input, Label, Modal, Page, pkDate, rs, Select, StatusBadge, Table, useForm, useLoad,
 } from "../ui";
@@ -230,11 +232,28 @@ export function Schedules() {
   const buses = useLoad(() => adminApi.buses(), []);
   const [openForm, form] = useForm();
   const [result, setResult] = useState(null);
+  const builder = useRouteBuilder();
+  const [built, setBuilt] = useState(null); // the route of a schedule made with "Choose locations"
 
-  const routeOpts = (routes.data ?? []).filter((r) => r.isActive).map((r) => ({ value: r.id, label: r.name }));
   const busOpts = (buses.data ?? []).filter((b) => b.isActive).map((b) => ({ value: b.id, label: `${b.registrationNo}${b.fleetNo ? ` (${b.fleetNo})` : ""} · ${b.busClass}` }));
+  // The open form keeps the field list it was opened with, so it reads the routes and terminals through this:
+  // they may still be loading (or be reloaded) while the form is open.
+  const live = useRef({ builder, routes: [] });
+  live.current = { builder, routes: routes.data ?? [] };
+  const pickedRoute = (choice) => describeRoute(choice, live.current.builder, live.current.routes);
   const fields = (isNew) => [
-    ...(isNew ? [{ name: "routeId", label: "Route", type: "select", numeric: true, required: true, options: routeOpts }] : []),
+    // A saved route, or locations chosen one by one (RoutePicker).
+    ...(isNew
+      ? [{
+          name: "route",
+          type: "custom",
+          errorFields: ["routeId", "customRoute"],
+          problem: (choice) => pickedRoute(choice).problem,
+          render: (choice, setChoice, { tried, error }) => (
+            <RoutePicker choice={choice} onChange={setChoice} builder={live.current.builder} routes={live.current.routes} showProblems={tried} serverError={error} />
+          ),
+        }]
+      : []),
     { name: "departureTime", label: "Departs (from first stop, Pakistan time)", type: "time", required: true },
     { name: "busClass", label: "Bus class", type: "select", required: true, options: BUS_CLASSES },
     { name: "defaultBusId", label: "Default bus", type: "select", numeric: true, nullable: true, options: busOpts, hint: "Needed to generate trips." },
@@ -244,13 +263,31 @@ export function Schedules() {
     { name: "isActive", label: "Active", type: "checkbox", checkLabel: "Schedule is in use" },
   ];
 
-  const add = () =>
+  const add = () => {
+    builder.reload(); // a terminal added under Locations since this page opened
     openForm({
       title: "New schedule",
       fields: fields(true),
-      initial: { busClass: "executive", daysOfWeek: [1, 2, 3, 4, 5, 6, 7], isActive: true },
-      onSubmit: (b) => act(() => adminApi.createSchedule(b), "Schedule created").then((ok) => (ok && list.reload(), ok)),
+      initial: { route: emptyRouteChoice(), busClass: "executive", daysOfWeek: [1, 2, 3, 4, 5, 6, 7], isActive: true },
+      onSubmit: async ({ route, ...b }) => {
+        let made = null;
+        const ok = await act(async () => {
+          made = (await adminApi.createSchedule({ ...b, ...pickedRoute(route).body })).route;
+        }, "Schedule created");
+        if (ok) {
+          list.reload();
+          setResult(null);
+          // Locations were chosen: say which route the schedule is on, and that a new route still needs fares.
+          setBuilt(made ?? null);
+          if (made?.created) {
+            routes.reload();
+            builder.reload();
+          }
+        }
+        return ok;
+      },
     });
+  };
   const edit = (s) =>
     openForm({
       title: `Edit · ${s.routeName} ${s.departureTime.slice(0, 5)}`,
@@ -279,6 +316,7 @@ export function Schedules() {
           const parts = [`${r.created} new trip${r.created === 1 ? "" : "s"} created for ${s.routeName} at ${s.departureTime.slice(0, 5)}`];
           if (r.alreadyThere) parts.push(`${r.alreadyThere} day${r.alreadyThere === 1 ? " was" : "s were"} already there`);
           const tail = r.busToConfirm && r.created ? ` On sale now. Bus ${r.bus} is the planned bus: confirm the bus that goes at departure time (Bus & crew).` : "";
+          setBuilt(null);
           setResult({ text: `${parts.join("; ")}.${tail}`, bus: r.bus, skipped: r.skipped ?? [] });
         }
         return ok;
@@ -287,6 +325,14 @@ export function Schedules() {
 
   return (
     <Page title="Schedules & trips" intro="A schedule is a regular departure (route, time, days). Trips are the dated departures customers book; create them from a schedule." actions={<Btn kind="primary" onClick={add}>+ New schedule</Btn>}>
+      {built && (
+        <p role="status" className={`mb-4 rounded-xl border-2 p-3 text-sm ${built.hasFares ? "border-green-600 bg-green-50 text-green-900" : "border-amber-500 bg-amber-50 text-amber-900"}`}>
+          {built.created
+            ? <>New route <b>{built.name}</b> ({built.code}) was created for this schedule. </>
+            : <>The schedule is on the saved route <b>{built.name}</b> ({built.code}). </>}
+          {!built.hasFares && <>It has no fares yet, so its trips cannot be booked: <Link to="/admin/fares" className="font-bold underline">set them on the Fares page</Link>.</>}
+        </p>
+      )}
       {result && <p role="status" className="mb-4 rounded-xl border border-green-600 bg-green-50 p-3 text-sm font-semibold text-green-900">{result.text}</p>}
       {result?.skipped.length > 0 && (
         <div role="status" className="mb-4 rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-sm text-amber-900">

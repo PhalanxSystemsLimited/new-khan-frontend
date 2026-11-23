@@ -88,7 +88,10 @@ export const adminApi = {
   createFare: (b) => send("POST", "/fares", b).then((r) => r.data),
   updateFare: (id, b) => send("PATCH", `/fares/${id}`, b).then((r) => r.data),
   schedules: () => get("/schedules").then((r) => r.data),
-  createSchedule: (b) => send("POST", "/schedules", b).then((r) => r.data),
+  /** { data: schedule, route }: route = { id, code, name, created, hasFares } when locations were chosen (b.customRoute). */
+  createSchedule: (b) => send("POST", "/schedules", b),
+  /** Every route's stops in order ({ id, name, isActive, stops: [{ terminalId, minutes }] }), for "Choose locations". */
+  routeBuilder: () => get("/admin/route-builder").then((r) => r.data),
   updateSchedule: (id, b) => send("PATCH", `/schedules/${id}`, b).then((r) => r.data),
   generateTrips: (id, b) => send("POST", `/schedules/${id}/generate-trips`, b),
   layouts: () => get("/fleet/layouts").then((r) => r.data),
