@@ -56,6 +56,9 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
   const [busy, setBusy] = useState("");
   const [copied, setCopied] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
+  // What cancelling would refund (the cancel window). With the other state, ABOVE the early "loading" / "error"
+  // returns below: a hook after an early return runs on some draws and not others, and React then drops the page.
+  const [quote, setQuote] = useState(null);
   const dlg = useRef(null);
   const ticketEl = useRef(null); // what "Download PDF" captures
 
@@ -133,8 +136,7 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
     setPdfBusy(false);
   }
 
-  // The cancel window shows what would come back, worked out by the server at this moment.
-  const [quote, setQuote] = useState(null);
+  // The cancel window shows what would come back, worked out by the server at this moment (`quote`, set up above).
   function openCancel() {
     setQuote(null);
     dlg.current?.showModal();
