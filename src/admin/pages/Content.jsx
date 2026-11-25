@@ -11,7 +11,7 @@ import { adminApi } from "../api";
 import { act, Badge, Btn, ErrorNote, fmtDT, Page, SkeletonDetails, useConfirm, useLoad } from "../ui";
 
 const SECTIONS = [
-  { key: "company", title: "Contact details", about: "Helpline, WhatsApp, email, head office address and hours, social links. Used in the header, footer, buttons and policies.", builtIn: siteBuiltIn.company },
+  { key: "company", title: "Contact and company details", about: "Helpline, WhatsApp, email, head office address and hours, social links, and the registered company (legal name, SECP number, registered office). Used in the header, footer, buttons, policies and on tickets.", builtIn: siteBuiltIn.company },
   { key: "terminals", title: "Terminals page", about: "The terminal cards visitors see: name, address, phone, hours, map search. (Booking terminals are under Cities & terminals.)", builtIn: siteBuiltIn.terminals },
   { key: "destinations", title: "Destinations from Lahore", about: "Towns, distances, journey time, fares and departure times shown on the home page, Fleet & Routes and route pages. Booking prices come from Fares, so keep them the same.", builtIn: siteBuiltIn.destinations },
   { key: "multanLinks", title: "Multan route towns", about: "Towns on the Multan route, with fares and times, shown on the route map and route pages.", builtIn: siteBuiltIn.multanLinks },
@@ -37,6 +37,8 @@ const LABELS = {
   minor: "Small stop (shown smaller)", phone: "Phone", mapQuery: "Google Maps search text", addressConfirmed: "Address confirmed (hides 'to be confirmed')",
   blurb: "Description", features: "Features", year: "Year", text: "Text", updated: "Last updated (shown on policy pages)", docs: "Policy documents",
   sections: "Sections", kind: "Kind",
+  legal: "Registered company (shown in the footer, on policy pages and on tickets)", type: "Type of company", secp: "SECP registration no. (CUIN)",
+  ntn: "NTN (leave empty until the company has one to show)", registeredOffice: "Registered office address",
 };
 const humanize = (k) => LABELS[k] ?? String(k).replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 

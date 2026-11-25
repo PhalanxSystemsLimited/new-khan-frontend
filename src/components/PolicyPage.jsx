@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { legalDoc, legalDocs, legalUpdated } from "../data/legal";
-import { company, officeAddress } from "../data/site";
+import { company, legalInfo, officeAddress } from "../data/site";
 import { u } from "../lib/i18n";
 import { arrow, href, mailLink, telLink, whatsappLink } from "../lib/links";
 import { PageHero } from "./PageHero";
@@ -70,9 +70,16 @@ export function PolicyNav({ lang, current }) {
 /** Who the business is and how to reach it, shown on every policy page (payment gateways look for it). */
 export function BusinessDetails({ lang }) {
   const ur = lang === "ur";
+  const legal = legalInfo();
   const rows = [
     { k: ur ? "کاروبار" : "Business", v: ur ? "نیو خان (انٹرسٹی بس سروس)" : "New Khan (intercity bus service)" },
-    { k: ur ? "پتہ" : "Address", v: officeAddress(lang, { region: true }) },
+    // The registered company that operates it (the payment gateway and customers look for this).
+    ...(legal.name ? [{ k: ur ? "کمپنی کا قانونی نام" : "Operated by (legal name)", v: <span className="ltr">{legal.name}</span> }] : []),
+    ...(legal.type?.[lang] ? [{ k: ur ? "کمپنی کی قسم" : "Type of company", v: legal.type[lang] }] : []),
+    ...(legal.secp ? [{ k: ur ? "ایس ای سی پی رجسٹریشن نمبر" : "SECP registration no. (CUIN)", v: <span className="ltr">{legal.secp}</span> }] : []),
+    ...(legal.ntn ? [{ k: "NTN", v: <span className="ltr">{legal.ntn}</span> }] : []),
+    ...(legal.registeredOffice?.[lang] ? [{ k: ur ? "رجسٹرڈ دفتر" : "Registered office", v: legal.registeredOffice[lang] }] : []),
+    { k: ur ? "ہیڈ آفس" : "Head office", v: officeAddress(lang, { region: true }) },
     { k: u("helpline", lang), v: <a href={telLink} className="ltr font-semibold underline-offset-4 hover:underline">{company.helpline}</a> },
     { k: "WhatsApp", v: <a href={whatsappLink(lang)} target="_blank" rel="noopener" className="ltr font-semibold underline-offset-4 hover:underline">{company.helpline}</a> },
     { k: ur ? "ای میل" : "Email", v: <a href={mailLink} className="ltr font-semibold underline-offset-4 hover:underline">{company.email}</a> },

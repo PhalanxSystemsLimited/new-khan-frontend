@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { toast, toastOnce } from "../components/Toast";
-import { busTypes, company, getTerminal } from "../data/site";
+import { busTypes, company, getTerminal, legalLine } from "../data/site";
 import { arrow } from "../lib/links";
 import { cancelBooking, getBooking, getCancelQuote, IS_LIVE, resendConfirmation } from "./api";
 import { bookUrl, useNow } from "./hooks";
@@ -331,6 +331,8 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
         </p>
         {b.payment && <p className="mt-1 text-sm text-mute">{bt("paidVia", lang, { method: bt(b.payment.method, lang), txn: b.payment.txnId })}</p>}
         {!IS_LIVE && <p className="mt-2 text-xs text-mute">{bt("placeholderNote", lang)}</p>}
+        {/* Who the ticket is bought from: on the page, the printed ticket and the PDF. */}
+        {legalLine(lang) && <p className="mt-3 border-t border-line pt-2 text-xs text-mute">{legalLine(lang)}</p>}
       </section>
 
       {/* ---- email panel (demo preview only) ---- */}

@@ -1,7 +1,7 @@
 import { toast } from "./Toast";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { company } from "../data/site";
+import { company, legalLine } from "../data/site";
 import { u } from "../lib/i18n";
 import { href, telLink, whatsappLink } from "../lib/links";
 import { WhatsappIcon, xt } from "./parts";
@@ -272,6 +272,8 @@ export function Footer({ lang }) {
           <Link to={href(lang, "/privacy")}>{xt(lang, "Privacy", "رازداری")}</Link>
           <Link to={href(lang, "/terms")}>{xt(lang, "Terms and conditions", "شرائط و ضوابط")}</Link>
         </div>
+        {/* Who operates the service (the registered company), across the full width under the columns. */}
+        {legalLine(lang) && <p className="pk-footer-legal">{legalLine(lang)}</p>}
       </div>
     </footer>
   );

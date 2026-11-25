@@ -7,7 +7,11 @@
 export const PLACEHOLDER = true;
 export const SITE_URL = "https://www.newkhan.pk";
 
-export let company = {name:"New Khan",founded:1956,acSince:1983,fleet:{ac:10},helpline:"0311 1007555",helplineTel:"+923111007555",whatsapp:"923111007555",email:"info@newkhan.pk",bookmeUrl:"https://www.bookme.pk/",address:{street:"55 Lawrence Road",city:"Lahore",region:"Punjab",country:"PK"},addressUr:{street:"55 لارنس روڈ",city:"لاہور",region:"پنجاب",country:"پاکستان"},helplineHours:{en:"Daily, 8am to midnight",ur:"روزانہ، صبح 8 بجے سے رات 12 بجے تک"},social:{facebook:"https://www.facebook.com/NewKhan.Official",instagram:"",youtube:""}};
+export let company = {name:"New Khan",founded:1956,acSince:1983,fleet:{ac:10},helpline:"0311 1007555",helplineTel:"+923111007555",whatsapp:"923111007555",email:"info@newkhan.pk",bookmeUrl:"https://www.bookme.pk/",address:{street:"55 Lawrence Road",city:"Lahore",region:"Punjab",country:"PK"},addressUr:{street:"55 لارنس روڈ",city:"لاہور",region:"پنجاب",country:"پاکستان"},helplineHours:{en:"Daily, 8am to midnight",ur:"روزانہ، صبح 8 بجے سے رات 12 بجے تک"},social:{facebook:"https://www.facebook.com/NewKhan.Official",instagram:"",youtube:""},
+  // The registered company behind the "New Khan" name: shown in the footer, on the policy pages and on tickets
+  // (customers and the payment gateway must be able to see who they are paying). Public company facts only:
+  // never directors' CNICs, home addresses or shareholdings.
+  legal:{name:"NEW KHAN ROAD RUNNERS (PVT) LTD",type:{en:"Private limited company",ur:"پرائیویٹ لمیٹڈ کمپنی"},secp:"0010494",ntn:"",registeredOffice:{en:"C-I, LDA Flats, Lawrence Road, Lahore, Punjab, Pakistan",ur:"سی-ون، ایل ڈی اے فلیٹس، لارنس روڈ، لاہور، پنجاب، پاکستان"}}};
 
 export const lahore = {id:"lahore",name:{en:"Lahore",ur:"لاہور"}};
 export const multan = {id:"multan",name:{en:"Multan",ur:"ملتان"}};
@@ -123,6 +127,18 @@ export let cargoOrCharterNote = { en: "We reply by phone or WhatsApp with a quot
 export function officeAddress(lang, { region = false } = {}) {
   const a = lang === "ur" ? company.addressUr : { ...company.address, country: "Pakistan" };
   return [a.street, a.city, ...(region ? [a.region] : []), a.country].join(lang === "ur" ? "، " : ", ");
+}
+
+/** The company's legal details, whatever an older saved "Contact details" section holds (it may have none). */
+export const legalInfo = () => ({ ...siteBuiltIn.company.legal, ...(company.legal ?? {}) });
+
+/** One line for the footer and the ticket: "New Khan is operated by NEW KHAN ROAD RUNNERS (PVT) LTD, SECP registration no. 0010494." */
+export function legalLine(lang) {
+  const l = legalInfo();
+  if (!l.name) return "";
+  return lang === "ur"
+    ? `نیو خان کو ${l.name} چلاتی ہے${l.secp ? `، ایس ای سی پی رجسٹریشن نمبر ${l.secp}` : ""}۔`
+    : `New Khan is operated by ${l.name}${l.secp ? `, SECP registration no. ${l.secp}` : ""}.`;
 }
 
 /* ------------------------------------------------------------------ admin-edited content */

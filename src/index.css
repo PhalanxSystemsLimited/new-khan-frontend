@@ -862,6 +862,7 @@ html[lang="ur"] .pk-facts dt { letter-spacing: 0; font-size: 13px; }
 .pk-footer-in b { display: block; margin-bottom: 6px; color: var(--pk-ink); }
 .pk-footer-in p { margin-top: 4px; }
 .pk-footer-links { display: flex; flex-direction: column; gap: 4px; }
+.pk-footer-legal { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--pk-ink) 18%, transparent); font-size: 12.5px; }
 .pk-footer a { color: var(--pk-ink2); }
 
 /* --- Pages that build their own header (booking, parcels, charter, route pages) take Pakka's title type --- */
