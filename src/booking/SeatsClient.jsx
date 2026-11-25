@@ -1,5 +1,5 @@
 import { toast } from "../components/Toast";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { busTypes } from "../data/site";
 import { arrow } from "../lib/links";
@@ -9,6 +9,7 @@ import { AuthDialog } from "./AuthDialog";
 import { PhoneVerifyDialog } from "./PhoneVerifyDialog";
 import { PhoneInput } from "../components/PatternFields";
 import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../lib/cnic";
+import { formatPhone } from "../lib/phone";
 import { ApiError } from "./errors";
 import { bookUrl } from "./hooks";
 import { SeatMap } from "./SeatMap";
@@ -67,6 +68,19 @@ export function SeatsClient({ lang }) {
   const [typedCnic, setTypedCnic] = useState("");
   const holderCnic = cnicLocked ? accountCnic : typedCnic;
   const savesToAccount = IS_LIVE && me && !staff && !cnicLocked;
+  // One name and number for the whole booking (passenger 1's) unless "a separate name and number for each
+  // passenger" is ticked: then every seat has its own, as before.
+  const [each, setEach] = useState(false);
+  const shown = (i) => i === 0 || each;
+  // A customer's own name, number and email are filled in from the account once (still editable); staff type the
+  // walk-in customer's.
+  const filled = useRef(false);
+  useEffect(() => {
+    if (!me || staff || filled.current) return;
+    filled.current = true;
+    setPass((ps) => ps.map((p, i) => (i === 0 ? { name: p.name || me.fullName || "", phone: p.phone || formatPhone(me.phone ?? "") } : p)));
+    setEmail((e) => e || me.email || "");
+  }, [me, staff]);
   const [touched, setTouched] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -243,7 +257,7 @@ export function SeatsClient({ lang }) {
         return "";
       })
     : [];
-  const anyError = seatErrors.some(Boolean) || pass.some((_, i) => FIELDS.some((f) => errFor(i, f))) || !!emailErr || !!holderCnicErr;
+  const anyError = seatErrors.some(Boolean) || pass.some((_, i) => shown(i) && FIELDS.some((f) => errFor(i, f))) || !!emailErr || !!holderCnicErr;
 
   /** "Apply": the server works out the discount for these seats on the first bus; nothing is reserved yet. */
   async function applyPromo(e) {
@@ -291,7 +305,8 @@ export function SeatsClient({ lang }) {
     try {
       const r = await createBooking({
         legs: legs.map((l, li) => ({ tripId: l.trip.id, seats: pass.map((_, i) => seatFor(li, i)), group: groupOf(li) })),
-        passengers: pass.map((p, i) => ({ name: p.name.trim(), phone: p.phone.trim(), gender: genders[i] })),
+        // Seats without their own details carry the booking's name and number.
+        passengers: pass.map((p, i) => ({ name: (shown(i) ? p : pass[0]).name.trim(), phone: (shown(i) ? p : pass[0]).phone.trim(), gender: genders[i] })),
         contactEmail: email.trim(),
         holderCnic: formatCnic(holderCnic),
         promoCode: promo?.code, // checked again by the server when the booking is made
@@ -380,10 +395,18 @@ export function SeatsClient({ lang }) {
       })}
 
       <section className="card mt-6" aria-labelledby="pax-h">
-        <h2 id="pax-h" className="h3 text-black">{bt("passengerDetails", lang)}</h2>
-        {pass.map((p, i) => (
-          <fieldset key={i} data-g={genders[i] || undefined} className="nk-pax mt-5 border-t border-line pt-4 first:mt-3 first:border-0 first:pt-0">
+        <h2 id="pax-h" className="h3 text-black">{bt(pax > 1 && !each ? "bookingDetails" : "passengerDetails", lang)}</h2>
+        {pass.map((p, i) => !shown(i) ? null : (
+          <Fragment key={i}>
+          <fieldset data-g={genders[i] || undefined} className="nk-pax mt-5 border-t border-line pt-4 first:mt-3 first:border-0 first:pt-0">
             <legend className="font-semibold text-black">
+              {pax > 1 && !each ? (
+                <>
+                  {bt("bookingContact", lang)}
+                  <span className="ms-2 text-sm font-normal text-mute">({bt("allTicketsNote", lang, { n: pax })})</span>
+                </>
+              ) : (
+              <>
               {bt("passengerN", lang, { n: i + 1 })}
               {genders[i] ? (
                 <>
@@ -396,6 +419,8 @@ export function SeatsClient({ lang }) {
                 </>
               ) : (
                 <span className="ms-2 text-sm font-normal text-mute">({bt("pickSeatFirst", lang)})</span>
+              )}
+              </>
               )}
             </legend>
             <div className="mt-3 grid gap-3 sm:grid-cols-[2fr_1.4fr]">
@@ -439,6 +464,13 @@ export function SeatsClient({ lang }) {
               })}
             </div>
           </fieldset>
+          {i === 0 && pax > 1 && (
+            <label htmlFor="each-pax" className="mt-4 flex cursor-pointer items-start gap-3 text-black">
+              <input id="each-pax" type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-black" checked={each} onChange={(e) => setEach(e.target.checked)} />
+              <span>{bt("eachPassenger", lang)}</span>
+            </label>
+          )}
+          </Fragment>
         ))}
 
         <div className="mt-6 border-t border-line pt-4">

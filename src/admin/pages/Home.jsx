@@ -324,7 +324,9 @@ function QuickSale({ trip, onClose, onSold }) {
   const [dest, setDest] = useState(trip.destinations.at(-1)?.stopId ?? "");
   const [contact, setContact] = useState({ name: "", phone: "", cnic: "" });
   const [triedSale, setTriedSale] = useState(false); // Sell pressed: show the mobile number's message
-  const [pax, setPax] = useState({}); // seatId -> { name, gender }
+  const [pax, setPax] = useState({}); // seatId -> { name, gender, phone }
+  // Unticked: every seat carries the customer's name and number. Ticked: a seat may have its own (blank = the customer's).
+  const [each, setEach] = useState(false);
   const [busy, setBusy] = useState(false);
   const [sold, setSold] = useState(null);
   const fare = trip.destinations.find((x) => String(x.stopId) === String(dest))?.fare ?? 0;
@@ -387,6 +389,8 @@ function QuickSale({ trip, onClose, onSold }) {
     setPax((p) => ({ ...p, [s.seatId]: p[s.seatId] ?? { name: "", gender: "male" } }));
   };
 
+  const seatOf = (id) => grid.list.find((s) => s.seatId === id);
+
   async function sell(e) {
     e.preventDefault();
     if (!picked.length) return act(() => Promise.reject(new Error("Choose at least one seat.")));
@@ -396,6 +400,12 @@ function QuickSale({ trip, onClose, onSold }) {
     if (phoneIssue) return act(() => Promise.reject(new Error(`Mobile number: ${phoneIssue}`)));
     const cnicIssue = cnicProblem(contact.cnic);
     if (cnicIssue) return act(() => Promise.reject(new Error(`Customer's CNIC: ${CNIC_MESSAGES[cnicIssue].en}`)));
+    if (each)
+      for (const id of picked) {
+        const issue = phoneMessage(pax[id]?.phone ?? "");
+        if (issue) return act(() => Promise.reject(new Error(`Seat ${seatOf(id)?.seatNumber}, mobile number: ${issue}`)));
+      }
+    const own = (id, f) => (each ? (pax[id]?.[f] ?? "").trim() : "");
     setBusy(true);
     let booking;
     const ok = await act(async () => {
@@ -406,7 +416,7 @@ function QuickSale({ trip, onClose, onSold }) {
         contact: { name: contact.name.trim(), phone: contact.phone.trim() },
         holderCnic: formatCnic(contact.cnic),
         channel: "counter",
-        passengers: picked.map((id, i) => ({ seatId: id, name: (pax[id]?.name || (i === 0 ? contact.name : "")).trim(), gender: pax[id]?.gender ?? "male", phone: contact.phone.trim() })),
+        passengers: picked.map((id) => ({ seatId: id, name: own(id, "name") || contact.name.trim(), gender: pax[id]?.gender ?? "male", phone: own(id, "phone") || contact.phone.trim() })),
       });
       try {
         await adminApi.cashPayment(booking.id, booking.totalAmount);
@@ -439,7 +449,6 @@ function QuickSale({ trip, onClose, onSold }) {
       </Modal>
     );
 
-  const seatOf = (id) => grid.list.find((s) => s.seatId === id);
   const fieldCls = "w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black";
   const heading = (t) => <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500">{t}</h3>;
   const chip = (cls, label) => (
@@ -523,16 +532,31 @@ function QuickSale({ trip, onClose, onSold }) {
             {picked.length === 0 ? (
               <p className="rounded-xl border border-dashed border-neutral-400 p-3 text-sm text-mute">Choose seats on the map. Each seat adds a passenger here.</p>
             ) : (
-              picked.map((id, i) => (
-                <div key={id} className="flex items-center gap-2">
+              picked.map((id) => (
+                <div key={id} className="flex flex-wrap items-center gap-2">
                   <span className="flex h-10 min-w-12 shrink-0 items-center justify-center rounded-lg bg-black px-2 text-sm font-bold text-white">{seatOf(id)?.seatNumber}</span>
-                  <Input aria-label="Passenger name" className="min-w-0 flex-1" required={i > 0} minLength={2} placeholder={i === 0 ? `${contact.name || "Customer"} (same as customer)` : "Passenger name"}
-                    value={pax[id]?.name ?? ""} onChange={(e) => setPax({ ...pax, [id]: { ...pax[id], name: e.target.value } })} />
-                  <Select aria-label="Gender" className="!w-28 shrink-0" value={pax[id]?.gender ?? "male"} onChange={(e) => setPax({ ...pax, [id]: { ...pax[id], gender: e.target.value } })}
+                  {each ? (
+                    <>
+                      <Input aria-label={`Seat ${seatOf(id)?.seatNumber} passenger name`} className="min-w-0 flex-1" minLength={2} placeholder={contact.name || "Same as customer"}
+                        value={pax[id]?.name ?? ""} onChange={(e) => setPax({ ...pax, [id]: { ...pax[id], name: e.target.value } })} />
+                      <PhoneInput aria-label={`Seat ${seatOf(id)?.seatNumber} mobile number`} className={`${fieldCls} !w-36 shrink-0`} placeholder={contact.phone || "Same number"}
+                        value={pax[id]?.phone ?? ""} onChange={(x) => setPax({ ...pax, [id]: { ...pax[id], phone: x } })} messages={false} aria-invalid={triedSale && Boolean(phoneMessage(pax[id]?.phone ?? "")) ? true : undefined} />
+                    </>
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate text-sm text-neutral-700">{contact.name.trim() || "Customer"}</span>
+                  )}
+                  <Select aria-label={`Seat ${seatOf(id)?.seatNumber} gender`} className="!w-28 shrink-0" value={pax[id]?.gender ?? "male"} onChange={(e) => setPax({ ...pax, [id]: { ...pax[id], gender: e.target.value } })}
                     options={[{ value: "male", label: "Male" }, { value: "female", label: "Female" }]} />
                 </div>
               ))
             )}
+            {picked.length > 1 && (
+              <label htmlFor="qs-each" className="mt-1 flex cursor-pointer items-center gap-2 text-sm text-neutral-800">
+                <input id="qs-each" type="checkbox" className="h-4 w-4 accent-black" checked={each} onChange={(e) => setEach(e.target.checked)} />
+                Separate name and number for each seat
+              </label>
+            )}
+            {each && picked.length > 1 && <p className="text-xs text-mute">A seat left blank takes the customer's name and number.</p>}
           </section>
 
           {/* Stays in view at the bottom of the window when the passenger list is long. */}
