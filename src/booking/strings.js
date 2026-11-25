@@ -299,7 +299,9 @@ export const bk = {
   phoneResults: { en: "{n} booking(s) made with this number", ur: "اس نمبر سے {n} بکنگ" },
   noPhoneMatch: { en: "No bookings were made with this mobile number. Check the number, or add the booking reference.", ur: "اس موبائل نمبر سے کوئی بکنگ نہیں ملی۔ نمبر چیک کریں یا بکنگ ریفرنس بھی لکھیں۔" },
   openBooking: { en: "Open booking", ur: "بکنگ کھولیں" },
-  phoneListNote: { en: "Passenger details are hidden in this list. Open a booking to see it in full.", ur: "اس فہرست میں مسافروں کی تفصیل چھپی ہوئی ہے۔ پوری تفصیل کے لیے بکنگ کھولیں۔" },
+  phoneListNote: { en: "For your privacy, booking references and passenger details are not shown here. To open a booking, type its reference (it is on your ticket) in the box above. Lost it? Sign in to your account, or ask at any New Khan counter.", ur: "آپ کی رازداری کے لیے یہاں بکنگ ریفرنس اور مسافروں کی تفصیل نہیں دکھائی جاتی۔ بکنگ کھولنے کے لیے اس کا ریفرنس (جو آپ کے ٹکٹ پر لکھا ہے) اوپر والے خانے میں لکھیں۔ ریفرنس نہیں مل رہا؟ اپنے اکاؤنٹ میں سائن اِن کریں یا کسی بھی نیو خان کاؤنٹر سے رابطہ کریں۔" },
+  mobileHint: { en: "11 digits, like 0300 1234567. The space is added for you.", ur: "11 ہندسے، جیسے 0300 1234567۔ وقفہ خود لگ جاتا ہے۔" },
+  enterRefToOpen: { en: "Type its reference above to open it", ur: "کھولنے کے لیے اوپر اس کا ریفرنس لکھیں" },
 };
 
 export function bt(key, lang, vars = {}) {

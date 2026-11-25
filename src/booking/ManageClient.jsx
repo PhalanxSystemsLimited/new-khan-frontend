@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PhoneInput } from "../components/PatternFields";
+import { PhoneInput, phoneMessage } from "../components/PatternFields";
 import { company } from "../data/site";
 import { lookupBooking, lookupByPhone } from "./api";
 import { BookingCard } from "./BookingList";
@@ -8,12 +8,11 @@ import { bt } from "./strings";
 
 // Demo refs look like NK-7H3K9Q; backend PNRs like NK7H3K9Q (with or without the dash is fine).
 const refOk = (v) => /^NK-?[A-Z0-9]{6}$/i.test(v.trim());
-const phoneOk = (v) => /^(?:\+92|0092|92|0)?3\d{9}$/.test(v.replace(/[\s-]/g, ""));
 const cleanPhone = (v) => v.replace(/[\s-]/g, "");
 
 /**
- * Find a booking. The mobile number alone lists every booking made with it (no passenger details);
- * with the booking reference too, that booking opens in full.
+ * Find a booking. The mobile number alone lists the journeys booked with it (no reference, seats or passenger
+ * details: a phone number is not proof of who is asking); with the booking reference too, that booking opens in full.
  */
 export function ManageClient({ lang }) {
   const [ref, setRef] = useState("");
@@ -25,7 +24,8 @@ export function ManageClient({ lang }) {
   const [found, setFound] = useState(null); // one booking, in full
 
   const eRef = ref.trim() && !refOk(ref) ? bt("errRef", lang) : "";
-  const ePhone = !phoneOk(phone) ? bt("errPhone", lang) : "";
+  // The same rule as every other mobile field (lib/phone.js): 11 digits starting 03.
+  const ePhone = phoneMessage(phone, { required: true, lang });
 
   async function open(pnr) {
     setBusy(pnr);
@@ -68,8 +68,10 @@ export function ManageClient({ lang }) {
       <form onSubmit={submit} noValidate className="card mt-4 grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="m-phone" className="label">{bt("mobileField", lang)}</label>
-          <PhoneInput id="m-phone" className="field" lang={lang} value={phone} messages={false} onChange={setPhone} onBlur={() => setTouched((t) => ({ ...t, phone: true }))} aria-invalid={touched.phone && !!ePhone} describedBy={touched.phone && ePhone ? "m-phone-e" : undefined} />
-          {touched.phone && ePhone && <p id="m-phone-e" role="alert" className="mt-1 text-sm text-red-700">{ePhone}</p>}
+          {/* The same mobile field as the counter sale and sign-up: digits only, spaced as 0300 1234567, stops at
+              11 digits, "+92…" becomes "0…", a digit count while typing and its own message when incomplete. */}
+          <PhoneInput id="m-phone" className="field" lang={lang} value={phone} required showErrors={touched.phone} onChange={setPhone} />
+          <p className="mt-1 text-xs text-mute">{bt("mobileHint", lang)}</p>
         </div>
         <div>
           <label htmlFor="m-ref" className="label">{bt("refOptional", lang)}</label>
@@ -92,16 +94,8 @@ export function ManageClient({ lang }) {
           <p className="mt-1 text-sm text-mute">{bt("phoneListNote", lang)}</p>
           <ul className="mt-4 grid gap-4">
             {list.map((b) => (
-              <BookingCard
-                key={b.ref}
-                b={b}
-                lang={lang}
-                action={
-                  <button type="button" onClick={() => open(b.ref)} disabled={!!busy} className="btn btn-ghost !min-h-11 !py-2 text-sm">
-                    {busy === b.ref ? bt("finding", lang) : bt("openBooking", lang)}
-                  </button>
-                }
-              />
+              // No "open" button: opening a booking needs its reference, typed in the form above.
+              <BookingCard key={b.key} b={b} lang={lang} action={<span className="text-sm text-mute">{bt("enterRefToOpen", lang)}</span>} />
             ))}
           </ul>
         </section>

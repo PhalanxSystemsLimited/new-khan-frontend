@@ -9,6 +9,7 @@ import {
   act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, fmtT, Input, Label, Modal, Page, pkDate, rs, Section, Select, SkeletonBar, SkeletonDetails, StatusBadge, Table, useConfirm, useForm, useLoad,
 } from "../ui";
 import { AddLoadWindow, LoadSlipList, useCanCancelSlip } from "./LoadSlips";
+import { PhoneInput, phoneMessage } from "../../components/PatternFields";
 
 /* ------------------------------------------------------------------ helpers */
 
@@ -193,18 +194,44 @@ export function Trips({ me, isAdmin, isManager }) {
     if (ok) trips.reload();
     return ok;
   };
-  const changeStatus = (t) =>
+  /**
+   * The statuses this user may give a trip now (the server checks the same). Managers and admins: every next step
+   * (cancel: admins). Counter staff, by where their terminal is on the bus's route: where it starts, the next steps
+   * except cancel and arrived; a middle stop, nothing here (they report the delay, see canReportDelay).
+   */
+  const statusChoices = (t) => {
+    const next = NEXT[t.status] ?? [];
+    if (isManager) return next.filter((s) => isAdmin || s !== "cancelled");
+    if (isCounter && me.terminalId && me.terminalId === t.originTerminalId) return next.filter((s) => !["cancelled", "arrived"].includes(s));
+    return [];
+  };
+  /** A middle stop's counter: how late the bus is, until their own voucher is generated. */
+  const canReportDelay = (t) =>
+    isCounter && Boolean(me.terminalId) && me.terminalId !== t.originTerminalId && !t.myVoucherDone && ["scheduled", "delayed", "boarding", "departed"].includes(t.status);
+
+  const changeStatus = (t) => {
+    const choices = statusChoices(t);
     openForm({
       title: `Change status · ${t.routeName}, ${fmtT(t.departureAt)}`,
-      note: "Pick the new status. " + NEXT[t.status].map((s) => `${s}: ${STATUS_HELP[s]}`).join(" "),
+      note: "Pick the new status. " + choices.map((s) => `${s}: ${STATUS_HELP[s]}`).join(" "),
       fields: [
-        { name: "status", label: "New status", type: "select", required: true, options: NEXT[t.status].filter((s) => isAdmin || s !== "cancelled").map((s) => ({ value: s, label: s })) },
+        { name: "status", label: "New status", type: "select", required: true, options: choices.map((s) => ({ value: s, label: s })) },
         { name: "delayMinutes", label: "Delay (minutes)", type: "number", min: 0, max: 1440, hint: "Only for Delayed." },
-        { name: "reason", label: "Reason", type: "textarea", hint: "Required to cancel a trip." },
+        ...(isAdmin ? [{ name: "reason", label: "Reason", type: "textarea", hint: "Required to cancel a trip." }] : []),
       ],
-      initial: { status: NEXT[t.status][0] },
+      initial: { status: choices[0] },
       submitLabel: "Update status",
       onSubmit: (b) => applyStatus(t, b),
+    });
+  };
+  const reportDelay = (t) =>
+    openForm({
+      title: `Report delay · ${t.routeName}, ${fmtT(t.departureAt)}`,
+      note: `How late is this bus? The time it is due at ${t.hereCity ?? "your terminal"} and at every later terminal moves by this much, on the counter screens and on the website. The trip's status (${t.status}) does not change: that is set by the terminal the bus leaves from. Type 0 if it is back on time.`,
+      fields: [{ name: "delayMinutes", label: "Minutes late", type: "number", required: true, min: 0, max: 1440 }],
+      initial: { delayMinutes: t.delayMinutes ?? 0 },
+      submitLabel: "Save delay",
+      onSubmit: (b) => applyStatus(t, { status: t.status, delayMinutes: b.delayMinutes }),
     });
 
   const standInField = {
@@ -283,7 +310,7 @@ export function Trips({ me, isAdmin, isManager }) {
     <Page
       title="Trips & boarding"
       intro={isCounter
-        ? "The buses boarding at your terminal on a day: see and board passengers, vouchers, confirm the bus and set the crew."
+        ? "The buses boarding at your terminal on a day: see and board passengers, vouchers, confirm the bus and set the crew. For a bus leaving from your terminal you also change its status; for a bus passing through you report its delay."
         : "Each departure on a day: change its status, see and board passengers, confirm the bus and set the crew."}
       actions={
         <>
@@ -374,7 +401,8 @@ export function Trips({ me, isAdmin, isManager }) {
               <div className="flex flex-wrap gap-1">
                 <Btn small onClick={() => setManifest(r)}>Passengers</Btn>
                 <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to={`/admin/trip-vouchers/${r.id}`}>Vouchers{r.vouchersGenerated ? ` (${r.vouchersGenerated})` : ""}</Link>
-                {isManager && NEXT[r.status].length > 0 && <Btn small onClick={() => changeStatus(r)}>Status…</Btn>}
+                {statusChoices(r).length > 0 && <Btn small onClick={() => changeStatus(r)}>Status…</Btn>}
+                {canReportDelay(r) && <Btn small onClick={() => reportDelay(r)}>Report delay…</Btn>}
                 {r.roundTripId && isAdmin && <Link className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" to={`/admin/round-trips/${r.roundTripId}`}>Report {r.roundTripId}</Link>}
                 {canAssign(r) && (
                   <Btn small kind={!done(r) && r.busConfirmed === false ? "primary" : undefined} onClick={() => assign(r)}>
@@ -736,11 +764,18 @@ export function Bookings({ me, isAdmin, isManager }) {
   const scope = list.data?.scope;
   const searching = Boolean(applied.pnr || applied.phone);
 
+  // The phone box is the same mobile field as the counter sale: an incomplete number is not searched.
+  const [triedPhone, setTriedPhone] = useState(false);
   const search = (e) => {
     e?.preventDefault();
+    if (phoneMessage(q.phone)) {
+      setTriedPhone(true);
+      document.getElementById("b-ph")?.focus();
+      return;
+    }
     setApplied({
       pnr: q.pnr.trim().toUpperCase() || undefined,
-      phone: q.phone.trim() || undefined,
+      phone: q.phone.replace(/\s/g, "") || undefined, // "0300 1234567" is sent as 03001234567
       status: q.status || undefined,
       terminalId: !counter && q.terminalId ? Number(q.terminalId) : undefined,
       page: 1,
@@ -761,7 +796,8 @@ export function Bookings({ me, isAdmin, isManager }) {
           </div>
           <div>
             <Label htmlFor="b-ph">Phone</Label>
-            <Input id="b-ph" placeholder="+923001234567" value={q.phone} onChange={(e) => setQ({ ...q, phone: e.target.value })} />
+            {/* Digits only, spaced as 0300 1234567, stops at 11 digits, "+92…" becomes "0…" (as on the counter sale). */}
+            <PhoneInput id="b-ph" className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black" value={q.phone} onChange={(x) => setQ({ ...q, phone: x })} showErrors={triedPhone} />
           </div>
           {isManager && (
             <div>
@@ -775,7 +811,7 @@ export function Bookings({ me, isAdmin, isManager }) {
             <Select id="b-st" value={q.status} onChange={(e) => setQ({ ...q, status: e.target.value })} options={[{ value: "", label: "All" }, ...["pending", "confirmed", "completed", "cancelled", "expired", "refunded"].map((s) => ({ value: s, label: s }))]} />
           </div>
           <Btn kind="primary" type="submit">Search</Btn>
-          <Btn onClick={() => { setQ({ pnr: "", phone: "", status: "", terminalId: "", page: 1 }); setApplied({ page: 1 }); }}>Clear</Btn>
+          <Btn onClick={() => { setQ({ pnr: "", phone: "", status: "", terminalId: "", page: 1 }); setTriedPhone(false); setApplied({ page: 1 }); }}>Clear</Btn>
         </Filters>
       </form>
       {counter && (
@@ -786,7 +822,7 @@ export function Bookings({ me, isAdmin, isManager }) {
         </p>
       )}
       {!counter && scope && !scope.allTerminals && <p className="mb-2 text-sm text-mute" data-scope>Showing bookings boarding at the chosen terminal.</p>}
-      <p className="mb-2 text-xs text-mute">Phone numbers are stored as +92…; 03001234567 is also accepted.</p>
+      <p className="mb-2 text-xs text-mute">Type the mobile number as 0300 1234567 (11 digits; the space is added for you). A number pasted as +92 300 1234567 is changed to that form.</p>
       <ErrorNote err={list.err} onRetry={list.reload} />
       <Table
         loading={list.loading}

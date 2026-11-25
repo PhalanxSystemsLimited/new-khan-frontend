@@ -369,10 +369,13 @@ export async function markExpirySeen(ids) {
   await request("/bookings/expiry-seen", { method: "POST", auth: true, body: { ids } });
 }
 
-/** Every booking made with a mobile number (reduced view: no passenger details). */
+/**
+ * Every booking made with a mobile number: the journey, date and status only. The server gives no booking
+ * reference and no seat numbers here (the reference plus the phone number opens the full ticket).
+ */
 export async function lookupByPhone(phone) {
   const { data } = await request(`/bookings/lookup-phone?${new URLSearchParams({ phone })}`);
-  return data.map(listRow);
+  return data.map((d, i) => ({ ...listRow(d), key: `phone-${i}`, ref: "", seats: [] }));
 }
 
 export async function cancelBooking(id) {

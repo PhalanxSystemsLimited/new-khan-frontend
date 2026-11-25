@@ -52,7 +52,8 @@ export function BookingCard({ b, lang, action, onExpire }) {
     <li className="card !p-4 sm:!p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="ltr font-mono text-xl font-bold tracking-wider text-black">{b.ref}</p>
+          {/* The mobile-number search gives no reference (it is half of what opens a ticket). */}
+          {b.ref && <p className="ltr font-mono text-xl font-bold tracking-wider text-black">{b.ref}</p>}
           {b.counterSale && (
             <p className="mt-1">
               <span className="rounded-full border border-black/30 bg-coal px-2 py-0.5 text-xs font-bold text-black">

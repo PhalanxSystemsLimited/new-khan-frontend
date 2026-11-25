@@ -191,7 +191,8 @@ export async function lookupByPhone(phone) {
   return Object.values(sweep())
     .filter((b) => b.passengers.some((p) => digits(p.phone) === digits(String(phone))))
     .sort(newestFirst)
-    .map(mockRow);
+    // Like the live server: no booking reference and no seat numbers from a phone number alone.
+    .map((b, i) => ({ ...mockRow(b), key: `phone-${i}`, ref: "", seats: [] }));
 }
 
 export async function cancelBooking(ref) {
