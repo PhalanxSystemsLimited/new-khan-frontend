@@ -284,7 +284,17 @@ function mapBooking(d) {
  * One backend booking per bus (leg). A return trip makes two bookings; if the second fails the first is
  * cancelled again so no seats stay held by accident. Returns the booking ids for the Reserved screen.
  */
-export async function createBooking({ legs, passengers, contactEmail, holderCnic }) {
+/**
+ * "Apply" on the promo box: what the code takes off the FIRST bus of the journey (the code goes on that booking only;
+ * a return trip is a second booking). { code, subtotal, discount, total } or an ApiError with the server's reason.
+ */
+export async function checkPromo({ tripId: key, seats, code }) {
+  const { tripId, boardingStopId, droppingStopId } = parseKey(key);
+  const { data } = await request("/bookings/promo-check", { method: "POST", auth: true, body: { tripId, boardingStopId, droppingStopId, seats, code } });
+  return data;
+}
+
+export async function createBooking({ legs, passengers, contactEmail, holderCnic, promoCode }) {
   const ids = [];
   let allConfirmed = true; // a promo code covering the whole fare: nothing to pay, the server confirms at once
   try {
@@ -299,6 +309,8 @@ export async function createBooking({ legs, passengers, contactEmail, holderCnic
           droppingStopId,
           contact: { name: passengers[0].name, phone: passengers[0].phone, ...(contactEmail ? { email: contactEmail } : {}) },
           ...(holderCnic ? { holderCnic } : {}),
+          // The promo code goes on the first bus only: a second booking with the same single-use code would be refused.
+          ...(promoCode && ids.length === 0 ? { promoCode } : {}),
           passengers: passengers.map((p, i) => ({
             seatId: Number(leg.seats[i]),
             name: p.name,

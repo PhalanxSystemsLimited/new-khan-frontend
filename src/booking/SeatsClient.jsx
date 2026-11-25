@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { busTypes } from "../data/site";
 import { arrow } from "../lib/links";
-import { createBooking, getSeats, getTrip, IS_LIVE } from "./api";
+import { checkPromo, createBooking, getSeats, getTrip, IS_LIVE, PROMO_ON } from "./api";
 import { getSession } from "./auth";
 import { AuthDialog } from "./AuthDialog";
 import { PhoneVerifyDialog } from "./PhoneVerifyDialog";
@@ -71,6 +71,11 @@ export function SeatsClient({ lang }) {
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState("");
+  // Promo code (online customers only): what is typed, the code the server accepted with its discount, and why not.
+  const [promoText, setPromoText] = useState("");
+  const [promo, setPromo] = useState(null); // { code, subtotal, discount, total } once applied
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoErr, setPromoErr] = useState("");
   const [authOpen, setAuthOpen] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false); // "verify your mobile" (only when SMS is set up)
   const summaryRef = useRef(null);
@@ -240,6 +245,34 @@ export function SeatsClient({ lang }) {
     : [];
   const anyError = seatErrors.some(Boolean) || pass.some((_, i) => FIELDS.some((f) => errFor(i, f))) || !!emailErr || !!holderCnicErr;
 
+  /** "Apply": the server works out the discount for these seats on the first bus; nothing is reserved yet. */
+  async function applyPromo(e) {
+    e?.preventDefault();
+    const code = promoText.trim().toUpperCase();
+    setPromoErr("");
+    if (!/^[A-Z0-9_-]{3,30}$/.test(code)) return setPromoErr(bt("promoFormat", lang));
+    if (!getSession()) {
+      setPromoErr(bt("promoSignIn", lang));
+      setAuthOpen(true);
+      return;
+    }
+    setPromoBusy(true);
+    try {
+      setPromo(await checkPromo({ tripId: legs[0].trip.id, seats: pax, code }));
+      setPromoText(code);
+    } catch (err) {
+      setPromo(null);
+      // The server's own reason (expired, already used, not for this route, minimum amount...).
+      setPromoErr(err instanceof ApiError && err.code === "RATE_LIMITED" ? bt("rateLimited", lang) : err?.message || bt("promoBad", lang));
+    }
+    setPromoBusy(false);
+  }
+  const removePromo = () => {
+    setPromo(null);
+    setPromoText("");
+    setPromoErr("");
+  };
+
   async function reserve() {
     if (busy) return; // a second click while the first is on its way
     setSubmitted(true);
@@ -261,6 +294,7 @@ export function SeatsClient({ lang }) {
         passengers: pass.map((p, i) => ({ name: p.name.trim(), phone: p.phone.trim(), gender: genders[i] })),
         contactEmail: email.trim(),
         holderCnic: formatCnic(holderCnic),
+        promoCode: promo?.code, // checked again by the server when the booking is made
       });
       if (savesToAccount) refreshMe(); // the account now has this CNIC
       toast(bt("toastReserved", lang), { body: bt("toastReservedBody", lang) });
@@ -310,6 +344,9 @@ export function SeatsClient({ lang }) {
   if (!legs) return <p role="status" className="mt-6 text-mute">{bt("loading", lang)}</p>;
 
   const total = legs.reduce((a, l) => a + l.trip.fare * pax, 0);
+  const promoOn = PROMO_ON && !staff; // promotions are for online customers, not counter sales
+  const discount = promoOn && promo ? Math.min(Number(promo.discount) || 0, total) : 0;
+  const toPay = Math.max(0, total - discount);
 
   return (
     <div className="pb-28">
@@ -449,6 +486,46 @@ export function SeatsClient({ lang }) {
         </div>
       </section>
 
+      {promoOn && (
+        <section className="card mt-4" aria-labelledby="promo-h">
+          <h2 id="promo-h" className="h3 text-black">{bt("promoTitle", lang)}</h2>
+          {promo ? (
+            <>
+              <p role="status" className="mt-3 rounded-xl border border-green-600 bg-green-50 p-3 font-semibold text-green-900">
+                {bt("promoApplied", lang, { code: promo.code, amount: pkr(discount) })}{" "}
+                <button type="button" onClick={removePromo} className="ms-1 font-semibold underline underline-offset-4">{bt("promoRemove", lang)}</button>
+              </p>
+              <dl className="mt-3 grid max-w-sm gap-1 text-sm">
+                <div className="flex justify-between"><dt className="text-mute">{bt("fareLine", lang)}</dt><dd className="ltr text-black">{pkr(total)}</dd></div>
+                <div className="flex justify-between"><dt className="text-mute">{bt("discountLine", lang)}</dt><dd className="ltr text-green-800">− {pkr(discount)}</dd></div>
+                <div className="flex justify-between border-t border-line pt-1 font-bold"><dt className="text-black">{bt("toPay", lang)}</dt><dd className="ltr text-black">{pkr(toPay)}</dd></div>
+              </dl>
+              {legs.length > 1 && <p className="mt-2 text-xs text-mute">{bt("promoReturnNote", lang)}</p>}
+              {toPay === 0 && <p className="mt-2 text-sm font-semibold text-black">{bt("nothingToPay", lang)}</p>}
+            </>
+          ) : (
+            <form onSubmit={applyPromo} noValidate className="mt-3">
+              <label htmlFor="f-promo" className="text-sm text-mute">{bt("promoHint", lang)}</label>
+              <div className="mt-2 flex max-w-sm gap-2">
+                <input
+                  id="f-promo"
+                  className="field ltr uppercase"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  maxLength={30}
+                  value={promoText}
+                  aria-invalid={!!promoErr}
+                  aria-describedby={promoErr ? "e-promo" : undefined}
+                  onChange={(e) => { setPromoText(e.target.value); setPromoErr(""); }}
+                />
+                <button type="submit" disabled={promoBusy || !promoText.trim()} className="btn btn-ghost shrink-0 disabled:opacity-50">{promoBusy ? bt("promoChecking", lang) : bt("promoApply", lang)}</button>
+              </div>
+              {promoErr && <p id="e-promo" role="alert" className="mt-2 text-sm text-red-700">{promoErr}</p>}
+            </form>
+          )}
+        </section>
+      )}
+
       <aside className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-gold bg-white/97 px-3 pt-2 pb-[max(10px,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur">
         <div className="container-nk">
           <p className="truncate text-xs text-mute sm:whitespace-normal">{bt(IS_LIVE ? "reserveNoteLive" : "reserveNote", lang)}</p>
@@ -458,7 +535,8 @@ export function SeatsClient({ lang }) {
                 {bt("total", lang)}
                 <span className="md:hidden"> · {pax} {lang === "ur" ? "سیٹیں" : pax === 1 ? "seat" : "seats"}</span>
               </span>{" "}
-              {pkr(total)}<sup>{star}</sup>
+              {discount > 0 && <s className="me-2 text-sm font-normal text-mute">{pkr(total)}</s>}
+              {pkr(toPay)}<sup>{star}</sup>
             </p>
             {/* Always clickable: validation happens on click and moves focus to the message */}
             <button type="button" onClick={reserve} disabled={busy} aria-busy={busy} className="btn btn-gold btn-shine shrink-0 whitespace-nowrap disabled:opacity-60">{busy ? bt("reserving", lang) : bt("reserve", lang)}</button>

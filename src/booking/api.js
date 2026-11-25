@@ -21,6 +21,9 @@ export const createBooking = (input) => impl.createBooking(input);
 export const getBooking = (ref) => impl.getBooking(ref);
 export const lookupBooking = (ref, phone) => impl.lookupBooking(ref, phone);
 export const cancelBooking = (ref) => impl.cancelBooking(ref);
+/** Whether the promo box is offered (the live site; the demo has no promo codes). */
+export const PROMO_ON = Boolean(impl.checkPromo);
+export const checkPromo = (p) => impl.checkPromo(p);
 /** The refund a cancellation would give now (live mode); null when it cannot be worked out. */
 export const getCancelQuote = (ref) => (impl.getCancelQuote ? impl.getCancelQuote(ref).catch(() => null) : Promise.resolve(null));
 /** Bookings of the signed-in customer (live) or of this browser (demo), newest first, as list rows. */

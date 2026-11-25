@@ -325,6 +325,13 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
       })}
 
       <section className="card mt-4">
+        {/* A promo code was used: the fare, what the code took off, and what is left. */}
+        {Number(b.discount) > 0 && (
+          <dl className="mb-3 grid gap-1 border-b border-line pb-3 text-sm">
+            <div className="flex justify-between"><dt className="text-mute">{bt("fareLine", lang)}</dt><dd className="ltr text-black">{pkr(Number(b.total) + Number(b.discount))}</dd></div>
+            <div className="flex justify-between"><dt className="text-mute">{bt("discountLine", lang)}</dt><dd className="ltr text-green-800">− {pkr(b.discount)}</dd></div>
+          </dl>
+        )}
         <p className="flex items-center justify-between text-lg">
           <span className="font-semibold text-black">{b.status === "CONFIRMED" ? bt("farePaid", lang) : bt("fareTotal", lang)}</span>
           <strong className="ltr text-2xl text-black">{pkr(b.payment?.amount ?? b.total)}{star}</strong>
