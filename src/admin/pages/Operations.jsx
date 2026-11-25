@@ -150,6 +150,7 @@ export function Trips({ me, isAdmin, isManager }) {
   const trips = useLoad(() => adminApi.trips(date, status || undefined), [date, status]);
   const [manifest, setManifest] = useState(null);
   const [openForm, form] = useForm();
+  const [askTrip, askTripNode] = useConfirm();
   // Counter staff set the bus and crew of departures leaving from their own terminal, before the bus leaves.
   const isCounter = me?.role === "agent";
   // Counter staff get only the buses boarding at their terminal (the server filters the list).
@@ -221,7 +222,12 @@ export function Trips({ me, isAdmin, isManager }) {
       ],
       initial: { status: choices[0] },
       submitLabel: "Update status",
-      onSubmit: (b) => applyStatus(t, b),
+      onSubmit: async (b) => {
+        // The two steps that cannot be undone are asked about first.
+        if (b.status === "cancelled" && !(await askTrip(`Cancel the ${t.routeName} trip of ${fmtT(t.departureAt)}?`, `This cancels EVERY booking on this bus (${t.seatsTaken ?? 0} seat(s) taken) and creates a full refund for each paid one. It cannot be undone.`, { confirm: "Yes, cancel the trip" }))) return false;
+        if (b.status === "arrived" && !(await askTrip(`Mark the ${t.routeName} bus as arrived?`, "This closes the trip: its bookings become completed and nothing more can be added to its vouchers. It cannot be undone.", { danger: false, confirm: "Yes, it has arrived" }))) return false;
+        return applyStatus(t, b);
+      },
     });
   };
   const reportDelay = (t) =>
@@ -415,6 +421,7 @@ export function Trips({ me, isAdmin, isManager }) {
         ]}
       />
       {manifest && <ManifestModal trip={manifest} onClose={() => setManifest(null)} />}
+      {askTripNode}
       {addingTrip && <OneOffTripForm routes={routes} buses={buses} drivers={drivers} onClose={() => setAddingTrip(false)} onCreated={trips.reload} />}
       {addingExtra && <ExtraDepartureForm onClose={() => setAddingExtra(false)} onCreated={trips.reload} />}
       {form}

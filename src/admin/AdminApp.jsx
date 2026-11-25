@@ -157,7 +157,10 @@ function Gate({ children }) {
     if (!session) return setMe(null);
     // A token refresh (same person) keeps the screen open while the account is checked again.
     setMeState((m) => (m && m.id === session.user?.id ? m : savedMe(session.user?.id)));
-    adminApi.me().then(setMe, () => setMe(null));
+    // The check failed. If the server refused (session over, account deactivated), or nothing is known about this
+    // person yet, show "could not be checked". If only the CONNECTION failed (the account was checked before in this
+    // tab), keep the screen that is open: a counter sale half typed is not thrown away for a network blip. The next request retries.
+    adminApi.me().then(setMe, (e) => setMeState((m) => (m && e?.network ? m : (saveMe(null), null))));
   }, [session?.accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const box = (title, body, action) => (
@@ -186,8 +189,9 @@ function Gate({ children }) {
   if (!me || !EMPLOYEE.includes(me.role))
     return box(
       "No access",
-      me ? `${me.email ?? me.phone ?? "This account"} is a customer account. Ask a super admin to give it a staff role.` : "Your account could not be checked. Sign in again.",
+      me ? `${me.email ?? me.phone ?? "This account"} is a customer account. Ask a super admin to give it a staff role.` : "Your account could not be checked. Check the internet connection and try again, or sign in again.",
       <>
+        {!me && <Btn kind="primary" onClick={() => { setMeState(undefined); adminApi.me().then(setMe, () => setMe(null)); }}>Try again</Btn>}
         <Btn onClick={() => signOut()}>Sign out</Btn>
         <Link to="/en" className="btn btn-ghost">Back to website</Link>
       </>,

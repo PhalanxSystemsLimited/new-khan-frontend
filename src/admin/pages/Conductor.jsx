@@ -222,6 +222,7 @@ function SeatDialog({ seat, data, onClose, onDone, onRefresh }) {
   const road = data.roadBooking;
   const [f, setF] = useState({ name: "", gender: "male", phone: "", cnic: "", destinationStopId: road?.destinations.at(-1)?.id ?? "", fare: "", free: false });
   const [note, setNote] = useState("Did not travel");
+  const [sure, setSure] = useState(false); // ticked before "did not travel": one tap must not empty a seat
   const [busy, setBusy] = useState(false);
   const [triedRoad, setTriedRoad] = useState(false); // Book pressed: show the mobile number's message
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
@@ -267,7 +268,12 @@ function SeatDialog({ seat, data, onClose, onDone, onRefresh }) {
           <form onSubmit={noShow} className="mt-4 grid gap-2 rounded-xl border border-neutral-300 p-3">
             <Label htmlFor="ns-note">Passenger did not travel? Note</Label>
             <Input id="ns-note" required minLength={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
-            <Btn kind="danger" type="submit" disabled={busy}>Mark as did not travel</Btn>
+            <p className="text-xs text-mute">The seat becomes free for a road passenger. The fare is not refunded and stays in the accounts.</p>
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" className="h-5 w-5 accent-black" checked={sure} onChange={(e) => setSure(e.target.checked)} />
+              Yes, {p.name} did not travel
+            </label>
+            <Btn kind="danger" type="submit" disabled={busy || !sure}>Mark as did not travel</Btn>
           </form>
         )}
         {(p.canAddLoad || slips.length > 0) && (

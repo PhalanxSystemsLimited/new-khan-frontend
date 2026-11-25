@@ -3,7 +3,7 @@ import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { toast, toastOnce } from "../components/Toast";
 import { busTypes, company, getTerminal } from "../data/site";
 import { arrow } from "../lib/links";
-import { cancelBooking, getBooking, IS_LIVE, resendConfirmation } from "./api";
+import { cancelBooking, getBooking, getCancelQuote, IS_LIVE, resendConfirmation } from "./api";
 import { bookUrl, useNow } from "./hooks";
 import { bt } from "./strings";
 import { fmtDate, fmtDateTime, fmtTime, hms, pkr } from "./time";
@@ -20,13 +20,23 @@ const star = IS_LIVE ? "" : "*";
 export function Countdown({ expiresAt, lang, onZero }) {
   const now = useNow(1000);
   const left = now === null ? null : Date.parse(expiresAt) - now;
-  const fired = useRef(false);
+  // At zero the booking is looked at again, and then every 30 seconds while this timer is still on the page: the
+  // server releases the seats up to a minute later (and waits up to 20 minutes for an open online payment), so
+  // one look at zero left the page stuck on 00:00:00 with "Pay now". The timer goes away once the status changes.
+  const over = left !== null && left <= 0;
+  const zeroRef = useRef(onZero);
+  zeroRef.current = onZero;
   useEffect(() => {
-    if (left !== null && left <= 0 && !fired.current) {
-      fired.current = true;
-      onZero();
-    }
-  }, [left, onZero]);
+    if (!over) return undefined;
+    zeroRef.current();
+    let n = 0;
+    const id = setInterval(() => {
+      n += 1;
+      if (n > 50) clearInterval(id);
+      else zeroRef.current();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [over]);
   return (
     <div role="timer" aria-label={bt("timeLeft", lang)} className="text-center">
       <p className="text-xs font-semibold uppercase tracking-widest text-mute">{bt("timeLeft", lang)}</p>
@@ -121,6 +131,14 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
       toast(bt("downloadFailed", lang), { kind: "error" });
     }
     setPdfBusy(false);
+  }
+
+  // The cancel window shows what would come back, worked out by the server at this moment.
+  const [quote, setQuote] = useState(null);
+  function openCancel() {
+    setQuote(null);
+    dlg.current?.showModal();
+    if (b.status === "CONFIRMED") getCancelQuote(key).then(setQuote);
   }
 
   async function act(kind) {
@@ -316,7 +334,7 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
 
       {b.canCancel && (b.status === "HELD" || b.status === "CONFIRMED") && (
         <div className="no-print mt-6 text-center">
-          <button type="button" onClick={() => dlg.current?.showModal()} className="text-sm font-semibold text-red-800 underline underline-offset-4">{bt("cancelBooking", lang)}</button>
+          <button type="button" onClick={openCancel} className="text-sm font-semibold text-red-800 underline underline-offset-4">{bt("cancelBooking", lang)}</button>
         </div>
       )}
 
@@ -324,7 +342,15 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
       <dialog ref={dlg} className="m-auto w-[min(92vw,28rem)] rounded-2xl border-2 border-black p-6 backdrop:bg-black/60" dir={lang === "ur" ? "rtl" : "ltr"}>
         <h2 className="h3 text-black">{bt("cancelTitle", lang, { ref: b.ref })}</h2>
         <p className="mt-2 text-mute">{bt("cancelBody", lang, { route })}</p>
-        {b.status === "CONFIRMED" && <p className="mt-2 text-sm text-mute">{bt("cancelRefund", lang)}</p>}
+        {b.status === "CONFIRMED" && (
+          <p className="mt-2 rounded-xl border border-line bg-coal p-3 text-sm font-semibold text-black">
+            {quote
+              ? Number(quote.refundAmount) > 0
+                ? bt("cancelRefundQuote", lang, { paid: pkr(quote.paid), refund: pkr(quote.refundAmount), percent: quote.refundPercent, fee: pkr(quote.cancellationFee) })
+                : bt("cancelRefundNone", lang, { paid: pkr(quote.paid) })
+              : bt("cancelRefund", lang)}
+          </p>
+        )}
         <div className="mt-5 flex flex-wrap gap-3">
           <button type="button" autoFocus onClick={() => dlg.current?.close()} className="btn btn-gold">{bt("keepBooking", lang)}</button>
           <button type="button" onClick={() => act("cancel")} disabled={busy === "cancel"} className="btn border border-red-700 text-red-800 hover:bg-red-50">

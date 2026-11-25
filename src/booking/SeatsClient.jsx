@@ -241,6 +241,7 @@ export function SeatsClient({ lang }) {
   const anyError = seatErrors.some(Boolean) || pass.some((_, i) => FIELDS.some((f) => errFor(i, f))) || !!emailErr || !!holderCnicErr;
 
   async function reserve() {
+    if (busy) return; // a second click while the first is on its way
     setSubmitted(true);
     setBanner("");
     if (anyError || !legs) {
@@ -263,7 +264,8 @@ export function SeatsClient({ lang }) {
       });
       if (savesToAccount) refreshMe(); // the account now has this CNIC
       toast(bt("toastReserved", lang), { body: bt("toastReservedBody", lang) });
-      navigate(bookUrl(lang, "reserved", { ref: r.refs.join(",") }));
+      // Nothing to pay (a promo code covered the fare): straight to the confirmed ticket.
+      navigate(bookUrl(lang, r.confirmed ? "confirmed" : "reserved", { ref: r.refs.join(",") }));
     } catch (e) {
       if (e instanceof ApiError && (e.code === "SEAT_TAKEN" || e.code === "SEAT_GENDER")) {
         setBanner(bt(e.code === "SEAT_GENDER" ? "seatGenderConflict" : "seatTaken", lang));
@@ -279,8 +281,15 @@ export function SeatsClient({ lang }) {
       } else if (e instanceof ApiError && e.code === "AUTH_REQUIRED") {
         setBanner(bt("signInToBook", lang));
         setAuthOpen(true);
+      } else if (e instanceof ApiError && e.code === "TOO_MANY_PENDING") {
+        setBanner(bt("tooManyPending", lang));
+      } else if (e instanceof ApiError && e.code === "RATE_LIMITED") {
+        setBanner(bt("rateLimited", lang));
+      } else if (e instanceof ApiError && e.code === "RETRY") {
+        setBanner(bt("systemBusy", lang));
       } else {
-        setBanner(e instanceof ApiError && e.code === "INVALID_INPUT" ? e.message : bt("reserveFailed", lang));
+        // The server's own reason when it gave one (a closed terminal, a counter rule), else the general message.
+        setBanner(e instanceof ApiError && ["INVALID_INPUT", "NOT_YOUR_TERMINAL"].includes(e.code) && e.message ? e.message : bt("reserveFailed", lang));
       }
       setBusy(false);
       summaryRef.current?.focus();
@@ -452,7 +461,7 @@ export function SeatsClient({ lang }) {
               {pkr(total)}<sup>{star}</sup>
             </p>
             {/* Always clickable: validation happens on click and moves focus to the message */}
-            <button type="button" onClick={reserve} aria-busy={busy} className="btn btn-gold btn-shine shrink-0 whitespace-nowrap">{busy ? bt("reserving", lang) : bt("reserve", lang)}</button>
+            <button type="button" onClick={reserve} disabled={busy} aria-busy={busy} className="btn btn-gold btn-shine shrink-0 whitespace-nowrap disabled:opacity-60">{busy ? bt("reserving", lang) : bt("reserve", lang)}</button>
           </div>
         </div>
       </aside>

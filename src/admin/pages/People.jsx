@@ -169,7 +169,7 @@ export function Reports() {
       </Section>
       <Section title="Cash by staff member">
         <p className="mb-3 text-sm text-mute">
-          Cash each person took for counter sales and paid out for counter refunds, per day. Net is what they should hand in for that day.
+          Cash each person took per day: tickets (counter sales and road passengers) less the cash refunds they paid out, extra load slips, and cargo (parcels paid at booking, and receiver-pays parcels collected at hand-over). Net is everything that person should account for that day.
         </p>
         <ErrorNote err={cash.err} onRetry={cash.reload} />
         <Table
@@ -182,7 +182,9 @@ export function Reports() {
             { key: "staff", label: "Staff", render: (r) => <>{r.staffName ?? "Unknown"}<br /><span className="text-xs text-mute">{r.staffEmail ?? ""}{r.staffRole ? ` · ${r.staffRole.replace("_", " ")}` : ""}</span></> },
             { key: "taken", label: "Cash taken", render: (r) => <>{rs(r.taken)}<br /><span className="text-xs text-mute">{r.sales} sale(s)</span></> },
             { key: "paidOut", label: "Refunded in cash", render: (r) => <>{rs(r.paidOut)}<br /><span className="text-xs text-mute">{r.refunds} refund(s)</span></> },
-            { key: "net", label: "Net to hand in", render: (r) => <b className={Number(r.net) < 0 ? "text-red-700" : ""}>{rs(r.net)}</b> },
+            { key: "loadCash", label: "Extra load", render: (r) => (r.loadSlips ? <>{rs(r.loadCash)}<br /><span className="text-xs text-mute">{r.loadSlips} slip(s)</span></> : "–") },
+            { key: "cargoCash", label: "Cargo", render: (r) => (r.parcels ? <>{rs(r.cargoCash)}<br /><span className="text-xs text-mute">{r.parcels} parcel(s)</span></> : "–") },
+            { key: "net", label: "Net to account for", render: (r) => <b className={Number(r.net) < 0 ? "text-red-700" : ""}>{rs(r.net)}</b> },
           ]}
         />
       </Section>

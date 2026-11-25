@@ -13,7 +13,7 @@ import { CNIC_MESSAGES, cnicProblem, formatCnic } from "../../lib/cnic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, Filters, Input, Label, Modal, Page, pkDate, Section, Select, SkeletonBar, SkeletonCards, StatusBadge, Table, useLoad } from "../ui";
+import { act, Badge, Btn, ErrorNote, Filters, Input, Label, Modal, Page, pkDate, Section, Select, SkeletonBar, SkeletonCards, StatusBadge, Table, useConfirm, useLoad } from "../ui";
 import { CargoLoadWindow } from "./CargoLists";
 import ExtraDepartureForm from "./ExtraDepartureForm";
 import { aisleIndex } from "../../booking/seatRules";
@@ -46,11 +46,14 @@ export function CounterScreen({ me }) {
   );
   useEvery(deps.reload, 60_000);
   const [selling, setSelling] = useState(null);
+  const [ask, confirmNode] = useConfirm();
   const [addingExtra, setAddingExtra] = useState(false);
   const [addingLoad, setAddingLoad] = useState(false); // extra luggage on a ticket (LD slip)
   const d = deps.data;
 
   const arrived = async (t) => {
+    // It cannot be undone: the trip is closed, its bookings become completed and its round trip report may be made.
+    if (!(await ask(`Mark the ${t.routeName} bus as arrived?`, `Bus ${t.busNo ?? ""} has reached ${d?.terminal?.city ?? "this terminal"}. This closes the trip and cannot be undone.`, { danger: false, confirm: "Yes, it has arrived" }))) return;
     let res;
     const ok = await act(async () => { res = await adminApi.tripStatus(t.tripId, { status: "arrived" }); }, "Bus arrived");
     if (ok && res?.autoReport?.roundTripId) act(async () => {}, `Round trip report ${res.autoReport.roundTripId} created`, "An admin completes it.");
@@ -130,6 +133,7 @@ export function CounterScreen({ me }) {
       {selling && <QuickSale trip={selling} onClose={() => setSelling(null)} onSold={() => { setSelling(null); deps.reload(); }} />}
       {addingLoad && <AddLoadWindow onClose={() => setAddingLoad(false)} />}
       {addingExtra && <ExtraDepartureForm terminalId={me.role === "agent" ? undefined : terminalId} onClose={() => setAddingExtra(false)} onCreated={deps.reload} />}
+      {confirmNode}
     </Page>
   );
 }

@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { adminApi } from "../api";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtDT, Input, Label, Modal, Page, pkDate, Section, Select, SkeletonDetails, StatusBadge, Table, useLoad, usePageTitle,
+  act, Badge, Btn, ErrorNote, Filters, fmtDT, Input, Label, Modal, Page, pkDate, rs, Section, Select, SkeletonDetails, StatusBadge, Table, useConfirm, useLoad, usePageTitle,
 } from "../ui";
 import { Pager } from "./Operations";
 import { departure, money, stamp } from "../../report/format";
@@ -196,10 +196,18 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
   const slipLoad = t.load; // null: not set up yet
   const [showSlips, setShowSlips] = useState(false);
   const canCancelSlip = useCanCancelSlip();
+  const [ask, confirmNode] = useConfirm();
   const loadValue = slipLoad ? slipLoad.total : int(load);
   const preview = t.preview ? { ...t.preview, loadAmount: loadValue, cargoAmount: cargoValue, cashToConductor: t.preview.terminalCash + loadValue + cargoValue - t.preview.deductionsTotal } : null;
 
   async function generate() {
+    // It cannot be undone: the figures are frozen and booking from this terminal closes.
+    const yes = await ask(
+      `Generate the ${t.city} voucher?`,
+      `${preview?.seatsBoarding ?? 0} passenger(s) boarding, cash to the conductor ${rs(preview?.cashToConductor ?? 0)}. After this the figures are frozen and no more seats, load or cargo can be added from ${t.city}.`,
+      { danger: false, confirm: "Generate voucher" },
+    );
+    if (!yes) return;
     setBusy(true);
     const ok = await act(
       () => adminApi.generateVoucher(trip.id, { boardingStopId: t.stopId, loadAmount: loadValue, cargoAmount: cargoValue }),
@@ -359,6 +367,7 @@ function TerminalBlock({ t, trip, isManager, onChanged, highlight }) {
           </form>
         </Modal>
       )}
+      {confirmNode}
     </Section>
   );
 }

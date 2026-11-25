@@ -19,13 +19,21 @@ export const statusBadge = {
 function HoldBadge({ expiresAt, lang, onZero }) {
   const now = useNow(1000);
   const left = now === null ? null : Date.parse(expiresAt) - now;
-  const fired = useRef(false);
+  // At zero, and then once a minute while the badge is still shown (see Countdown in BookingView).
+  const over = left !== null && left <= 0;
+  const zeroRef = useRef(onZero);
+  zeroRef.current = onZero;
   useEffect(() => {
-    if (left !== null && left <= 0 && !fired.current) {
-      fired.current = true;
-      onZero?.();
-    }
-  }, [left, onZero]);
+    if (!over) return undefined;
+    zeroRef.current?.();
+    let n = 0;
+    const id = setInterval(() => {
+      n += 1;
+      if (n > 25) clearInterval(id);
+      else zeroRef.current?.();
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [over]);
   const urgent = left !== null && left < 5 * 60_000;
   const time = left === null ? "--:--" : hms(left).replace(/^00:/, "");
   return (

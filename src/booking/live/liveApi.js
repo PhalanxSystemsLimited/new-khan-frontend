@@ -28,15 +28,18 @@ async function refreshToken() {
     body: JSON.stringify({ refreshToken: s.refreshToken }),
   })
     .then(async (r) => {
-      if (!r.ok) throw new Error("refresh failed");
+      if (!r.ok) {
+        // The server refused the refresh token (expired, signed out elsewhere): the session really is over.
+        clearSession();
+        return null;
+      }
       const data = await r.json();
       setSession(data);
       return data.accessToken;
     })
-    .catch(() => {
-      clearSession();
-      return null;
-    })
+    // The network dropped: NOT a reason to sign the person out (a half-filled counter sale was lost this way).
+    // The session is kept; the request that needed it fails with "could not reach the server" and can be retried.
+    .catch(() => null)
     .finally(() => {
       refreshing = null;
     });
@@ -55,6 +58,8 @@ const PASS_THROUGH = [
   "EMAIL_NOT_CONFIRMED", "ACCOUNT_EXISTS", "CNIC_REQUIRED", "PHONE_NOT_VERIFIED", "CODE_WRONG", "CODE_EXPIRED",
   "TOO_MANY_CODES", "SMS_FAILED", "SMS_UNAVAILABLE", "MANAGER_APPROVAL_REQUIRED", "IDENTITY_MISMATCH",
   "NEAR_DEPARTURE", // "Add extra departure": another departure on the route is close; asked before adding
+  // Why a reservation was refused, so the seats page can say it instead of a general "could not reserve".
+  "TOO_MANY_PENDING", "RATE_LIMITED", "NOT_YOUR_TERMINAL", "RETRY",
 ];
 
 function toApiError(status, body) {
@@ -109,7 +114,8 @@ async function send(path, { method = "GET", body, auth = false, headers = {} } =
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError("INVALID_STATE", "Could not reach the booking server. Check your connection and try again.");
+    // `network` marks "the connection failed" apart from "the server refused" (the admin panel keeps its screen open).
+    throw Object.assign(new ApiError("INVALID_STATE", "Could not reach the booking server. Check your connection and try again."), { network: true });
   }
   const data = await res.json().catch(() => null);
   if (res.status === 401 && auth && !retried && (await refreshToken())) return send(path, { method, body, auth, headers }, true);
@@ -279,6 +285,7 @@ function mapBooking(d) {
  */
 export async function createBooking({ legs, passengers, contactEmail, holderCnic }) {
   const ids = [];
+  let allConfirmed = true; // a promo code covering the whole fare: nothing to pay, the server confirms at once
   try {
     for (const leg of legs) {
       const { tripId, boardingStopId, droppingStopId } = parseKey(leg.tripId);
@@ -300,12 +307,19 @@ export async function createBooking({ legs, passengers, contactEmail, holderCnic
         },
       });
       ids.push(data.id);
+      if (data.status !== "confirmed") allConfirmed = false;
     }
   } catch (e) {
     await Promise.all(ids.map((id) => request(`/bookings/${id}/cancel`, { method: "POST", auth: true, body: {} }).catch(() => {})));
     throw e;
   }
-  return { refs: ids };
+  return { refs: ids, confirmed: allConfirmed && ids.length > 0 };
+}
+
+/** What cancelling this booking now gives back: { paid, refundPercent, refundAmount, cancellationFee, hoursBeforeDeparture }. */
+export async function getCancelQuote(id) {
+  const { data } = await request(`/bookings/${encodeURIComponent(id)}/cancel-quote`, { auth: true });
+  return data;
 }
 
 export async function getBooking(id) {
