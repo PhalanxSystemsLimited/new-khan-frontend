@@ -155,6 +155,9 @@ export const bk = {
   // booking states
   statusHELD: { en: "Held, awaiting payment", ur: "رکی ہوئی، ادائیگی باقی" },
   statusCONFIRMED: { en: "Confirmed", ur: "تصدیق شدہ" },
+  checkingPayment: { en: "Checking payment…", ur: "ادائیگی کی تصدیق ہو رہی ہے…" },
+  checkingPaymentNote: { en: "The time to pay has ended. If you have just paid, this booking will be confirmed here within a few minutes. If not, it will expire and the seats will be released.", ur: "ادائیگی کا وقت ختم ہو گیا ہے۔ اگر آپ نے ابھی ادائیگی کی ہے تو چند منٹ میں یہ بکنگ یہیں کنفرم ہو جائے گی۔ ورنہ اس کی میعاد ختم ہو جائے گی اور سیٹیں خالی کر دی جائیں گی۔" },
+  expiredNowNote: { en: "The time to pay ended, so this reservation has expired and its seats were released. Nothing was charged.", ur: "ادائیگی کا وقت ختم ہو گیا، اس لیے اس ریزرویشن کی میعاد ختم ہو گئی اور سیٹیں خالی کر دی گئیں۔ کوئی رقم نہیں کاٹی گئی۔" },
   statusEXPIRED: { en: "Expired", ur: "میعاد ختم" },
   statusCANCELLED: { en: "Cancelled", ur: "منسوخ" },
   bookingDetailsTitle: { en: "Booking details", ur: "بکنگ کی تفصیلات" },

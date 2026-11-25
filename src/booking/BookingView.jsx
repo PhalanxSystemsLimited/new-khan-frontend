@@ -56,6 +56,8 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
   const [busy, setBusy] = useState("");
   const [copied, setCopied] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
+  // The clock, for "the time to pay is over" (see the held block below).
+  const now = useNow(1000);
   // What cancelling would refund (the cancel window). With the other state, ABOVE the early "loading" / "error"
   // returns below: a hook after an early return runs on some draws and not others, and React then drops the page.
   const [quote, setQuote] = useState(null);
@@ -71,6 +73,20 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
       setErr(e.message);
     }
   }, [bookingRef, initial]);
+  // Its time to pay has passed while it still reads "held": ask the server again now (it expires the booking and
+  // frees the seats, or reports a payment that came through) and every 20 seconds until the status changes.
+  const holdOver = b?.status === "HELD" && Boolean(b.holdExpiresAt) && now !== null && Date.parse(b.holdExpiresAt) <= now;
+  useEffect(() => {
+    if (!holdOver) return undefined;
+    refresh();
+    let n = 0;
+    const id = setInterval(() => {
+      n += 1;
+      if (n > 75) clearInterval(id);
+      else refresh();
+    }, 20_000);
+    return () => clearInterval(id);
+  }, [holdOver, refresh]);
   useEffect(() => {
     if (!initial) refresh();
   }, [initial, refresh]);
@@ -193,7 +209,16 @@ export function BookingView({ lang, bookingRef, initial, paymentFailed = false, 
 
         {b.readOnly && b.status === "HELD" && <p className="mt-4 rounded-xl border border-line bg-coal p-3 text-sm text-black">{bt("signInToManage", lang)}</p>}
 
-        {b.status === "HELD" && !b.readOnly && (
+        {/* The time to pay is over but the page has not been told "expired" yet: never a clock stuck at 00:00:00.
+            Either an online payment is still being checked, or the reservation has run out. The page keeps asking. */}
+        {b.status === "HELD" && !b.readOnly && holdOver && (
+          <div role="status" className="no-print mt-6 rounded-2xl border-2 border-gold bg-coal p-5 text-center">
+            <h2 className="h3 text-black">{bt(b.paymentOpen ? "checkingPayment" : "expiredTitle", lang)}</h2>
+            <p className="mt-2 text-mute">{bt(b.paymentOpen ? "checkingPaymentNote" : "expiredNowNote", lang)}</p>
+          </div>
+        )}
+
+        {b.status === "HELD" && !b.readOnly && !holdOver && (
           <div className="no-print mt-6 rounded-2xl border-2 border-gold bg-coal p-5">
             <h2 className="h3 text-center text-black">{bt(IS_LIVE ? "holdTitleLive" : "holdTitle", lang)}</h2>
             {b.holdExpiresAt && (

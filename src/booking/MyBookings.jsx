@@ -18,20 +18,23 @@ const DAY_MS = 24 * 3_600_000;
 const chip = (active) => `min-h-11 rounded-full border px-4 text-sm font-semibold ${active ? "border-black bg-black text-white" : "border-black/40 text-black hover:bg-black/5"}`;
 
 const holdOver = (b, now) => Boolean(b.holdExpiresAt) && Date.parse(b.holdExpiresAt) <= now;
-/** An unpaid reservation whose time is up (the server may not have marked it expired yet). */
-const lapsed = (b, now) => !b.paymentReceived && (b.status === "EXPIRED" || (b.status === "HELD" && holdOver(b, now)));
+/**
+ * An unpaid reservation whose time is up (the server may not have marked it expired yet). Not one whose online
+ * payment was started and is still being checked: that one waits (the server gives it up to 20 more minutes).
+ */
+const lapsed = (b, now) => !b.paymentReceived && (b.status === "EXPIRED" || (b.status === "HELD" && holdOver(b, now) && !b.paymentOpen));
+/** Whether the "reservation expired" pop-up is (still) owed for it: it ran out in the last week and was not acknowledged. */
+const noticeDue = (b, now, seen) =>
+  lapsed(b, now) && !b.expirySeen && !seen.has(b.key) && Boolean(b.holdExpiresAt) && now - Date.parse(b.holdExpiresAt) < NOTICE_WINDOW_MS;
 
 /**
  * "Your reservation expired" pop-up. Shown once per booking per account: closing it records that on the
  * server (live) or in this browser (demo), so the customer is not told again on any device.
  */
-function ExpiredNotice({ lang, list }) {
+function ExpiredNotice({ lang, list, seen, onSeen }) {
   const dlg = useRef(null);
-  const [done, setDone] = useState(() => new Set());
   const now = Date.now();
-  const items = (list ?? []).filter(
-    (b) => lapsed(b, now) && !b.expirySeen && !done.has(b.key) && b.holdExpiresAt && now - Date.parse(b.holdExpiresAt) < NOTICE_WINDOW_MS,
-  );
+  const items = (list ?? []).filter((b) => noticeDue(b, now, seen));
   const show = items.length > 0;
 
   useEffect(() => {
@@ -40,7 +43,7 @@ function ExpiredNotice({ lang, list }) {
 
   const close = () => {
     const keys = items.map((b) => b.key);
-    setDone((d) => new Set([...d, ...keys]));
+    onSeen(keys); // from now on these bookings are left out of the list
     dlg.current?.close();
     if (keys.length) markExpirySeen(keys).catch(() => {}); // not saved: it is shown once more next time
   };
@@ -100,8 +103,11 @@ const inNext24h = (b, now) => {
  * opened, when the customer signs in, when they come back to the tab, and when a countdown reaches zero.
  *
  * - Recent (default): the latest bookings. Reservations waiting for payment are pinned on top with their
- *   countdown and Pay now; reservations that ran out unpaid are left out (the pop-up above tells the customer once).
- * - View all (?view=all): every booking on the account, including cancelled and expired ones, newest first.
+ *   countdown and Pay now.
+ * - View all (?view=all): every booking on the account, including cancelled ones, newest first.
+ * A reservation that ran out unpaid: the moment its time is up its tag turns to "Expired" and the pop-up above
+ * says so once; when the customer closes the pop-up it is removed from the list, in every view (nothing was paid,
+ * so there is nothing to keep). One whose money arrived late stays, with its "payment under review" note.
  * - Next 24 hours pill (?when=24h): only trips leaving in the next 24 hours, soonest first, searched across the
  *   whole account so an old booking for tomorrow's bus still shows.
  */
@@ -119,6 +125,7 @@ export function MyBookings({ lang }) {
       return n;
     });
   const [list, setList] = useState(null);
+  const [seen, setSeen] = useState(() => new Set()); // expired reservations acknowledged in the pop-up just now
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
@@ -155,12 +162,14 @@ export function MyBookings({ lang }) {
     );
 
   const now = Date.now();
-  const all = list ?? [];
-  const visible = all.filter((b) => !lapsed(b, now));
+  // Ran out unpaid and the customer has been told (or it is too old to tell): not listed any more.
+  const all = (list ?? []).filter((b) => !lapsed(b, now) || noticeDue(b, now, seen));
+  const visible = all;
   const held = visible
-    .filter((b) => b.status === "HELD")
+    .filter((b) => b.status === "HELD" && !lapsed(b, now))
     .sort((a, b) => Date.parse(a.holdExpiresAt ?? 0) - Date.parse(b.holdExpiresAt ?? 0)); // ending soonest first
-  const recent = [...held, ...visible.filter((b) => b.status !== "HELD")];
+  // Held ones first; then everything else (a reservation that has just run out stays in its place until acknowledged).
+  const recent = [...held, ...visible.filter((b) => !held.includes(b))];
   const upcoming = all.filter((b) => inNext24h(b, now)).sort((a, b) => Date.parse(a.departAt) - Date.parse(b.departAt));
 
   let rows = null;
@@ -229,7 +238,7 @@ export function MyBookings({ lang }) {
         <Link to={`/${lang}/book/manage`} className="font-semibold text-gold-light underline underline-offset-4">{bt("findByPhoneLink", lang)}</Link>
       </p>
 
-      <ExpiredNotice lang={lang} list={list} />
+      <ExpiredNotice lang={lang} list={list} seen={seen} onSeen={(keys) => setSeen((s) => new Set([...s, ...keys]))} />
     </div>
   );
 }

@@ -16,24 +16,9 @@ export const statusBadge = {
  * Status tag of a held booking: a live countdown ("⏱ 14:32 left") in place of the word "Held", amber and then
  * red in the last 5 minutes. Calls onZero once when it runs out.
  */
-function HoldBadge({ expiresAt, lang, onZero }) {
+function HoldBadge({ expiresAt, lang }) {
   const now = useNow(1000);
-  const left = now === null ? null : Date.parse(expiresAt) - now;
-  // At zero, and then once a minute while the badge is still shown (see Countdown in BookingView).
-  const over = left !== null && left <= 0;
-  const zeroRef = useRef(onZero);
-  zeroRef.current = onZero;
-  useEffect(() => {
-    if (!over) return undefined;
-    zeroRef.current?.();
-    let n = 0;
-    const id = setInterval(() => {
-      n += 1;
-      if (n > 25) clearInterval(id);
-      else zeroRef.current?.();
-    }, 60_000);
-    return () => clearInterval(id);
-  }, [over]);
+  const left = now === null ? null : Math.max(0, Date.parse(expiresAt) - now);
   const urgent = left !== null && left < 5 * 60_000;
   const time = left === null ? "--:--" : hms(left).replace(/^00:/, "");
   return (
@@ -54,8 +39,31 @@ function HoldBadge({ expiresAt, lang, onZero }) {
  */
 export function BookingCard({ b, lang, action, onExpire }) {
   // Each state opens under a heading that matches it ("Held, awaiting payment" only for a held booking).
-  const page = { CONFIRMED: "confirmed", HELD: "reserved" }[b.status] ?? "booking";
   const held = b.status === "HELD";
+  // A held booking is watched second by second; the others only need the clock for nothing, so tick rarely.
+  const now = useNow(held ? 1000 : 3_600_000);
+  // Its time to pay is over (the server may not have said so yet): never a countdown stuck at 00:00.
+  const over = held && Boolean(b.holdExpiresAt) && now !== null && Date.parse(b.holdExpiresAt) <= now;
+  // ...unless an online payment was started: the server waits up to 20 more minutes for it.
+  const checking = over && b.paymentOpen;
+  const expired = b.status === "EXPIRED" || (over && !checking);
+  const payable = held && !over;
+  const page = expired ? "booking" : ({ CONFIRMED: "confirmed", HELD: "reserved" }[b.status] ?? "booking");
+  // The moment the time is up, the list is loaded again (the server expires the booking and frees the seats then),
+  // and again every 30 seconds while a payment is still being checked.
+  const expireRef = useRef(onExpire);
+  expireRef.current = onExpire;
+  useEffect(() => {
+    if (!over) return undefined;
+    expireRef.current?.();
+    let n = 0;
+    const id = setInterval(() => {
+      n += 1;
+      if (n > 50) clearInterval(id);
+      else expireRef.current?.();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [over]);
   return (
     <li className="card !p-4 sm:!p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -83,15 +91,21 @@ export function BookingCard({ b, lang, action, onExpire }) {
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          {held && b.holdExpiresAt ? (
-            <HoldBadge expiresAt={b.holdExpiresAt} lang={lang} onZero={onExpire} />
+          {checking ? (
+            <span className={`rounded-full border px-3 py-1 text-sm font-bold ${statusBadge.HELD}`}>{bt("checkingPayment", lang)}</span>
+          ) : expired ? (
+            <span className={`rounded-full border px-3 py-1 text-sm font-bold ${statusBadge.EXPIRED}`}>{bt("statusEXPIRED", lang)}</span>
+          ) : held && b.holdExpiresAt ? (
+            <HoldBadge expiresAt={b.holdExpiresAt} lang={lang} />
           ) : (
             <span className={`rounded-full border px-3 py-1 text-sm font-bold ${statusBadge[b.status] ?? statusBadge.HELD}`}>{bt(`status${b.status}`, lang)}</span>
           )}
           {b.total != null && <span className="ltr font-bold text-black">{pkr(b.total)}</span>}
         </div>
       </div>
-      {held && b.holdExpiresAt && <p className="mt-3 text-sm text-mute">{bt("payBy", lang, { time: fmtDateTime(b.holdExpiresAt, lang) })}</p>}
+      {payable && b.holdExpiresAt && <p className="mt-3 text-sm text-mute">{bt("payBy", lang, { time: fmtDateTime(b.holdExpiresAt, lang) })}</p>}
+      {checking && <p role="status" className="mt-3 text-sm text-mute">{bt("checkingPaymentNote", lang)}</p>}
+      {expired && !b.paymentReceived && <p className="mt-3 text-sm text-mute">{bt("expiredNowNote", lang)}</p>}
       {/* Paid, but after the hold ended and the seats were taken: say so instead of letting it look lost. */}
       {b.status === "EXPIRED" && b.paymentReceived && (
         <p role="note" className="mt-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-900">{bt("paymentReview", lang)}</p>
@@ -99,7 +113,7 @@ export function BookingCard({ b, lang, action, onExpire }) {
       <div className="mt-4 flex flex-wrap gap-2">
         {action ?? (
           <>
-            {held && (
+            {payable && (
               <Link to={bookUrl(lang, "pay", { ref: b.key })} className="btn btn-gold !min-h-11 !py-2 text-sm">
                 {bt("payNow", lang)} · {pkr(b.total)}
               </Link>

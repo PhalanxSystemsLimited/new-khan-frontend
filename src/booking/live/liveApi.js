@@ -250,6 +250,7 @@ function mapBooking(d) {
     id: d.id,
     status: STATUS[d.status] ?? "HELD",
     holdExpiresAt: d.holdExpiresAt,
+    paymentOpen: Boolean(d.paymentOpen), // an online payment was started and is not settled yet
     contactEmail: d.contactEmail ?? "",
     holderCnicMasked: d.holderCnicMasked ?? null, // e.g. 35202-•••••••-1 (the full number never reaches the browser)
     passengers: d.tickets.map((t) => ({ name: t.passengerName })),
@@ -362,6 +363,7 @@ const listRow = (d) => ({
   holdExpiresAt: d.holdExpiresAt ?? null,
   createdAt: d.createdAt,
   paymentReceived: Boolean(d.paymentReceived),
+  paymentOpen: Boolean(d.paymentOpen), // an online payment was started and is not settled yet
   expirySeen: Boolean(d.expirySeenAt),
   counterSale: Boolean(d.counterSale), // made by this staff account for a walk-in customer
   customerName: d.customerName ?? null,
