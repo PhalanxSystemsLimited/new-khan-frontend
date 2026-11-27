@@ -60,8 +60,9 @@ const PASS_THROUGH = [
   "NEAR_DEPARTURE", // "Add extra departure": another departure on the route is close; asked before adding
   // Why a reservation was refused, so the seats page can say it instead of a general "could not reserve".
   "TOO_MANY_PENDING", "RATE_LIMITED", "NOT_YOUR_TERMINAL", "RETRY",
-  // Admin panel: "Save stops" would delete the route's fares (asked first); a Delete refused because the record is used.
-  "FARES_WOULD_BE_DELETED", "IN_USE",
+  // Admin panel: "Save stops" would delete the route's fares, or change booked tickets' times (asked first);
+  // a Delete refused because the record is used.
+  "FARES_WOULD_BE_DELETED", "TIMES_CHANGE_BOOKED", "IN_USE",
 ];
 
 function toApiError(status, body) {

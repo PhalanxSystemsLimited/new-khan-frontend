@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { adminApi } from "../api";
 import { toast } from "../../components/Toast";
 import RoutePicker, { describeRoute, emptyRouteChoice, useRouteBuilder } from "./RoutePicker";
+import { RouteEditor, RouteTimetable } from "./RouteEditor";
 import {
   act, Badge, Btn, DeleteBtn, ErrorNote, Filters, fmtD, fmtDT, Input, Label, Modal, Page, pkDate, rs, Select, StatusBadge, Table, useConfirm, useDelete, useForm, useLoad,
 } from "../ui";
@@ -14,102 +15,30 @@ const hm = (m) => `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
 
 /* ------------------------------------------------------------------ routes */
 
-/** Ordered stop list editor: terminal, minutes from the first stop, km, boards/drops passengers. */
-function StopsEditor({ title, route, terminals, onClose, onSaved, isNew }) {
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [stops, setStops] = useState(() =>
-    route?.stops?.length
-      ? route.stops.map((s) => ({ terminalId: s.terminalId, minutesFromOrigin: s.minutesFromOrigin, kmFromOrigin: Number(s.kmFromOrigin ?? 0), isBoardingPoint: s.isBoardingPoint, isDroppingPoint: s.isDroppingPoint }))
-      : [
-          { terminalId: "", minutesFromOrigin: 0, kmFromOrigin: 0, isBoardingPoint: true, isDroppingPoint: false },
-          { terminalId: "", minutesFromOrigin: 60, kmFromOrigin: 0, isBoardingPoint: false, isDroppingPoint: true },
-        ],
-  );
-  const [busy, setBusy] = useState(false);
-  const [ask, askNode] = useConfirm();
-  const set = (i, k, v) => setStops((a) => a.map((s, j) => (j === i ? { ...s, [k]: v } : s)));
-  const move = (i, d) => setStops((a) => { const b = [...a]; [b[i], b[i + d]] = [b[i + d], b[i]]; return b; });
-  const opts = [{ value: "", label: "Choose terminal" }, ...terminals.map((t) => ({ value: t.id, label: `${t.cityName} · ${t.name}` }))];
-
-  async function save() {
-    const body = stops.map((s) => ({ ...s, terminalId: Number(s.terminalId), minutesFromOrigin: Number(s.minutesFromOrigin), kmFromOrigin: Number(s.kmFromOrigin) || 0 }));
-    setBusy(true);
-    let declined = false; // the admin chose not to delete the route's fares: nothing was saved
-    let ok = await act(async () => {
-      if (isNew) return adminApi.createRoute({ code: code.trim().toUpperCase(), name: name.trim(), stops: body });
-      try {
-        return await adminApi.replaceStops(route.id, body);
-      } catch (e) {
-        // The route has fares: they belong to the old stops and would be deleted. Asked first.
-        if (e?.code !== "FARES_WOULD_BE_DELETED") throw e;
-        if (!(await ask("Delete this route's fares?", e.message, { confirm: "Save stops and delete fares" }))) {
-          declined = true;
-          return null;
-        }
-        return adminApi.replaceStops(route.id, body, true);
-      }
-    });
-    if (declined) ok = false;
-    else if (ok) toast(isNew ? "Route created" : "Stops saved", { duration: 3500 });
-    setBusy(false);
-    if (ok) {
-      onSaved();
-      onClose();
-    }
-  }
-
-  return (
-    <Modal wide title={title} onClose={onClose}>
-      {isNew ? (
-        <div className="mb-4 grid gap-3 sm:grid-cols-2">
-          <div><Label htmlFor="r-code">Code *</Label><Input id="r-code" placeholder="NK-LHR-MWI" value={code} onChange={(e) => setCode(e.target.value)} /></div>
-          <div><Label htmlFor="r-name">Name *</Label><Input id="r-name" placeholder="Lahore → Mianwali" value={name} onChange={(e) => setName(e.target.value)} /></div>
-        </div>
-      ) : (
-        <p className="mb-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Stops can only be replaced while the route has no bookings. Once it has bookings, create a new route and switch the old one off.</p>
-      )}
-      <p className="mb-2 text-sm text-mute">In travel order. The first stop is at 0 minutes; each next stop must be later. Customers can only board at "Boards" stops and get off at "Drops" stops.</p>
-      <div className="grid gap-2">
-        {stops.map((s, i) => (
-          <div key={i} className="grid items-end gap-2 rounded-xl border border-neutral-300 p-2 sm:grid-cols-[2rem_1fr_7rem_6rem_auto_auto]">
-            <span className="text-center font-bold">{i + 1}</span>
-            <Select aria-label="Terminal" value={s.terminalId} onChange={(e) => set(i, "terminalId", e.target.value)} options={opts} />
-            <div><Label>Minutes</Label><Input type="number" min={0} value={s.minutesFromOrigin} onChange={(e) => set(i, "minutesFromOrigin", e.target.value)} /></div>
-            <div><Label>Km</Label><Input type="number" min={0} value={s.kmFromOrigin} onChange={(e) => set(i, "kmFromOrigin", e.target.value)} /></div>
-            <div className="flex gap-3 text-sm">
-              <label className="flex items-center gap-1"><input type="checkbox" className="accent-black" checked={s.isBoardingPoint} onChange={(e) => set(i, "isBoardingPoint", e.target.checked)} />Boards</label>
-              <label className="flex items-center gap-1"><input type="checkbox" className="accent-black" checked={s.isDroppingPoint} onChange={(e) => set(i, "isDroppingPoint", e.target.checked)} />Drops</label>
-            </div>
-            <div className="flex gap-1">
-              <Btn small disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move up">↑</Btn>
-              <Btn small disabled={i === stops.length - 1} onClick={() => move(i, 1)} aria-label="Move down">↓</Btn>
-              <Btn small kind="danger" disabled={stops.length <= 2} onClick={() => setStops((a) => a.filter((_, j) => j !== i))} aria-label="Remove">✕</Btn>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Btn onClick={() => setStops((a) => [...a, { terminalId: "", minutesFromOrigin: Number(a[a.length - 1]?.minutesFromOrigin ?? 0) + 60, kmFromOrigin: 0, isBoardingPoint: true, isDroppingPoint: true }])}>+ Add stop</Btn>
-        <Btn kind="primary" disabled={busy} onClick={save}>{busy ? "Saving…" : isNew ? "Create route" : "Save stops"}</Btn>
-        <Btn onClick={onClose}>Cancel</Btn>
-      </div>
-      {askNode}
-    </Modal>
-  );
-}
-
 export function RoutesPage() {
   const routes = useLoad(() => adminApi.routes(), []);
   const locs = useLoad(() => adminApi.locations(), []);
   const terminals = (locs.data?.terminals ?? []).filter((t) => t.isActive);
   const [editor, setEditor] = useState(null);
+  const [timetable, setTimetable] = useState(null);
   const [openForm, form] = useForm();
   const [del, delNode] = useDelete();
 
+  // The route with its stops, and its schedules (their departure times are offered as "leaving at").
+  const loadRoute = async (r) => {
+    const [route, all] = await Promise.all([adminApi.route(r.id), adminApi.schedules()]);
+    return { route, schedules: (all ?? []).filter((s) => s.routeId === r.id) };
+  };
   const openStops = async (r) => {
     try {
-      setEditor({ route: await adminApi.route(r.id), title: `Stops · ${r.name}` });
+      setEditor({ ...(await loadRoute(r)), title: `Stops & times · ${r.name}` });
+    } catch (e) {
+      act(() => Promise.reject(e));
+    }
+  };
+  const openTimetable = async (r) => {
+    try {
+      setTimetable(await loadRoute(r));
     } catch (e) {
       act(() => Promise.reject(e));
     }
@@ -129,7 +58,7 @@ export function RoutesPage() {
   return (
     <Page
       title="Routes & stops"
-      intro="A route is the ordered list of terminals a bus passes. Searches and fares are built on routes."
+      intro="A route is the ordered list of terminals a bus passes, with the travel time between them and the stay at each. Searches and fares are built on routes."
       actions={<Btn kind="primary" onClick={() => setEditor({ isNew: true, title: "New route" })}>+ New route</Btn>}
     >
       <ErrorNote err={routes.err || locs.err} onRetry={routes.reload} />
@@ -149,7 +78,8 @@ export function RoutesPage() {
             label: "",
             render: (r) => (
               <div className="flex gap-1">
-                <Btn small onClick={() => openStops(r)}>Stops</Btn>
+                <Btn small onClick={() => openTimetable(r)} aria-label={`Timetable of route ${r.code}`}>Timetable</Btn>
+                <Btn small onClick={() => openStops(r)} aria-label={`Stops and times of route ${r.code}`}>Stops &amp; times</Btn>
                 <Btn small onClick={() => edit(r)}>Edit</Btn>
                 <DeleteBtn
                   aria-label={`Delete route ${r.code}`}
@@ -166,7 +96,8 @@ export function RoutesPage() {
           },
         ]}
       />
-      {editor && <StopsEditor {...editor} terminals={terminals} onClose={() => setEditor(null)} onSaved={routes.reload} />}
+      {editor && <RouteEditor {...editor} terminals={terminals} onClose={() => setEditor(null)} onSaved={routes.reload} />}
+      {timetable && <RouteTimetable {...timetable} onClose={() => setTimetable(null)} />}
       {form}
       {delNode}
     </Page>

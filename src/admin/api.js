@@ -83,9 +83,15 @@ export const adminApi = {
   // setup
   routes: () => get("/admin/routes").then((r) => r.data),
   route: (id) => get(`/admin/routes/${id}`).then((r) => r.data),
-  createRoute: (b) => send("POST", "/routes", b).then((r) => r.data),
+  createRoute: (b) => send("POST", "/routes", b), // { data: route, schedules }
   updateRoute: (id, b) => send("PATCH", `/routes/${id}`, b).then((r) => r.data),
-  replaceStops: (id, stops, deleteFares) => send("PUT", `/routes/${id}/stops`, { stops, ...(deleteFares ? { deleteFares: true } : {}) }).then((r) => r.data),
+  // flags: { deleteFares, confirmTimesChange }. Returns { data: route, inPlace }.
+  replaceStops: (id, stops, flags = {}) =>
+    send("PUT", `/routes/${id}/stops`, {
+      stops,
+      ...(flags.deleteFares ? { deleteFares: true } : {}),
+      ...(flags.confirmTimesChange ? { confirmTimesChange: true } : {}),
+    }),
   deleteRoute: (id) => send("DELETE", `/routes/${id}`),
   fares: (routeId) => get(`/fares${qs({ routeId })}`).then((r) => r.data),
   createFare: (b) => send("POST", "/fares", b).then((r) => r.data),
