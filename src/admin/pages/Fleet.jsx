@@ -1,7 +1,10 @@
 /** Fleet and places: buses, drivers, seat layouts (read-only), cities and terminals used by booking. */
 import { Link } from "react-router-dom";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, fmtD, Page, Section, StatusBadge, Table, useForm, useLoad } from "../ui";
+import { act, Badge, Btn, DeleteBtn, ErrorNote, fmtD, Page, Section, StatusBadge, Table, useDelete, useForm, useLoad } from "../ui";
+
+/** What every Delete window here says: a record that was used is kept, for its history. */
+const ONLY_UNUSED = 'Only possible while nothing uses it (no trips, bookings or reports). If it has been used you will be told what uses it: untick "Active" in Edit instead.';
 import { BUS_CLASSES } from "./Network";
 import { useEmployeeEditor } from "./employeeEditor";
 import { CnicMissing } from "./Employees";
@@ -21,6 +24,7 @@ export function Buses() {
   const buses = useLoad(() => adminApi.buses(), []);
   const layouts = useLoad(() => adminApi.layouts(), []);
   const [openForm, form] = useForm();
+  const [del, delNode] = useDelete();
   // Only layouts in use are offered (the old test 40-seater is switched off); a bus keeps showing its own layout.
   const layoutOpts = (keepId) =>
     (layouts.data ?? [])
@@ -71,9 +75,12 @@ export function Buses() {
             key: "a",
             label: "",
             render: (r) => (
-              <Btn small onClick={() => openForm({ title: `Edit ${r.registrationNo}`, fields: fields(r.layoutId), initial: { ...r, fleetNo: r.fleetNo ?? "", make: r.make ?? "", model: r.model ?? "", manufactureYear: r.manufactureYear ?? "", amenities: r.amenities ?? [] }, onSubmit: save(r.id, r) })}>
-                Edit
-              </Btn>
+              <div className="flex gap-1">
+                <Btn small onClick={() => openForm({ title: `Edit ${r.registrationNo}`, fields: fields(r.layoutId), initial: { ...r, fleetNo: r.fleetNo ?? "", make: r.make ?? "", model: r.model ?? "", manufactureYear: r.manufactureYear ?? "", amenities: r.amenities ?? [] }, onSubmit: save(r.id, r) })}>
+                  Edit
+                </Btn>
+                <DeleteBtn aria-label={`Delete bus ${r.registrationNo}`} onClick={() => del({ title: `Delete bus ${r.registrationNo}?`, body: ONLY_UNUSED, run: () => adminApi.deleteBus(r.id), done: buses.reload, okBody: `Bus ${r.registrationNo} deleted.` })} />
+              </div>
             ),
           },
         ]}
@@ -92,6 +99,7 @@ export function Buses() {
         />
       </Section>
       {form}
+      {delNode}
     </Page>
   );
 }
@@ -101,6 +109,7 @@ export function Buses() {
 export function Drivers() {
   const list = useLoad(() => adminApi.drivers(), []);
   const [openForm, form] = useForm();
+  const [del, delNode] = useDelete();
   const fields = [
     { name: "fullName", label: "Full name", type: "text", required: true },
     { name: "phone", label: "Phone", type: "phone", required: true },
@@ -137,7 +146,11 @@ export function Drivers() {
               r.employeeId ? (
                 <Btn small disabled={emp.opening || !emp.listsReady} onClick={() => emp.edit(r.employeeId)}>Edit</Btn>
               ) : (
-                <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, cnic: r.cnic ?? "" }, onSubmit: save(r.id) })}>Edit</Btn>
+                // A driver from an employee record is deleted with the employee (Employees page).
+                <div className="flex gap-1">
+                  <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, cnic: r.cnic ?? "" }, onSubmit: save(r.id) })}>Edit</Btn>
+                  <DeleteBtn aria-label={`Delete driver ${r.fullName}`} onClick={() => del({ title: `Delete driver ${r.fullName}?`, body: ONLY_UNUSED, run: () => adminApi.deleteDriver(r.id), done: list.reload })} />
+                </div>
               ),
           },
         ]}
@@ -147,6 +160,7 @@ export function Drivers() {
       </p>
       {form}
       {emp.node}
+      {delNode}
     </Page>
   );
 }
@@ -159,6 +173,7 @@ export function Conductors() {
   const logins = useLoad(() => adminApi.users({ role: "conductor", limit: 100 }), []);
   const [openForm, form] = useForm();
   const loginOpts = (logins.data?.data ?? []).map((u) => ({ value: u.id, label: `${u.fullName || "–"} · ${u.email ?? u.phone ?? ""}` }));
+  const [del, delNode] = useDelete();
   const fields = [
     { name: "fullName", label: "Full name", type: "text", required: true },
     { name: "phone", label: "Phone", type: "phone", required: true },
@@ -197,7 +212,10 @@ export function Conductors() {
               r.employeeId ? (
                 <Btn small disabled={emp.opening || !emp.listsReady} onClick={() => emp.edit(r.employeeId)}>Edit</Btn>
               ) : (
-                <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, cnic: r.cnic ?? "", userId: r.userId ?? "" }, onSubmit: save(r.id) })}>Edit</Btn>
+                <div className="flex gap-1">
+                  <Btn small onClick={() => openForm({ title: `Edit ${r.fullName}`, fields, initial: { ...r, cnic: r.cnic ?? "", userId: r.userId ?? "" }, onSubmit: save(r.id) })}>Edit</Btn>
+                  <DeleteBtn aria-label={`Delete conductor ${r.fullName}`} onClick={() => del({ title: `Delete conductor ${r.fullName}?`, body: ONLY_UNUSED, run: () => adminApi.deleteConductor(r.id), done: list.reload })} />
+                </div>
               ),
           },
         ]}
@@ -207,6 +225,7 @@ export function Conductors() {
       </p>
       {form}
       {emp.node}
+      {delNode}
     </Page>
   );
 }
@@ -272,6 +291,7 @@ export function StaffDirectory() {
 export function Locations() {
   const locs = useLoad(() => adminApi.locations(), []);
   const [openForm, form] = useForm();
+  const [del, delNode] = useDelete();
   const cities = locs.data?.cities ?? [];
   const cityFields = [
     { name: "name", label: "Name", type: "text", required: true },
@@ -307,7 +327,16 @@ export function Locations() {
             { key: "name", label: "Name", render: (r) => <b>{r.name}</b> },
             { key: "province", label: "Province" },
             { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
-            { key: "a", label: "", render: (r) => <Btn small onClick={() => openForm({ title: `Edit ${r.name}`, fields: cityFields, initial: blank(r, ["province"]), onSubmit: saveCity(r.id) })}>Edit</Btn> },
+            {
+              key: "a",
+              label: "",
+              render: (r) => (
+                <div className="flex gap-1">
+                  <Btn small onClick={() => openForm({ title: `Edit ${r.name}`, fields: cityFields, initial: blank(r, ["province"]), onSubmit: saveCity(r.id) })}>Edit</Btn>
+                  <DeleteBtn aria-label={`Delete city ${r.name}`} onClick={() => del({ title: `Delete city ${r.name}?`, body: 'Only possible while the city has no terminals and no cargo rates. Otherwise untick "Active" in Edit to hide it from the booking search.', run: () => adminApi.deleteCity(r.id), done: locs.reload })} />
+                </div>
+              ),
+            },
           ]}
         />
       </Section>
@@ -322,11 +351,21 @@ export function Locations() {
             { key: "address", label: "Address", className: "max-w-xs" },
             { key: "phone", label: "Phone" },
             { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
-            { key: "a", label: "", render: (r) => <Btn small onClick={() => openForm({ title: `Edit ${r.name}`, fields: termFields, initial: blank(r, ["address", "phone", "latitude", "longitude"]), onSubmit: saveTerm(r.id) })}>Edit</Btn> },
+            {
+              key: "a",
+              label: "",
+              render: (r) => (
+                <div className="flex gap-1">
+                  <Btn small onClick={() => openForm({ title: `Edit ${r.name}`, fields: termFields, initial: blank(r, ["address", "phone", "latitude", "longitude"]), onSubmit: saveTerm(r.id) })}>Edit</Btn>
+                  <DeleteBtn aria-label={`Delete terminal ${r.name}`} onClick={() => del({ title: `Delete terminal ${r.name}?`, body: 'Only possible while the terminal is on no route and has no parcels, vouchers or staff. Otherwise untick "Active" in Edit.', run: () => adminApi.deleteTerminal(r.id), done: locs.reload })} />
+                </div>
+              ),
+            },
           ]}
         />
       </Section>
       {form}
+      {delNode}
     </Page>
   );
 }

@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { adminApi } from "../api";
-import { act, Badge, Btn, ErrorNote, Filters, fmtD, FormError, formError, inFormSave, Input, Label, lastActError, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useForm, useLoad, usePageTitle } from "../ui";
+import { act, Badge, Btn, DeleteBtn, ErrorNote, Filters, fmtD, FormError, formError, inFormSave, Input, Label, lastActError, Modal, Page, pkDate, Section, Select, StatusBadge, Table, useDelete, useForm, useLoad, usePageTitle } from "../ui";
 import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../../components/PatternFields";
 
 /** The server's rule for licence numbers: letters, digits, / and - (2 to 40). */
@@ -45,6 +45,7 @@ export function Employees({ me }) {
   );
   const [editing, setEditing] = useState(null); // null | { } new | employee
   const [linking, setLinking] = useState(null);
+  const [del, delNode] = useDelete();
   const w = list.data?.warnings;
   const designations = lists.data?.designations ?? [];
 
@@ -107,6 +108,17 @@ export function Employees({ me }) {
                 <Btn small onClick={() => setEditing(e)}>Edit</Btn>
                 <Btn small onClick={() => setLinking(e)}>Login…</Btn>
                 <a className="btn btn-ghost !min-h-8 !px-2.5 !py-0 text-xs" href={`/admin/employee-print/${e.id}`} target="_blank" rel="noreferrer">Print</a>
+                {!e.userId && (
+                  <DeleteBtn
+                    aria-label={`Delete employee ${e.employeeCode}`}
+                    onClick={() => del({
+                      title: `Delete employee ${e.employeeCode} (${e.fullName})?`,
+                      body: 'For someone registered by mistake. Only possible while they have no login and, as a driver or conductor, no trips or reports. Otherwise untick "Active" and set "Left on" in Edit.',
+                      run: () => adminApi.deleteEmployee(e.id),
+                      done: list.reload,
+                    })}
+                  />
+                )}
               </div>
             ),
           },
@@ -115,6 +127,7 @@ export function Employees({ me }) {
       <Pager p={list.data?.pagination} onPage={(page) => setF({ ...f, page })} />
       {editing && lists.data && <EmployeeForm employee={editing.id ? editing : null} lists={lists.data} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); list.reload(); }} />}
       {linking && <LoginModal employee={linking} me={me} onClose={() => setLinking(null)} onSaved={() => { setLinking(null); list.reload(); }} />}
+      {delNode}
     </Page>
   );
 }

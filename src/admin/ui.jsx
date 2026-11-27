@@ -401,6 +401,33 @@ export function useConfirm() {
   return [ask, node];
 }
 
+/**
+ * Delete with "Are you sure?" first. The server deletes only what nothing uses; when it refuses, its message says
+ * what uses the record and what to do instead (untick Active, cancel the trip...).
+ *   const [del, delNode] = useDelete();
+ *   del({ title, body, run: () => adminApi.deleteX(id), done: list.reload, okBody })
+ * okBody may be a function of what `run` returned.
+ */
+export function useDelete() {
+  const [ask, node] = useConfirm();
+  const del = async ({ title, body, run, done, okBody = "" }) => {
+    if (!(await ask(title, body, { confirm: "Delete" }))) return false;
+    try {
+      const r = await run();
+      toast("Deleted", { body: typeof okBody === "function" ? okBody(r) : okBody, duration: 4000 });
+      done?.();
+      return true;
+    } catch (e) {
+      toast("Not deleted", { body: e.message || "Something went wrong", kind: "error", duration: 10000 });
+      return false;
+    }
+  };
+  return [del, node];
+}
+
+/** The red Delete button of a table row. */
+export const DeleteBtn = (p) => <Btn small kind="danger" {...p}>Delete</Btn>;
+
 /* ------------------------------------------------------------------ forms */
 
 const inputCls = "w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm text-black";

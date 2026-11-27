@@ -6,7 +6,7 @@ import { adminApi } from "../api";
 import OneOffTripForm from "./OneOffTripForm";
 import ExtraDepartureForm from "./ExtraDepartureForm";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, fmtT, Input, Label, Modal, Page, pkDate, rs, Section, Select, SkeletonBar, SkeletonDetails, StatusBadge, Table, useConfirm, useForm, useLoad,
+  act, Badge, Btn, DeleteBtn, ErrorNote, Filters, fmtD, fmtDT, fmtT, Input, Label, Modal, Page, pkDate, rs, Section, Select, SkeletonBar, SkeletonDetails, StatusBadge, Table, useConfirm, useDelete, useForm, useLoad,
 } from "../ui";
 import { AddLoadWindow, LoadSlipList, useCanCancelSlip } from "./LoadSlips";
 import { PhoneInput, phoneMessage } from "../../components/PatternFields";
@@ -151,6 +151,7 @@ export function Trips({ me, isAdmin, isManager }) {
   const [manifest, setManifest] = useState(null);
   const [openForm, form] = useForm();
   const [askTrip, askTripNode] = useConfirm();
+  const [delTrip, delTripNode] = useDelete();
   // Counter staff set the bus and crew of departures leaving from their own terminal, before the bus leaves.
   const isCounter = me?.role === "agent";
   // Counter staff get only the buses boarding at their terminal (the server filters the list).
@@ -415,6 +416,18 @@ export function Trips({ me, isAdmin, isManager }) {
                     {done(r) ? "Stand-in" : r.busConfirmed === false ? "Confirm bus & crew" : "Bus & crew"}
                   </Btn>
                 )}
+                {/* A trip made by mistake: only while nothing was sold on it (the server checks bookings, vouchers, cargo, reports). */}
+                {isAdmin && !Number(r.seatsTaken) && !r.vouchersGenerated && !r.roundTripId && (
+                  <DeleteBtn
+                    aria-label={`Delete trip ${r.routeName} ${fmtT(r.departureAt)}`}
+                    onClick={() => delTrip({
+                      title: `Delete this trip (${r.routeName}, ${fmtDT(r.departureAt)})?`,
+                      body: "For a trip made by mistake. Only possible while it has no bookings (not even expired holds), vouchers, cargo or load slips. Otherwise cancel it with Status… so its money and history are kept.",
+                      run: () => adminApi.deleteTrip(r.id),
+                      done: trips.reload,
+                    })}
+                  />
+                )}
               </div>
             ),
           },
@@ -422,6 +435,7 @@ export function Trips({ me, isAdmin, isManager }) {
       />
       {manifest && <ManifestModal trip={manifest} onClose={() => setManifest(null)} />}
       {askTripNode}
+      {delTripNode}
       {addingTrip && <OneOffTripForm routes={routes} buses={buses} drivers={drivers} onClose={() => setAddingTrip(false)} onCreated={trips.reload} />}
       {addingExtra && <ExtraDepartureForm onClose={() => setAddingExtra(false)} onCreated={trips.reload} />}
       {form}

@@ -11,7 +11,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CnicInput, cnicMessage, PhoneInput, phoneMessage } from "../../components/PatternFields";
 import { adminApi } from "../api";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtDT, formError, FormError, inFormSave, Input, Label, lastActError, Modal, Page, rs, Section, Select, SkeletonDetails, SkeletonTable, Table, useForm, useLoad,
+  act, Badge, Btn, DeleteBtn, ErrorNote, Filters, fmtDT, formError, FormError, inFormSave, Input, Label, lastActError, Modal, Page, rs, Section, Select, SkeletonDetails, SkeletonTable, Table, useDelete, useForm, useLoad,
 } from "../ui";
 import { Pager } from "./Operations";
 import { PaymentBadge, phoneText } from "./cargoShared";
@@ -499,6 +499,7 @@ function SettingsForm({ settings, onSaved }) {
 export function CargoSettings() {
   const setup = useLoad(() => adminApi.cargoSetup(), []);
   const [openForm, form] = useForm();
+  const [del, delNode] = useDelete();
   const s = setup.data;
   const cityOpts = useMemo(() => (s?.cities ?? []).map((c) => ({ value: c.id, label: c.name })), [s]);
 
@@ -534,7 +535,24 @@ export function CargoSettings() {
                 { key: "minimum", label: "Minimum", render: (r) => (r.minimum ? rs(r.minimum) : "–") },
                 { key: "example", label: "10 kg, 1 piece", render: (r) => rs(chargeFor(r, 10, 1)) },
                 { key: "isActive", label: "Status", render: (r) => (r.isActive ? <Badge tone="green">in use</Badge> : <Badge tone="red">off</Badge>) },
-                { key: "a", label: "", render: (r) => <Btn small onClick={() => rateForm(r)}>Edit</Btn> },
+                {
+                  key: "a",
+                  label: "",
+                  render: (r) => (
+                    <div className="flex gap-1">
+                      <Btn small onClick={() => rateForm(r)}>Edit</Btn>
+                      <DeleteBtn
+                        aria-label={`Delete rate ${r.fromCity} to ${r.toCity}`}
+                        onClick={() => del({
+                          title: `Delete the rate ${r.fromCity} → ${r.toCity}?`,
+                          body: 'Parcels already booked keep their charge. Without a rate, staff type the charge for this pair. To pause it instead, untick "In use" in Edit.',
+                          run: () => adminApi.cargoDeleteRate(r.id),
+                          done: setup.reload,
+                        })}
+                      />
+                    </div>
+                  ),
+                },
               ]}
             />
           </Section>

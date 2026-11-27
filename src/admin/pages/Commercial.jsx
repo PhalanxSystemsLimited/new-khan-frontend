@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { adminApi } from "../api";
-import { act, Btn, ErrorNote, fmtDT, Input, Page, rs, StatusBadge, Table, useForm, useLoad } from "../ui";
+import { act, Btn, DeleteBtn, ErrorNote, fmtDT, Input, Page, rs, StatusBadge, Table, useDelete, useForm, useLoad } from "../ui";
 import { Pager } from "./Operations";
 
 /** ISO time -> "YYYY-MM-DDTHH:mm" in Pakistan time, for a datetime-local input. */
@@ -15,6 +15,7 @@ export function Promos() {
   const list = useLoad(() => adminApi.promos({ page, limit: 25 }), [page]);
   const routes = useLoad(() => adminApi.routes(), []);
   const [openForm, form] = useForm();
+  const [del, delNode] = useDelete();
 
   const add = () =>
     openForm({
@@ -69,11 +70,31 @@ export function Promos() {
           { key: "u", label: "Used", render: (r) => `${r.timesUsed ?? 0}${r.usageLimit ? ` / ${r.usageLimit}` : ""}` },
           { key: "v", label: "Valid", render: (r) => <span className="text-xs">{fmtDT(r.validFrom)}<br />→ {fmtDT(r.validTo)}</span> },
           { key: "s", label: "Status", render: (r) => <StatusBadge s={live(r) ? "active" : "inactive"} /> },
-          { key: "a", label: "", render: (r) => <Btn small onClick={() => edit(r)}>Edit</Btn> },
+          {
+            key: "a",
+            label: "",
+            render: (r) => (
+              <div className="flex gap-1">
+                <Btn small onClick={() => edit(r)}>Edit</Btn>
+                {!Number(r.timesUsed) && (
+                  <DeleteBtn
+                    aria-label={`Delete code ${r.code}`}
+                    onClick={() => del({
+                      title: `Delete code ${r.code}?`,
+                      body: 'Only possible while no booking (not even an unpaid hold) has used it. Otherwise untick "Active" in Edit to stop it being used.',
+                      run: () => adminApi.deletePromo(r.id),
+                      done: list.reload,
+                    })}
+                  />
+                )}
+              </div>
+            ),
+          },
         ]}
       />
       <Pager p={list.data?.pagination} onPage={setPage} />
       {form}
+      {delNode}
     </Page>
   );
 }

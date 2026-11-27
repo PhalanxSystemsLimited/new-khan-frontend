@@ -444,7 +444,9 @@ export function RoundTripEditor() {
                       initial: { title: legEdit.title, legRef: legEdit.legRef ?? "" },
                       onSubmit: (b) => run(() => adminApi.updateLeg(trip.id, leg.id, b), "Leg saved"),
                     })}>Edit leg</Btn>
-                    {vouchers.length === 0 && <Btn small kind="danger" onClick={() => run(() => adminApi.deleteLeg(trip.id, leg.id), "Leg removed")}>Remove leg</Btn>}
+                    {vouchers.length === 0 && (
+                      <Btn small kind="danger" onClick={async () => (await ask(`Remove leg ${leg.legNo}?`, "The leg is taken off this report. Its trip is not changed.", { confirm: "Remove leg" })) && run(() => adminApi.deleteLeg(trip.id, leg.id), "Leg removed")}>Remove leg</Btn>
+                    )}
                   </div>
                 )}
               </div>
@@ -542,7 +544,9 @@ export function RoundTripEditor() {
                     onSubmit: (b) => run(() => adminApi.setOffrouteLine(trip.id, l.id, { amount: int(b.amount) }), "Amount saved"),
                   })}>Change</Btn>
                   {l.isOverridden && <Btn small onClick={() => run(() => adminApi.setOffrouteLine(trip.id, l.id, { reset: true }), "Back to default")}>Reset</Btn>}
-                  {l.categoryId === null && <Btn small kind="danger" onClick={() => run(() => adminApi.removeOffrouteLine(trip.id, l.id), "Line removed")}>Remove</Btn>}
+                  {l.categoryId === null && (
+                    <Btn small kind="danger" onClick={async () => (await ask(`Remove "${l.name}"?`, `The Rs ${money(l.amount)} line is taken off this report.`, { confirm: "Remove" })) && run(() => adminApi.removeOffrouteLine(trip.id, l.id), "Line removed")}>Remove</Btn>
+                  )}
                 </div>
               ),
             },

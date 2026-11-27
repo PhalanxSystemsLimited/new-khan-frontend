@@ -2,9 +2,10 @@
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { adminApi } from "../api";
+import { toast } from "../../components/Toast";
 import RoutePicker, { describeRoute, emptyRouteChoice, useRouteBuilder } from "./RoutePicker";
 import {
-  act, Badge, Btn, ErrorNote, Filters, fmtD, fmtDT, Input, Label, Modal, Page, pkDate, rs, Select, StatusBadge, Table, useForm, useLoad,
+  act, Badge, Btn, DeleteBtn, ErrorNote, Filters, fmtD, fmtDT, Input, Label, Modal, Page, pkDate, rs, Select, StatusBadge, Table, useConfirm, useDelete, useForm, useLoad,
 } from "../ui";
 
 export const BUS_CLASSES = ["economy", "executive", "business", "sleeper"].map((c) => ({ value: c, label: c }));
@@ -26,6 +27,7 @@ function StopsEditor({ title, route, terminals, onClose, onSaved, isNew }) {
         ],
   );
   const [busy, setBusy] = useState(false);
+  const [ask, askNode] = useConfirm();
   const set = (i, k, v) => setStops((a) => a.map((s, j) => (j === i ? { ...s, [k]: v } : s)));
   const move = (i, d) => setStops((a) => { const b = [...a]; [b[i], b[i + d]] = [b[i + d], b[i]]; return b; });
   const opts = [{ value: "", label: "Choose terminal" }, ...terminals.map((t) => ({ value: t.id, label: `${t.cityName} · ${t.name}` }))];
@@ -33,10 +35,23 @@ function StopsEditor({ title, route, terminals, onClose, onSaved, isNew }) {
   async function save() {
     const body = stops.map((s) => ({ ...s, terminalId: Number(s.terminalId), minutesFromOrigin: Number(s.minutesFromOrigin), kmFromOrigin: Number(s.kmFromOrigin) || 0 }));
     setBusy(true);
-    const ok = await act(
-      () => (isNew ? adminApi.createRoute({ code: code.trim().toUpperCase(), name: name.trim(), stops: body }) : adminApi.replaceStops(route.id, body)),
-      isNew ? "Route created" : "Stops saved",
-    );
+    let declined = false; // the admin chose not to delete the route's fares: nothing was saved
+    let ok = await act(async () => {
+      if (isNew) return adminApi.createRoute({ code: code.trim().toUpperCase(), name: name.trim(), stops: body });
+      try {
+        return await adminApi.replaceStops(route.id, body);
+      } catch (e) {
+        // The route has fares: they belong to the old stops and would be deleted. Asked first.
+        if (e?.code !== "FARES_WOULD_BE_DELETED") throw e;
+        if (!(await ask("Delete this route's fares?", e.message, { confirm: "Save stops and delete fares" }))) {
+          declined = true;
+          return null;
+        }
+        return adminApi.replaceStops(route.id, body, true);
+      }
+    });
+    if (declined) ok = false;
+    else if (ok) toast(isNew ? "Route created" : "Stops saved", { duration: 3500 });
     setBusy(false);
     if (ok) {
       onSaved();
@@ -79,6 +94,7 @@ function StopsEditor({ title, route, terminals, onClose, onSaved, isNew }) {
         <Btn kind="primary" disabled={busy} onClick={save}>{busy ? "Saving…" : isNew ? "Create route" : "Save stops"}</Btn>
         <Btn onClick={onClose}>Cancel</Btn>
       </div>
+      {askNode}
     </Modal>
   );
 }
@@ -89,6 +105,7 @@ export function RoutesPage() {
   const terminals = (locs.data?.terminals ?? []).filter((t) => t.isActive);
   const [editor, setEditor] = useState(null);
   const [openForm, form] = useForm();
+  const [del, delNode] = useDelete();
 
   const openStops = async (r) => {
     try {
@@ -127,11 +144,31 @@ export function RoutesPage() {
           { key: "dur", label: "Duration", render: (r) => (r.estDurationMinutes ? hm(r.estDurationMinutes) : "–") },
           { key: "distanceKm", label: "Km" },
           { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
-          { key: "a", label: "", render: (r) => <div className="flex gap-1"><Btn small onClick={() => openStops(r)}>Stops</Btn><Btn small onClick={() => edit(r)}>Edit</Btn></div> },
+          {
+            key: "a",
+            label: "",
+            render: (r) => (
+              <div className="flex gap-1">
+                <Btn small onClick={() => openStops(r)}>Stops</Btn>
+                <Btn small onClick={() => edit(r)}>Edit</Btn>
+                <DeleteBtn
+                  aria-label={`Delete route ${r.code}`}
+                  onClick={() => del({
+                    title: `Delete route ${r.code}?`,
+                    body: 'Its stops and fares are deleted with it. Only possible while no trip, schedule or promo code uses the route; otherwise untick "Active" in Edit.',
+                    run: () => adminApi.deleteRoute(r.id),
+                    done: routes.reload,
+                    okBody: `Route ${r.code} deleted, with its stops and fares.`,
+                  })}
+                />
+              </div>
+            ),
+          },
         ]}
       />
       {editor && <StopsEditor {...editor} terminals={terminals} onClose={() => setEditor(null)} onSaved={routes.reload} />}
       {form}
+      {delNode}
     </Page>
   );
 }
@@ -146,6 +183,7 @@ export function Fares() {
   const fares = useLoad(() => (rid ? adminApi.fares(rid) : Promise.resolve([])), [rid]);
   const [cls, setCls] = useState("executive");
   const [openForm, form] = useForm();
+  const [del, delNode] = useDelete();
 
   const stops = detail.data?.stops ?? [];
   const missing = useMemo(() => {
@@ -206,7 +244,24 @@ export function Fares() {
           { key: "amount", label: "Fare", render: (r) => <b>{rs(r.amount)}</b> },
           { key: "validFrom", label: "From", render: (r) => fmtD(r.validFrom) },
           { key: "validTo", label: "To", render: (r) => (r.validTo ? fmtD(r.validTo) : "no end") },
-          { key: "a", label: "", render: (r) => <Btn small onClick={() => edit(r)}>Edit</Btn> },
+          {
+            key: "a",
+            label: "",
+            render: (r) => (
+              <div className="flex gap-1">
+                <Btn small onClick={() => edit(r)}>Edit</Btn>
+                <DeleteBtn
+                  aria-label={`Delete fare ${r.fromTerminal} to ${r.toTerminal}, ${r.busClass}`}
+                  onClick={() => del({
+                    title: `Delete the ${r.busClass} fare ${r.fromTerminal} → ${r.toTerminal}?`,
+                    body: "Seats already sold keep their price. Without a fare, this stop pair cannot be booked on this class until a new fare is set.",
+                    run: () => adminApi.deleteFare(r.id),
+                    done: fares.reload,
+                  })}
+                />
+              </div>
+            ),
+          },
         ]}
       />
       {missing.length > 0 && (
@@ -234,6 +289,7 @@ export function Schedules() {
   const [result, setResult] = useState(null);
   const builder = useRouteBuilder();
   const [built, setBuilt] = useState(null); // the route of a schedule made with "Choose locations"
+  const [del, delNode] = useDelete();
 
   const busOpts = (buses.data ?? []).filter((b) => b.isActive).map((b) => ({ value: b.id, label: `${b.registrationNo}${b.fleetNo ? ` (${b.fleetNo})` : ""} · ${b.busClass}` }));
   // The open form keeps the field list it was opened with, so it reads the routes and terminals through this:
@@ -364,10 +420,30 @@ export function Schedules() {
           { key: "defaultBus", label: "Default bus", render: (r) => r.defaultBus ?? <Badge tone="amber">none</Badge> },
           { key: "eff", label: "Runs", render: (r) => `${fmtD(r.effectiveFrom)} → ${r.effectiveTo ? fmtD(r.effectiveTo) : "no end"}` },
           { key: "isActive", label: "Status", render: (r) => <StatusBadge s={r.isActive ? "active" : "inactive"} /> },
-          { key: "a", label: "", render: (r) => <div className="flex gap-1"><Btn small kind="primary" disabled={!r.isActive} onClick={() => generate(r)}>Create trips</Btn><Btn small onClick={() => edit(r)}>Edit</Btn></div> },
+          {
+            key: "a",
+            label: "",
+            render: (r) => (
+              <div className="flex gap-1">
+                <Btn small kind="primary" disabled={!r.isActive} onClick={() => generate(r)}>Create trips</Btn>
+                <Btn small onClick={() => edit(r)}>Edit</Btn>
+                <DeleteBtn
+                  aria-label={`Delete schedule ${r.routeName} ${r.departureTime.slice(0, 5)}`}
+                  onClick={() => del({
+                    title: `Delete the ${r.departureTime.slice(0, 5)} schedule of ${r.routeName}?`,
+                    body: "No more trips can be created from it. Trips already created stay as they are, with their bookings: cancel any you do not want on the Trips page.",
+                    run: () => adminApi.deleteSchedule(r.id),
+                    done: list.reload,
+                    okBody: (d) => (d?.futureTripsKept ? `${d.futureTripsKept} upcoming trip${d.futureTripsKept === 1 ? "" : "s"} made from it stay on sale: cancel them on the Trips page if they should not run.` : "Schedule deleted."),
+                  })}
+                />
+              </div>
+            ),
+          },
         ]}
       />
       {form}
+      {delNode}
     </Page>
   );
 }
