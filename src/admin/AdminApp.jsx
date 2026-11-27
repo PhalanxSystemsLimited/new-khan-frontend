@@ -147,6 +147,22 @@ function Gate({ children }) {
     saveMe(m);
   };
   const [authOpen, setAuthOpen] = useState(false);
+  // The account check was refused for "too many requests" (not an access problem): said as it is, with Try again.
+  const [limited, setLimited] = useState(false);
+  // A refusal that says nothing about the account: the connection, too many requests, or the server busy for a moment.
+  const passing = (e) => e?.network || e?.code === "RATE_LIMITED" || e?.code === "RETRY";
+  const check = () =>
+    adminApi.me().then(
+      (m) => {
+        setLimited(false);
+        setMe(m);
+      },
+      (e) => {
+        setLimited(e?.code === "RATE_LIMITED");
+        // A screen that is already open stays open (a counter sale half typed is not thrown away); the next request retries.
+        setMeState((m) => (m && passing(e) ? m : (saveMe(null), null)));
+      },
+    );
 
   useEffect(() => {
     document.documentElement.lang = "en";
@@ -158,9 +174,9 @@ function Gate({ children }) {
     // A token refresh (same person) keeps the screen open while the account is checked again.
     setMeState((m) => (m && m.id === session.user?.id ? m : savedMe(session.user?.id)));
     // The check failed. If the server refused (session over, account deactivated), or nothing is known about this
-    // person yet, show "could not be checked". If only the CONNECTION failed (the account was checked before in this
-    // tab), keep the screen that is open: a counter sale half typed is not thrown away for a network blip. The next request retries.
-    adminApi.me().then(setMe, (e) => setMeState((m) => (m && e?.network ? m : (saveMe(null), null))));
+    // person yet, show "could not be checked" (or "too many requests"). If only the CONNECTION failed, or the server
+    // said "too many requests" / "busy" (the account was checked before in this tab), keep the screen that is open.
+    check();
   }, [session?.accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const box = (title, body, action) => (
@@ -176,7 +192,7 @@ function Gate({ children }) {
   );
 
   // Tab title for the screens shown here. Once signed in, each page sets its own (see usePageTitle).
-  const gateTitle = !IS_LIVE || !session ? "Sign in" : me === undefined ? "" : !me || !EMPLOYEE.includes(me.role) ? "No access" : null;
+  const gateTitle = !IS_LIVE || !session ? "Sign in" : me === undefined ? "" : !me && limited ? "Please wait" : !me || !EMPLOYEE.includes(me.role) ? "No access" : null;
   useEffect(() => {
     if (gateTitle !== null) document.title = gateTitle ? `${gateTitle} · ${ADMIN_TITLE}` : ADMIN_TITLE;
   }, [gateTitle]);
@@ -186,12 +202,22 @@ function Gate({ children }) {
   if (!session)
     return box("New Khan admin", "Sign in with a staff, conductor or admin account.", <Btn kind="primary" onClick={() => setAuthOpen(true)}>Sign in</Btn>);
   if (me === undefined) return box("Checking your account…", "One moment.", null);
+  const tryAgain = <Btn kind="primary" onClick={() => { setMeState(undefined); check(); }}>Try again</Btn>;
+  if (!me && limited)
+    return box(
+      "Too many requests",
+      "Too many requests from this connection. Wait a minute, then press Try again. Your account is fine.",
+      <>
+        {tryAgain}
+        <Btn onClick={() => signOut()}>Sign out</Btn>
+      </>,
+    );
   if (!me || !EMPLOYEE.includes(me.role))
     return box(
       "No access",
       me ? `${me.email ?? me.phone ?? "This account"} is a customer account. Ask a super admin to give it a staff role.` : "Your account could not be checked. Check the internet connection and try again, or sign in again.",
       <>
-        {!me && <Btn kind="primary" onClick={() => { setMeState(undefined); adminApi.me().then(setMe, () => setMe(null)); }}>Try again</Btn>}
+        {!me && tryAgain}
         <Btn onClick={() => signOut()}>Sign out</Btn>
         <Link to="/en" className="btn btn-ghost">Back to website</Link>
       </>,

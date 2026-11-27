@@ -108,11 +108,18 @@ export function ConductorScreen() {
     setBusy(false);
   }, []);
 
-  // Live: refresh every 30 seconds while a trip is open.
+  // Live: refresh every 30 seconds while a trip is open and the screen is showing; at once when shown again.
   useEffect(() => {
     if (!openNo) return undefined;
-    const t = setInterval(() => load(openNo), 30_000);
-    return () => clearInterval(t);
+    const tick = () => {
+      if (!document.hidden) load(openNo);
+    };
+    const t = setInterval(tick, 30_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, [openNo, load]);
 
   const submit = (e) => {

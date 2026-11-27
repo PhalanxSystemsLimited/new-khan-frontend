@@ -26,11 +26,24 @@ const dayName = (v) => new Date(v).toLocaleDateString("en-GB", { timeZone: TZ, w
 const dayKey = (v) => new Date(v).toLocaleDateString("en-CA", { timeZone: TZ });
 const money = (n) => Math.round(Number(n) || 0).toLocaleString("en-US");
 
-/** Reloads every `ms` while the page is open. */
+/**
+ * Reloads every `ms` while the page is open and its tab is showing. A hidden tab (another tab in front, the window
+ * minimised) does not reload, so tabs left open at a terminal do not use up the server's request allowance; it
+ * reloads at once when it is shown again.
+ */
 function useEvery(fn, ms) {
   useEffect(() => {
-    const t = setInterval(fn, ms);
-    return () => clearInterval(t);
+    const t = setInterval(() => {
+      if (!document.hidden) fn();
+    }, ms);
+    const onShow = () => {
+      if (!document.hidden) fn();
+    };
+    document.addEventListener("visibilitychange", onShow);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onShow);
+    };
   }, [fn, ms]);
 }
 
@@ -350,7 +363,9 @@ function QuickSale({ trip, onClose, onSold }) {
     if (!busyRef.current) seats.setData(d);
   }, [trip.tripId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const t = setInterval(refreshSeats, 30_000);
+    const t = setInterval(() => {
+      if (!document.hidden) refreshSeats(); // a hidden tab waits; it refreshes when shown (onBack)
+    }, 30_000);
     const onBack = () => {
       if (document.visibilityState === "visible") refreshSeats();
     };

@@ -166,7 +166,9 @@ export function SeatsClient({ lang }) {
   }, [outKey, retKey, lang]);
   useEffect(() => {
     if (!legs) return undefined;
-    const t = setInterval(refreshSeats, 30_000);
+    const t = setInterval(() => {
+      if (!document.hidden) refreshSeats(); // a hidden tab waits; it refreshes when shown (onBack)
+    }, 30_000);
     const onBack = () => {
       if (document.visibilityState === "visible") refreshSeats();
     };
